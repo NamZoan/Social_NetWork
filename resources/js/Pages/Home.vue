@@ -1,5 +1,6 @@
 <template>
     <App>
+        <div class="row newsfeed-right-side-content">
         <div class="row newsfeed-right-side-content mt-3">
             <Left />
             <div class="col-md-6 second-section" id="page-content-wrapper">
@@ -639,6 +640,7 @@
             </div>
             <Right />
         </div>
+        </div>
     </App>
 </template>
 
@@ -646,4 +648,6 @@
 import App from "../Layouts/App.vue";
 import Left from '../Components/Left.vue';
 import Right from '../Components/Right.vue';
+import '../../css/chat.css';
+
 </script>

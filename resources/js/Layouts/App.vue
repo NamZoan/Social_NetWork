@@ -1,11 +1,9 @@
 <template>
     <div class="container-fluid" id="wrapper">
         <div class="row newsfeed-size">
-            <div class="col-md-12 newsfeed-right-side">
-                <Navbar/>
-                <div class="row newsfeed-right-side-content">
-                    <slot></slot>
-                </div>
+            <div class="col-md-12 message-right-side">
+                <Navbar />
+                <slot></slot>
             </div>
         </div>
     </div>
@@ -14,7 +12,7 @@
 </template>
 
 <script setup>
-import Navbar from '../Components/Navbar.vue';
+import Navbar from "../Components/Navbar.vue";
 
-import ChatPopup from '../Components/ChatPopup.vue';
+import ChatPopup from "../Components/ChatPopup.vue";
 </script>

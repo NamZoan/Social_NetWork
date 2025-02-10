@@ -424,7 +424,6 @@
 }
 
 #message-frame .message-sidepanel .message-contacts {
-    max-height: calc(100% - 177px);
     overflow-y: scroll;
     overflow-x: hidden
 }
@@ -795,11 +794,11 @@
     #message-frame .content .message-input .wrap button {
         padding: 16px 0
     }
-    
+
     #message-frame .content .message-input .wrap .messenger-input {
         width: 100%;
     }
-    
+
     .messenger-icons img {
         margin: 0px 10px;
     }

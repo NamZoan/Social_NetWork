@@ -6,14 +6,9 @@ import '../css/boxicons.min.css';
 import '../css/bootstrap/bootstrap.min.css';
 import '../css/style.css';
 import '../css/components.css';
-import '../css/profile.css';
-import '../css/settings.css';
+
 import '../css/media.css';
-import '../css/chat.css';
-import '../css/auth.css';
 import '../css/fontawesome/css/all.min.css';
-import '../css/forms.css';
-import '../css/boxicons.min.css';
 import '../js/bootstrap.js';
 
 //js
