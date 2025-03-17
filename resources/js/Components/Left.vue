@@ -1,3 +1,8 @@
+<script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+
+</script>
+
 <template>
     <div class="col-md-3 newsfeed-left-side sticky-top shadow-sm" id="sidebar-wrapper">
         <div class="card newsfeed-user-card h-100">
@@ -11,13 +16,13 @@
                     <a href="#" class="newsfeedListicon"><i class='bx bx-dots-horizontal-rounded'></i></a>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="messages.html" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/message.png'"
-                            alt="message"> Messages</a>
+                    <Link href="/messages" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/message.png'"
+                            alt="message"> Messages</Link>
                     <span class="badge badge-primary badge-pill">2</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="groups.html" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/group.png'"
-                            alt="group"> Groups</a>
+                    <Link href="/groups" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/group.png'"
+                            alt="group"> Groups</Link>
                     <span class="badge badge-primary badge-pill">17</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">

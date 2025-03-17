@@ -18,8 +18,10 @@
                                 <div class="text-center">
                                     <div class="profile-img w-shadow">
                                         <div class="profile-img-overlay"></div>
-                                        <img :src="'/images/web/users/user-4.jpg'" alt="Avatar"
-                                            class="avatar img-circle" />
+                                        <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'"
+                                            alt="Avatar" class="avatar img-circle" />
+
+
                                         <div class="profile-img-caption">
                                             <label for="updateProfilePic" class="upload">
                                                 <i class="bx bxs-camera"></i>
@@ -30,7 +32,7 @@
                                         </div>
                                     </div>
                                     <p class="profile-fullname mt-3">
-                                        Arthur Minasyan
+                                        {{ user.name }}
                                     </p>
                                     <p class="profile-username mb-3 text-muted">
                                         @arthur_minasyan
@@ -634,6 +636,12 @@
 
 <script setup>
 import App from "../../Layouts/App.vue";
-import '../../../css/profile.css';
+import { defineProps } from "vue";
 
+const props = defineProps({
+    user: Object,
+});
 </script>
+<style scoped>
+@import "../../../css/profile.css";
+</style>

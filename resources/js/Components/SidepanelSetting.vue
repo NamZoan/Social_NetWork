@@ -1,5 +1,5 @@
 <template>
-    <div class="message-sidepanel">
+    <div class="message-sidepanel col-3">
         <div class="message-contacts settings-sidebar">
             <ul class="conversations">
                 <h6 class="p-3">General Settings</h6>
@@ -94,3 +94,10 @@
         </div>
     </div>
 </template>
+<style scoped>
+
+@import '../../css/forms.css';
+@import '../../css/settings.css';
+
+</style>
+

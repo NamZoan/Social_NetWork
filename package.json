@@ -17,6 +17,9 @@
     },
     "dependencies": {
         "@inertiajs/vue3": "^2.0.3",
-        "@vue/server-renderer": "^3.5.13"
+        "@popperjs/core": "^2.11.8",
+        "@vue/server-renderer": "^3.5.13",
+        "bootstrap-fileinput": "^5.5.4",
+        "jquery": "^3.7.1"
     }
 }

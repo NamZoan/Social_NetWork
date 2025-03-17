@@ -4,13 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-
+use App\Models\User;
 class ProfileController extends Controller
 {
-    public function index()
-    {
-        return Inertia::render('Profile/Index');
-    }
     public function edit()
     {
         return Inertia::render('Profile/Edit');
@@ -32,5 +28,18 @@ class ProfileController extends Controller
         $user->save();
 
         return redirect()->route('profile.index')->with('success', 'Cập nhật thông tin thành công!');
+    }
+    public function index($username)
+    {
+        $user = User::where('username', $username)->first();
+        if (!$user) {
+            abort(404, 'User not found');
+        }
+        else{
+            return Inertia::render('Profile/Index', [
+                'user' => $user,
+            ]);
+        }
+
     }
 }

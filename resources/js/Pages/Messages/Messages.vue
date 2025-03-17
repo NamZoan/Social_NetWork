@@ -204,7 +204,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-12" style="max-height: 532px;">
+                        <div class="col-md-12">
                             <div class="messages">
                                 <ul class="messages-content">
                                     <li class="message-receive">
@@ -216,7 +216,89 @@
                                     </li>
                                     <li class="message-receive">
                                         <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li><li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
+                                        <p>Are you going to the party on Saturday?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>I was thinking about it. Are you?</p>
+                                    </li>
+                                    <li class="message-receive">
+                                        <img :src="'images/web/users/user-6.png'" alt="Conversation user image" />
                                         <p>Yeah, I heard it's going to be a lot of fun.</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>Really? Well, what time does it start?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>Really? Well, what time does it start?</p>
+                                    </li>
+                                    <li class="message-reply">
+                                        <p>Really? Well, what time does it start?</p>
                                     </li>
                                     <li class="message-reply">
                                         <p>Really? Well, what time does it start?</p>
@@ -293,6 +375,9 @@
 </template>
 <script setup>
 import App from "../../Layouts/App.vue";
-import '../../../css/messenger.css';
+
 
 </script>
+<style scoped>
+@import '../../../css/messenger.css';
+</style>

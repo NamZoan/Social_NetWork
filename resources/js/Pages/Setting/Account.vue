@@ -44,6 +44,11 @@
 </template>
 
 <script setup lang="ts">
-import SidepanelSetting from "../../Components/SidepanelSetting.vue";
 import Index from "./Index.vue";
 </script>
+<style scoped>
+
+@import '../../../css/forms.css';
+@import '../../../css/settings.css';
+
+</style>

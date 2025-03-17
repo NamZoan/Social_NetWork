@@ -85,8 +85,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link, usePage, useForm } from '@inertiajs/vue3';
-import '../../../css/forms.css';
-import '../../../css/auth.css';
+
 
 
 // Khởi tạo form đăng nhập
@@ -109,4 +108,7 @@ const submitForm = () => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+@import '../../../css/forms.css';
+@import '../../../css/auth.css';
+</style>

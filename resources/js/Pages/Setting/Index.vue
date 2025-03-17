@@ -3,7 +3,7 @@
         <div class="row message-right-side-content">
             <div class="col-md-12">
                 <div id="message-frame">
-                    <SidepanelSetting />
+                    <SidepanelSetting></SidepanelSetting>
                     <slot></slot>
                 </div>
             </div>
@@ -13,6 +13,10 @@
 <script setup>
 import App from "../../Layouts/App.vue";
 import SidepanelSetting from '../../Components/SidepanelSetting.vue';
-import '../../../css/settings.css';
-
 </script>
+<style scoped>
+
+@import '../../../css/forms.css';
+@import '../../../css/settings.css';
+
+</style>

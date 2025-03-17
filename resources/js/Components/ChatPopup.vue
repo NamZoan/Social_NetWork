@@ -6,16 +6,16 @@
                     <div class="top-bar shadow-sm d-flex align-items-center">
                         <div class="col-md-6 col-xs-6">
                             <a href="profile.html">
-                                <img src="assets/images/users/user-2.jpg" class="mr-2 chatbox-user-img" alt="Chat user image">
+                                <img :src="'images/web/users/user-2.jpg'" class="mr-2 chatbox-user-img" alt="Chat user image">
                                 <span class="panel-title">Karen Minas</span>
                             </a>
                         </div>
                         <div class="col-md-6 col-xs-6 d-flex align-items-center justify-content-between">
                             <a href="#">
-                                <img src="assets/images/icons/messenger/video-call.png" class="chatbox-call" alt="Chatbox contact types">
+                                <img :src="'images/web/icons/messenger/video-call.png'" class="chatbox-call" alt="Chatbox contact types">
                             </a>
                             <a href="#" data-toggle="modal" data-target="#callModal">
-                                <img src="assets/images/icons/messenger/call.png" class="chatbox-call" alt="Chatbox contact types">
+                                <img :src="'images/web/icons/messenger/call.png'" class="chatbox-call" alt="Chatbox contact types">
                             </a>
                             <a href="javascript:void(0)"><i id="minimize-chat-window" class="bx bx-minus icon_minim"></i></a>
                             <a href="javascript:void(0)" id="close-chatbox"><i class="bx bx-x"></i></a>
@@ -70,22 +70,22 @@
                             <input type="text" class="w-100 search-input type-message" placeholder="Type a message..." />
                             <div class="chat-tools">
                                 <a href="#" class="chatbox-tools">
-                                    <img src="assets/images/icons/theme/post-image.png" class="chatbox-tools-img" alt="Chatbox tool">
+                                    <img :src="'images/web/icons/theme/post-image.png'" class="chatbox-tools-img" alt="Chatbox tool">
                                 </a>
                                 <a href="#" class="chatbox-tools">
-                                    <img src="assets/images/icons/messenger/gif.png" class="chatbox-tools-img" alt="Chatbox tool">
+                                    <img :src="'images/web/icons/messenger/gif.png'" class="chatbox-tools-img" alt="Chatbox tool">
                                 </a>
                                 <a href="#" class="chatbox-tools">
-                                    <img src="assets/images/icons/messenger/smile.png" class="chatbox-tools-img" alt="Chatbox tool">
+                                    <img :src="'images/web/icons/messenger/smile.png'" class="chatbox-tools-img" alt="Chatbox tool">
                                 </a>
                                 <a href="#" class="chatbox-tools">
-                                    <img src="assets/images/icons/messenger/console.png" class="chatbox-tools-img" alt="Chatbox tool">
+                                    <img :src="'images/web/icons/messenger/console.png'" class="chatbox-tools-img" alt="Chatbox tool">
                                 </a>
                                 <a href="#" class="chatbox-tools">
-                                    <img src="assets/images/icons/messenger/attach-file.png" class="chatbox-tools-img" alt="Chatbox tool">
+                                    <img :src="'images/web/icons/messenger/attach-file.png'" class="chatbox-tools-img" alt="Chatbox tool">
                                 </a>
                                 <a href="#" class="chatbox-tools">
-                                    <img src="assets/images/icons/messenger/photo-camera.png" class="chatbox-tools-img" alt="Chatbox tool">
+                                    <img :src="'images/web/icons/messenger/photo-camera.png'" class="chatbox-tools-img" alt="Chatbox tool">
                                 </a>
                             </div>
                         </div>
@@ -95,3 +95,6 @@
         </div>
     </div>
 </template>
+<style scoped>
+@import '../../css/chat.css';
+</style>

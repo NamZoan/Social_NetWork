@@ -3,7 +3,8 @@
         <div class="w-100 justify-content-md-center">
             <ul class="nav navbar-nav enable-mobile px-2">
                 <li class="nav-item">
-                    <button type="button" class="btn nav-link p-0"><img :src="'/images/web/icons/theme/post-image.png'" class="f-nav-icon" alt="Quick make post"></button>
+                    <button type="button" class="btn nav-link p-0"><img :src="'/images/web/icons/theme/post-image.png'"
+                            class="f-nav-icon" alt="Quick make post"></button>
                 </li>
                 <li class="nav-item w-100 py-2">
                     <form class="d-inline form-inline w-100 px-4">
@@ -26,8 +27,8 @@
                 </li>
             </ul>
             <ul class="navbar-nav mr-5 flex-row" id="main_menu">
-                <Link class="navbar-brand nav-item mr-lg-5" href="/"><img :src="'/images/web/logo-64x64.png'"
-                        width="40" height="40" class="mr-3" alt="Logo"></Link>
+                <Link class="navbar-brand nav-item mr-lg-5" href="/"><img :src="'/images/web/logo-64x64.png'" width="40"
+                    height="40" class="mr-3" alt="Logo"></Link>
                 <!-- Collect the nav links, forms, and other content for toggling -->
                 <form class="w-30 mx-2 my-auto d-inline form-inline mr-5 dropdown search-form">
                     <div class="input-group" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -428,11 +429,12 @@
                     </a>
                 </li>
                 <li class="nav-item s-nav">
-                    <a href="profile" class="nav-link nav-links">
-                        <div class="menu-user-image">
-                            <img :src="'/images/web/users/avatar.jpg'" class="menu-user-img ml-1" alt="Menu Image">
-                        </div>
-                    </a>
+                    <Link :href="`/${user.username}`" class="nav-link nav-links">
+                    <div class="menu-user-image">
+                        <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'"
+                            class="menu-user-img ml-1" alt="Menu Image">
+                    </div>
+                    </Link>
                 </li>
                 <li class="nav-item s-nav nav-icon dropdown">
                     <a href="settings.html" data-toggle="dropdown" data-placement="bottom" data-title="Settings"
@@ -442,18 +444,26 @@
                         aria-labelledby="settings-dropdown">
 
                         <Link class="dropdown-item" href="/cai-dat">
-                            <img :src="'/images/web/icons/navbar/gear-1.png'" alt="Navbar icon"> Cài Đặt</Link>
-                        <Link class="dropdown-item logout-btn" href="/dang-xuat" method="post" as="button" >
-                            <img :src="'/images/web/icons/navbar/logout.png'" alt="Navbar icon"> Đăng Xuất</Link>
+                        <img :src="'/images/web/icons/navbar/gear-1.png'" alt="Navbar icon"> Cài Đặt</Link>
+                        <Link class="dropdown-item logout-btn" href="/dang-xuat" method="post" as="button">
+                        <img :src="'/images/web/icons/navbar/logout.png'" alt="Navbar icon"> Đăng Xuất</Link>
                     </div>
                 </li>
                 <button type="button" class="btn nav-link" id="menu-toggle"><img
-                        src="assets/images/icons/theme/navs.png" alt="Navbar navs"></button>
+                        :src="'/images/web/icons/theme/navs.png'" alt="Navbar navs"></button>
             </ul>
 
         </div>
     </nav>
+
 </template>
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { usePage } from "@inertiajs/vue3";
+import { computed } from "vue";
+
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+console.log(user.value);
 </script>

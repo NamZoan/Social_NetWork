@@ -74,5 +74,5 @@ class UserController extends Controller
         return Inertia::location(route('login'));
     }
 
-    
+
 }

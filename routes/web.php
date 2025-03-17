@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\SettingController;
@@ -17,10 +18,11 @@ Route::post('/dang-ky', [UserController::class, 'store']);
 
 Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::get('/',[PageController::class, 'index'])->name('home');
-    Route::get('/profile',[ProfileController::class, 'index'])->name('profile');
     Route::get('/cai-dat',[SettingController::class, 'account'])->name('account');
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages',[MessageController::class,'index'])->name('message');
+    Route::get('/groups',[GroupController::class,'index'])->name('group');
+    Route::get('{user}',[ProfileController::class, 'index'])->name('profile');
 });
 
 

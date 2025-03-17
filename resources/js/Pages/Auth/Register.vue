@@ -115,8 +115,7 @@
 
 <script setup>
 import { Link, useForm } from "@inertiajs/vue3";
-import '../../../css/forms.css';
-import '../../../css/auth.css';
+
 
 
 const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
@@ -152,4 +151,7 @@ const submitForm = () => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+@import '../../../css/forms.css';
+@import '../../../css/auth.css';
+</style>
