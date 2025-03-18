@@ -1,5 +1,5 @@
 <template>
-    
+        
     <!-- <Post v-if="isOwner" /> -->
     <div class="post border-bottom p-3 bg-white w-shadow">
         <div class="media text-muted pt-3">
