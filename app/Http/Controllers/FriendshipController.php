@@ -11,54 +11,119 @@ use Inertia\Inertia;
 
 class FriendshipController extends Controller
 {
-    public function sendRequest(Request $request)
+    public function sendFriendRequest(Request $request)
     {
         $request->validate([
-            'receiver_id' => 'required|exists:users,id',
+            'user_id' => 'required|exists:users,id',
         ]);
 
-        $sender_id = Auth::id();
-        $receiver_id = $request->receiver_id;
+        $auth_id = auth()->id();
+        $receiver_id = $request->user_id;
 
-        // Kiểm tra nếu đã có yêu cầu kết bạn trước đó
-        $exists = Friendship::where(function ($query) use ($sender_id, $receiver_id) {
-            $query->where('user_id_1', $sender_id)->where('user_id_2', $receiver_id);
-        })->orWhere(function ($query) use ($sender_id, $receiver_id) {
-            $query->where('user_id_1', $receiver_id)->where('user_id_2', $sender_id);
-        })->exists();
+        // Kiểm tra nếu đã có lời mời kết bạn
+        $existingRequest = Friendship::where(function ($query) use ($auth_id, $receiver_id) {
+            $query->where('user_id_1', $auth_id)
+                ->where('user_id_2', $receiver_id);
+        })->orWhere(function ($query) use ($auth_id, $receiver_id) {
+            $query->where('user_id_1', $receiver_id)
+                ->where('user_id_2', $auth_id);
+        })->first();
 
-        if ($exists) {
-            return redirect()->back()->with('error', 'Đã gửi yêu cầu hoặc đã là bạn bè.');
+        if ($existingRequest) {
+            return response()->json(['message' => 'Đã có lời mời kết bạn'], 400);
         }
 
-        // Lưu vào database
+        // Tạo lời mời kết bạn mới
         Friendship::create([
-            'user_id_1' => $sender_id,
+            'user_id_1' => $auth_id,
             'user_id_2' => $receiver_id,
             'status' => 'pending',
         ]);
 
-        return redirect()->back()->with('success', 'Gửi lời mời kết bạn thành công.');
     }
 
     public function checkFriendshipStatus(Request $request, $username)
-{
-    $user = User::where('username', $username)->first();
-    if (!$user) {
-        return response()->json(['status' => 'not_found'], 404);
+    {
+        $user = User::where('username', $username)->first();
+        if (!$user) {
+            return response()->json(['status' => 'not_found'], 404);
+        }
+
+        $auth_id = auth()->id();
+        $friendship = Friendship::where(function ($query) use ($auth_id, $user) {
+            $query->where('user_id_1', $auth_id)
+                ->where('user_id_2', $user->id);
+        })->orWhere(function ($query) use ($auth_id, $user) {
+            $query->where('user_id_1', $user->id)
+                ->where('user_id_2', $auth_id);
+        })->first();
+
+        if (!$friendship) {
+            return response()->json(['status' => 'none']);
+        }
+
+        // Nếu user đăng nhập là người gửi lời mời
+        if ($friendship->user_id_1 === $auth_id && $friendship->status === 'pending') {
+            return response()->json(['status' => 'sent']);
+        }
+
+        // Nếu user đăng nhập là người nhận lời mời
+        if ($friendship->user_id_2 === $auth_id && $friendship->status === 'pending') {
+            return response()->json(['status' => 'received']);
+        }
+
+        // Nếu đã là bạn bè
+        if ($friendship->status === 'accepted') {
+            return response()->json(['status' => 'friends']);
+        }
+
+        return response()->json(['status' => 'none']);
     }
 
-    $auth_id = auth()->id();
-    $friendship = Friendship::where(function ($query) use ($auth_id, $user) {
-        $query->where('user_id_1', $auth_id)
-              ->where('user_id_2', $user->id);
-    })->orWhere(function ($query) use ($auth_id, $user) {
-        $query->where('user_id_1', $user->id)
-              ->where('user_id_2', $auth_id);
-    })->first();
+    public function acceptFriendRequest(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
 
-    return response()->json([
-        'status' => $friendship ? $friendship->status : 'none',
-    ]);
-}
+        $auth_id = auth()->id();
+        $sender_id = $request->user_id;
+
+        $friendship = Friendship::where('user_id_1', $sender_id)
+            ->where('user_id_2', $auth_id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$friendship) {
+            return response()->json(['message' => 'Không tìm thấy lời mời kết bạn'], 404);
+        }
+
+        $friendship->update(['status' => 'accepted']);
+
+    }
+
+    public function unfriend(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $auth_id = auth()->id();
+        $friend_id = $request->user_id;
+
+        $friendship = Friendship::where(function ($query) use ($auth_id, $friend_id) {
+            $query->where('user_id_1', $auth_id)
+                ->where('user_id_2', $friend_id);
+        })->orWhere(function ($query) use ($auth_id, $friend_id) {
+            $query->where('user_id_1', $friend_id)
+                ->where('user_id_2', $auth_id);
+        })->first();
+
+        if (!$friendship) {
+            return response()->json(['message' => 'Không tìm thấy bạn bè'], 404);
+        }
+
+        $friendship->delete();
+
+    }
 }

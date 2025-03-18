@@ -43,13 +43,11 @@ class ProfileController extends Controller
                       ->where('user_id_2', auth()->id());
             })->first();
 
-            dd($check_status);
-            die;
 
             return Inertia::render('Profile/Index', [
                 'user' => $user,
             ]);
     }
 
-    
+
 }

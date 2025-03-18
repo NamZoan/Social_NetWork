@@ -23,8 +23,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
     Route::get('/groups', [GroupController::class, 'index'])->name('group');
     Route::get('{user}', [ProfileController::class, 'index'])->name('profile');
-    Route::post('/friend-request', [FriendshipController::class, 'sendRequest'])->name('friend.request');
     Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
+    Route::post('/send-friend-request', [FriendshipController::class, 'sendFriendRequest']);
+    Route::post('/accept-friend-request', [FriendshipController::class, 'acceptFriendRequest']);
+    Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
 
 });
 
