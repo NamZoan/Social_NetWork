@@ -61,7 +61,6 @@
                             class="file form-control" multiple @change="handleFileUpload" />
 
                         <div class="modal-footer p-0 mt-5">
-                            <button type="button" class="btn btn-secondary">Hủy</button>
                             <button type="submit" class="btn btn-primary">Đăng Tin</button>
                         </div>
                     </form>
@@ -76,6 +75,8 @@
 <script setup>
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
+
+import { useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     status: '',

@@ -18,11 +18,12 @@
                                 <div class="text-center">
                                     <div class="profile-img w-shadow">
                                         <div class="profile-img-overlay"></div>
-                                        <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'"
-                                            alt="Avatar" class="avatar img-circle" />
+                                        <img :src="user.avatar
+                                            ? `/images/client/avatar/${user.avatar}`
+                                            : '/images/web/users/avatar.jpg'
+                                            " alt="Avatar" class="avatar img-circle" />
 
-
-                                        <div class="profile-img-caption">
+                                        <div v-if="isOwner" class="profile-img-caption">
                                             <label for="updateProfilePic" class="upload">
                                                 <i class="bx bxs-camera"></i>
                                                 Update
@@ -40,14 +41,27 @@
                                 </div>
                                 <div class="intro mt-4">
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-follow mr-3">
-                                            <i class="bx bx-plus"></i> Follow
+                                        <button v-if="!isFriendRequestSent && !isOwner" @click="sendFriendRequest" type="button"
+                                            class="btn btn-follow mr-3">
+                                            <i class="bx bx-plus"></i> Kết Bạn
                                         </button>
-                                        <button type="button" class="btn btn-start-chat" data-toggle="modal"
-                                            data-target="#newMessageModal">
+
+                                        <button v-else-if="!isOwner" type="button" class="btn btn-pending mr-3">
+                                            <i class="bx bx-time"></i> Đã gửi yêu cầu
+                                        </button>
+
+                                        <button v-if="!isOwner" type="button" class="btn btn-start-chat"
+                                            data-toggle="modal" data-target="#newMessageModal">
                                             <i class="bx bxs-message-rounded"></i>
-                                            <span class="fs-8">Message</span>
+                                            <span class="fs-8">Nhắn Tin</span>
                                         </button>
+
+                                        <button v-if="isOwner" type="button" class="btn btn-start-chat w-100"
+                                            data-toggle="modal" data-target="#newMessageModal">
+                                            <i class='bx bx-user-circle'></i>
+                                            <span class="fs-8">Chỉnh Sửa Trang Cá Nhân</span>
+                                        </button>
+
                                         <button type="button" class="btn btn-follow" id="moreMobile"
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                             <i class="bx bx-dots-horizontal-rounded"></i>
@@ -167,38 +181,7 @@
                                             </div>
                                         </li>
                                     </ul>
-                                    <ul class="list-unstyled" style="margin-bottom: 0">
-                                        <li class="media post-form w-shadow">
-                                            <div class="media-body">
-                                                <div class="form-group post-input">
-                                                    <textarea class="form-control" id="postForm" rows="2"
-                                                        placeholder="What's on your mind?"></textarea>
-                                                </div>
-                                                <div class="row post-form-group">
-                                                    <div class="col-md-9">
-                                                        <button type="button" class="btn btn-link post-form-btn btn-sm">
-                                                            <i class="bx bx-images"></i>
-                                                            <span>Photo/Video</span>
-                                                        </button>
-                                                        <button type="button" class="btn btn-link post-form-btn btn-sm">
-                                                            <i class="bx bxs-group"></i>
-                                                            <span>Tag
-                                                                Friends</span>
-                                                        </button>
-                                                        <button type="button" class="btn btn-link post-form-btn btn-sm">
-                                                            <i class="bx bxs-map"></i>
-                                                            <span>Check In</span>
-                                                        </button>
-                                                    </div>
-                                                    <div class="col-md-3 text-right">
-                                                        <button type="button" class="btn btn-primary btn-sm">
-                                                            Publish
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </ul>
+                                    <Post v-if="isOwner"/>
                                     <div
                                         class="bg-white profile-posts-options mt-5 mb-4 py-3 d-flex justify-content-between shadow-sm">
                                         <div class="col-md-3 col-sm-12">
@@ -636,11 +619,33 @@
 
 <script setup>
 import App from "../../Layouts/App.vue";
-import { defineProps } from "vue";
-
+import Post from '../../Components/Post.vue';
+import { Link, usePage, router } from "@inertiajs/vue3";
+import { defineProps, computed, ref } from "vue";
 const props = defineProps({
     user: Object,
 });
+const page = usePage();
+const user_auth = computed(() => page.props.auth.user);
+
+const isOwner = computed(() => {
+    return props.user.id === user_auth.value.id;
+});
+
+const isFriendRequestSent = ref(false);
+
+const sendFriendRequest = () => {
+    router.post("/friend-request", { receiver_id: props.user.id }, {
+        onSuccess: () => {
+            isFriendRequestSent.value = true;
+        },
+        onError: (errors) => {
+            alert(errors.message || "Có lỗi xảy ra!");
+        }
+    });
+};
+
+
 </script>
 <style scoped>
 @import "../../../css/profile.css";

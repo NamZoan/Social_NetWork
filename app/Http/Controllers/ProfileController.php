@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\User;
+use App\Models\Friendship;
+
 class ProfileController extends Controller
 {
     public function edit()
@@ -32,14 +34,22 @@ class ProfileController extends Controller
     public function index($username)
     {
         $user = User::where('username', $username)->first();
-        if (!$user) {
-            abort(404, 'User not found');
-        }
-        else{
+
+            $check_status = Friendship::where(function ($query) use ($user) {
+                $query->where('user_id_1', auth()->id())
+                      ->where('user_id_2', $user->id);
+            })->orWhere(function ($query) use ($user) {
+                $query->where('user_id_1', $user->id)
+                      ->where('user_id_2', auth()->id());
+            })->first();
+
+            dd($check_status);
+            die;
+
             return Inertia::render('Profile/Index', [
                 'user' => $user,
             ]);
-        }
-
     }
+
+    
 }

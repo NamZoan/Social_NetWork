@@ -7,7 +7,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use App\Http\Controllers\FriendshipController;
 
 
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
@@ -17,12 +17,15 @@ Route::post('/dang-ky', [UserController::class, 'store']);
 
 
 Route::middleware(['auth', 'auth.session'])->group(function () {
-    Route::get('/',[PageController::class, 'index'])->name('home');
-    Route::get('/cai-dat',[SettingController::class, 'account'])->name('account');
+    Route::get('/', [PageController::class, 'index'])->name('home');
+    Route::get('/cai-dat', [SettingController::class, 'account'])->name('account');
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
-    Route::get('/messages',[MessageController::class,'index'])->name('message');
-    Route::get('/groups',[GroupController::class,'index'])->name('group');
-    Route::get('{user}',[ProfileController::class, 'index'])->name('profile');
+    Route::get('/messages', [MessageController::class, 'index'])->name('message');
+    Route::get('/groups', [GroupController::class, 'index'])->name('group');
+    Route::get('{user}', [ProfileController::class, 'index'])->name('profile');
+    Route::post('/friend-request', [FriendshipController::class, 'sendRequest'])->name('friend.request');
+    Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
+
 });
 
 
