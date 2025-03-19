@@ -42,25 +42,26 @@
                                 <div class="intro mt-4">
                                     <div class="d-flex">
                                         <!-- Nếu chưa kết bạn -->
-                                        <button v-if="friendshipStatus === 'none' && !isOwner" @click="sendFriendRequest"
-                                            class="btn btn-follow">
+                                        <button v-if="friendshipStatus === 'none' && !isOwner"
+                                            @click="sendFriendRequest" class="btn btn-follow">
                                             <i class="bx bx-plus"></i> Kết Bạn
                                         </button>
 
                                         <!-- Nếu đã gửi lời mời kết bạn -->
-                                        <button v-else-if="friendshipStatus === 'sent' && !isOwner" class="btn btn-follow" @click="unfriend">
+                                        <button v-else-if="friendshipStatus === 'sent' && !isOwner"
+                                            class="btn btn-follow" @click="unfriend">
                                             <i class="bx bx-time"></i> Đã gửi yêu cầu
                                         </button>
 
                                         <!-- Nếu nhận được lời mời kết bạn -->
-                                        <button v-else-if="friendshipStatus === 'received' && !isOwner" @click="acceptFriendRequest"
-                                            class="btn btn-follow">
+                                        <button v-else-if="friendshipStatus === 'received' && !isOwner"
+                                            @click="acceptFriendRequest" class="btn btn-follow">
                                             <i class="bx bx-check"></i> Xác nhận
                                         </button>
 
                                         <!-- Nếu đã là bạn bè -->
-                                        <button v-else-if="friendshipStatus === 'friends' && !isOwner" class="btn btn-follow"
-                                            @click="unfriend">
+                                        <button v-else-if="friendshipStatus === 'friends' && !isOwner"
+                                            class="btn btn-follow" @click="unfriend">
                                             <i class="bx bx-user-check"></i> Bạn bè
                                         </button>
 
@@ -71,11 +72,7 @@
                                             <span class="fs-8">Nhắn Tin</span>
                                         </button>
 
-                                        <button v-if="isOwner" type="button" class="btn btn-start-chat w-100"
-                                            data-toggle="modal" data-target="#newMessageModal">
-                                            <i class='bx bx-user-circle'></i>
-                                            <span class="fs-8">Chỉnh Sửa Trang Cá Nhân</span>
-                                        </button>
+
 
                                         <button type="button" class="btn btn-follow" id="moreMobile"
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -98,7 +95,7 @@
                                 </div>
                                 <div class="intro mt-5 mv-hidden">
                                     <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <h3 class="intro-about">Intro</h3>
+                                        <h3 class="intro-about">Giới Thiệu</h3>
                                     </div>
                                     <div class="intro-item d-flex justify-content-between align-items-center">
                                         <p class="intro-title text-muted">
@@ -122,7 +119,8 @@
                                                 <span class="ml-1 online-status bg-success"></span></a>
                                         </p>
                                     </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
+                                    <div v-if="isOwner"
+                                        class="intro-item d-flex justify-content-between align-items-center">
                                         <a href="#" class="btn btn-quick-link join-group-btn border w-100">Edit
                                             Details</a>
                                     </div>
@@ -196,8 +194,7 @@
                                             </div>
                                         </li>
                                     </ul>
-
-                                    <slot></slot>
+                                    <slot :isOwner="isOwner"></slot>
                                 </div>
                             </div>
                         </div>
@@ -210,12 +207,12 @@
 
 <script setup>
 import App from "../../Layouts/App.vue";
-import Post from '../../Components/Post.vue';
 import { Link, usePage, router } from "@inertiajs/vue3";
-import { defineProps, computed, ref, onMounted } from "vue";
+import { defineProps, computed, ref, onMounted, provide } from "vue";
 import axios from "axios";
 const props = defineProps({
     user: Object,
+    defaultPage: String,
 });
 const page = usePage();
 const user_auth = computed(() => page.props.auth.user);
@@ -223,6 +220,8 @@ const user_auth = computed(() => page.props.auth.user);
 const isOwner = computed(() => {
     return props.user.id === user_auth.value.id;
 });
+
+provide('isOwner', isOwner.value);
 
 const friendshipStatus = ref("none"); // Trạng thái kết bạn: 'none', 'pending', 'accepted'
 // Lấy trạng thái kết bạn

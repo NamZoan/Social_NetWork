@@ -35,16 +35,7 @@ class ProfileController extends Controller
     {
         $user = User::where('username', $username)->first();
 
-            $check_status = Friendship::where(function ($query) use ($user) {
-                $query->where('user_id_1', auth()->id())
-                      ->where('user_id_2', $user->id);
-            })->orWhere(function ($query) use ($user) {
-                $query->where('user_id_1', $user->id)
-                      ->where('user_id_2', auth()->id());
-            })->first();
-
-
-            return Inertia::render('Profile/Index', [
+            return Inertia::render('Profile/ListPost', [
                 'user' => $user,
             ]);
     }
