@@ -8,18 +8,12 @@ import '../css/bootstrap/bootstrap.min.css';
 import '../css/style.css';
 import '../css/components.css';
 
-
-
-
-
 import '../css/media.css';
 import '../css/fontawesome/css/all.min.css';
-import '../js/bootstrap.js';
 
 //js
 import '../js/Custom/app.js';
-import '../js/Custom/components/components.js';
-
+// import '../js/Custom/components/components.js';
 
 
 

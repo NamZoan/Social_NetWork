@@ -55,25 +55,25 @@
     overflow-y: auto;
 }
 
-.dropdown-menu.notify-drop .drop-content > li {
+.dropdown-menu.notify-drop .drop-content>li {
     padding: 10px 0px 5px 0px;
 }
 
-.dropdown-menu.notify-drop .drop-content > li:after {
+.dropdown-menu.notify-drop .drop-content>li:after {
     content: "";
     clear: both;
     display: block;
 }
 
-.dropdown-menu.notify-drop .drop-content > li:hover {
+.dropdown-menu.notify-drop .drop-content>li:hover {
     background-color: #fcfcfc;
 }
 
-.dropdown-menu.notify-drop .drop-content > li:last-child {
+.dropdown-menu.notify-drop .drop-content>li:last-child {
     border-bottom: none;
 }
 
-.dropdown-menu.notify-drop .drop-content > li .notify-img {
+.dropdown-menu.notify-drop .drop-content>li .notify-img {
     float: left;
     display: inline-block;
     width: 45px;
@@ -81,7 +81,7 @@
     margin: 0px 0px 8px 0px;
 }
 
-.dropdown-menu.notify-drop .drop-content > li .notify-img img {
+.dropdown-menu.notify-drop .drop-content>li .notify-img img {
     width: 40px;
     border-radius: 50%;
 }
@@ -95,12 +95,12 @@
     color: #333;
 }
 
-.dropdown-menu.notify-drop .drop-content > li a {
+.dropdown-menu.notify-drop .drop-content>li a {
     font-size: 12px;
     font-weight: normal;
 }
 
-.dropdown-menu.notify-drop .drop-content > li hr {
+.dropdown-menu.notify-drop .drop-content>li hr {
     margin: 5px 0;
     width: 70%;
     border-color: #e8e8e8;
@@ -112,7 +112,7 @@
     padding-right: 5px;
 }
 
-.dropdown-menu.notify-drop .drop-content > li p {
+.dropdown-menu.notify-drop .drop-content>li p {
     font-size: 11px;
     color: #666;
     font-weight: normal;
@@ -139,6 +139,7 @@
     color: #000 !important;
     font-weight: 500 !important;
 }
+
 /* END Dropdown */
 
 /*-------------------------------------------*\
@@ -224,37 +225,37 @@
 .reaction-like {
     left: 10px;
     transition-delay: 0s;
-    background-image: url('../images/icons/reactions/like.gif');
+    background-image: url('../../public/images/web/icons/reactions/like.gif');
 }
 
 .reaction-love {
     left: 48px;
     transition-delay: .05s;
-    background-image: url('../images/icons/reactions/love.gif');
+    background-image: url('../../public/images/web/icons/reactions/love.gif');
 }
 
 .reaction-haha {
     left: 86px;
     transition-delay: .1s;
-    background-image: url('../images/icons/reactions/haha.gif');
+    background-image: url('../../public/images/web/icons/reactions/haha.gif');
 }
 
 .reaction-wow {
     left: 124px;
     transition-delay: .15s;
-    background-image: url('../images/icons/reactions/wow.gif');
+    background-image: url('../../public/images/web/icons/reactions/wow.gif');
 }
 
 .reaction-sad {
     left: 162px;
     transition-delay: .2s;
-    background-image: url('../images/icons/reactions/sad.gif');
+    background-image: url('../../public/images/web/icons/reactions/sad.gif');
 }
 
 .reaction-angry {
     left: 200px;
     transition-delay: .25s;
-    background-image: url('../images/icons/reactions/angry.gif');
+    background-image: url('../../public/images/web/icons/reactions/angry.gif');
 }
 
 .like-btn:hover .reaction {

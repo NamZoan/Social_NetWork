@@ -7,7 +7,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
@@ -62,4 +63,12 @@ class User extends Authenticatable
 
         return $username;
     }
+
+    public function friends()
+    {
+        return $this->belongsToMany(User::class, 'friendships', 'user_id_1', 'user_id_2')
+            ->union($this->belongsToMany(User::class, 'friendships', 'user_id_2', 'user_id_1'));
+    }
+
+    
 }

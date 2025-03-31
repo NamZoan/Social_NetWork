@@ -43,22 +43,21 @@
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="submitPost">
-                        <div class="input-group mb-3">
-                            <select v-model="status" class="form-select">
-                                <option disabled>Trạng thái</option>
-                                <option value="1">Công Khai</option>
-                                <option value="2">Bạn Bè</option>
-                                <option value="3">Chỉ Mình Tôi</option>
-                            </select>
-                        </div>
+                        <!-- Chọn quyền riêng tư -->
+                        <select v-model="form.privacy_setting" class="form-control" aria-label="Default select example">
+                            <option value="public">Công Khai</option>
+                            <option value="friends">Bạn Bè</option>
+                            <option value="private">Chỉ Mình Tôi</option>
+                        </select>
 
+                        <!-- Nội dung bài viết -->
                         <div class="form-group">
-                            <label for="message-text" class="col-form-label">Message:</label>
-                            <textarea v-model="message" class="form-control" id="message-text"></textarea>
+                            <label for="message-text" class="col-form-label">Bạn đang nghĩ gì:</label>
+                            <textarea v-model="form.content" class="form-control" id="message-text"></textarea>
                         </div>
 
-                        <input id="input-b3" name="input-b3[]" type="file" data-show-upload="false"
-                            class="file form-control" multiple @change="handleFileUpload" />
+                        <!-- Upload file -->
+                        <input id="input-b3" type="file" class="file" multiple @change="handleFileUpload">
 
                         <div class="modal-footer p-0 mt-5">
                             <button type="submit" class="btn btn-primary">Đăng Tin</button>
@@ -75,19 +74,57 @@
 <script setup>
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
+import { onMounted,defineProps } from 'vue';
+import { useForm,router  } from '@inertiajs/vue3';
+import $ from 'jquery';
+const props = defineProps({
+    user: Object,
+});
 
-import { useForm } from '@inertiajs/vue3';
 
 const form = useForm({
-    status: '',
-    message: '',
+    privacy_setting: 'public',
+    content: '',
     files: []
 });
 
+// Gán file vào form khi người dùng chọn file
+const handleFileUpload = (event) => {
+    form.files = Array.from(event.target.files);
+};
+
+// Khởi tạo bootstrap-fileinput
+onMounted(() => {
+    $('#input-b3').fileinput({
+        showUpload: false,
+        showPreview: true,
+        allowedFileExtensions: ['jpg', 'png', 'gif'],
+    });
+});
+
+
+// Gửi form lên server Laravel
 const submitPost = () => {
+    const formData = new FormData();
+    formData.append('privacy_setting', form.privacy_setting);
+    formData.append('content', form.content);
+
+    form.files.forEach(file => {
+        formData.append('files[]', file);
+    });
+
     form.post('/posts', {
+        headers: { 'Content-Type': 'multipart/form-data' },
         onSuccess: () => {
-            alert('Đăng bài thành công!');
+            alert('✅ Bài viết đã được đăng thành công!');
+            form.reset();
+
+            // Chuyển hướng về trang profile của user
+            router.visit(`/profile/${props.user.username}`);
+        },
+        onError: (errors) => {
+            alert('❌ Đăng bài thất bại! Vui lòng thử lại.');
+            console.error(errors);
         }
     });
 };

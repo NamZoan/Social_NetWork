@@ -8,7 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FriendshipController;
-
+use App\Http\Controllers\PostController;
 
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
@@ -22,12 +22,19 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
     Route::get('/groups', [GroupController::class, 'index'])->name('group');
-    Route::get('{user}', [ProfileController::class, 'index'])->name('profile');
+    Route::prefix('{username}')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('profile');
+        Route::get('/friend', [ProfileController::class, 'friend'])->name('profile.friend');
+        Route::get('/group', [ProfileController::class, 'group'])->name('profile.group');
+        Route::get('/media', [ProfileController::class, 'media'])->name('profile.media');
+        Route::get('/load-more', [ProfileController::class, 'loadMore'])->name('posts.load-more');
+    });
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);
     Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
     Route::post('/send-friend-request', [FriendshipController::class, 'sendFriendRequest']);
     Route::post('/accept-friend-request', [FriendshipController::class, 'acceptFriendRequest']);
     Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
-
 });
 
 
