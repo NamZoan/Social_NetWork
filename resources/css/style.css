@@ -67,7 +67,7 @@ button:focus {
 }
 
 .w-shadow {
-    box-shadow: 5px 30px 26px -20px #b6b6b6;
+    box-shadow: 0px 30px 50px -20px #b6b6b6;
 }
 
 /* Fonts */
@@ -399,9 +399,7 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .post-card-buttons {
-    margin-top: 15px;
-    padding: 10px 25px;
-    color: #6c757d;
+    padding: 0px 25px;
 }
 
 .post-card-buttons:hover {
@@ -409,7 +407,7 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .post-card-buttons i {
-    font-size: 1.3em;
+    font-size: 1.5em;
     vertical-align: top
 }
 

@@ -30,7 +30,11 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::get('/load-more', [ProfileController::class, 'loadMore'])->name('posts.load-more');
     });
     Route::post('/posts', [PostController::class, 'store']);
+
     Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);
+    Route::get('/posts/check-reaction/{postId}', [PostController::class, 'checkReaction']);
+    Route::post('/posts/remove-reaction/{postId}', [PostController::class, 'removeReaction']);
+
     Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
     Route::post('/send-friend-request', [FriendshipController::class, 'sendFriendRequest']);
     Route::post('/accept-friend-request', [FriendshipController::class, 'acceptFriendRequest']);

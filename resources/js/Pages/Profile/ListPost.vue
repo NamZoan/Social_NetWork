@@ -3,10 +3,8 @@
 
         <Post v-if="isOwner" :user="user_auth"></Post>
 
-        <div v-for="post in allPosts">
-            <ItemPost :key="post.id" :post="post">
+            <ItemPost v-for="post in allPosts" :key="post.id" :post="post">
             </ItemPost>
-        </div>
 
 
         <div v-if="hasMorePages" ref="loadMoreTrigger">

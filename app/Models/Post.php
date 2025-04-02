@@ -41,6 +41,10 @@ class Post extends Model
     {
         return $this->morphMany(Like::class, 'content', 'content_type', 'content_id');
     }
+    public function isLikedBy($user)
+    {
+        return $this->likes()->where('user_id', $user->id)->exists();
+    }
 
     // Quan hệ với Comments
     public function comments(): HasMany

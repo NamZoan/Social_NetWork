@@ -88,20 +88,16 @@ class PostController extends Controller
     }
 
 
-    public function likePost(Request $request, $postId,$reactionType)
+    public function likePost(Request $request, $postId)
     {
-
-        dd('12345');
         $user = auth()->user();
-        $reactionType = $request->input('reaction_type', 'like');
-
+        $reactionType = $request->reaction;
         // Kiểm tra xem đã like chưa
         $existingLike = Like::where([
             'user_id' => $user->id,
             'content_type' => 'post',
             'content_id' => $postId,
         ])->first();
-
         if ($existingLike) {
             if ($existingLike->reaction_type == $reactionType) {
                 // Nếu đã like với reaction đó thì bỏ like
@@ -123,6 +119,33 @@ class PostController extends Controller
         ]);
 
         return response()->json(['message' => 'Liked', 'likes_count' => Post::find($postId)->likes()->count()]);
+    }
+
+    public function checkReaction($postId)
+    {
+        $user = auth()->user();
+        $reaction = Like::where([
+            'user_id' => $user->id,
+            'content_type' => 'post',
+            'content_id' => $postId,
+        ])->first();
+
+        if ($reaction) {
+            return response()->json(['reaction' => $reaction->reaction_type]);
+        }
+
+        return response()->json(['reaction' => null]);
+
+    }
+    // ✅ Xóa reaction của người dùng
+    public function removeReaction($postId)
+    {
+        Like::where('user_id', auth()->user()->id)->where('content_id', $postId)->delete();
+
+        return response()->json([
+            'message' => 'Reaction removed',
+            'likes_count' => $post->reactions()->count()
+        ]);
     }
 
 

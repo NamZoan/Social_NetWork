@@ -13,6 +13,7 @@ class FriendshipController extends Controller
 {
     public function sendFriendRequest(Request $request)
     {
+
         $request->validate([
             'user_id' => 'required|exists:users,id',
         ]);

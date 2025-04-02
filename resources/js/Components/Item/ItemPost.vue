@@ -1,7 +1,7 @@
 <template>
-    <div class="post border-bottom p-3 bg-white w-shadow">
+    <div class="post border-bottom p-3 bg-white w-shadow mb-3">
         <div class="media text-muted pt-3">
-            <img src="assets/images/users/user-4.jpg" alt="Online user" class="mr-3 post-user-image">
+            <img src="assets/images/users/user-4.jpg" class="mr-3 post-user-image">
             <div class="media-body pb-3 mb-0 small lh-125">
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <span class="post-type text-muted"><a href="#" class="text-gray-dark post-user-name mr-2">Arthur
@@ -66,21 +66,21 @@
                 <span class="d-block">{{ props.post.created_at }} <i class='bx bx-globe ml-3'></i></span>
             </div>
         </div>
-        <div class="mt-3">
-            <p>{{ props.post.content }}</p>
-        </div>
+        <p>{{ props.post.content }}</p>
 
-        <div class="d-block mt-3 mb-3">
+        <div class="border-bottom"></div>
+
+        <div class="d-block mb-3">
             <div :class="galleryClass" class="gallery">
                 <div v-for="(src, index) in displayImages" :key="index" class="gallery-item">
-                    <img :src="'/images/client/post/' + src" :alt="`Gallery Image ${index + 1}`" loading="lazy" />
+                    <img :src="'/images/client/post/' + src" loading="lazy" />
                 </div>
                 <div v-if="images.length > 2" class="more-overlay" data-toggle="modal"
                     data-target="#exampleModalCenter">+{{ images.length - 2 }}</div>
             </div>
         </div>
 
-        <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog"
+        <div v-if="images.length > 2" class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog"
             aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
@@ -88,7 +88,7 @@
                         <div class="carousel-inner">
                             <div v-for="(src, index) in images" :key="index" class="carousel-item"
                                 :class="{ active: index === 0 }">
-                                <img :src="'/images/client/post/' + src" class="d-block w-100">
+                                <img :src="'/images/client/post/' + src" class="d-block w-100" loading="lazy">
                             </div>
                         </div>
                         <a class="carousel-control-prev" href="#carouselExampleControls" role="button"
@@ -108,63 +108,71 @@
 
 
 
-        <div class="mb-2">
 
-            <!-- Reactions -->
-            <div class="argon-reaction">
-                <span class="like-btn">
-                    <a href="#" class="post-card-buttons">
-                        <i class='bx bxs-like mr-2'></i> {{ likesCount }}
-                    </a>
-                    <ul class="reactions-box dropdown-shadow">
-                        <li v-for="reaction in reactions" :key="reaction.type" class="reaction"
-                            :class="'reaction-' + reaction.type" @click="toggleLike(reaction.type)">
-                        </li>
-                    </ul>
-                </span>
-            </div>
 
-            <a href="javascript:void(0)" @click="ShowComment" class="post-card-buttons" id="show-comments"><i
-                    class='bx bx-message-rounded mr-2'></i> {{ post.comments_count }}</a>
-            <div class="dropdown dropup share-dropup">
-                <a href="#" class="post-card-buttons" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i class='bx bx-share-alt mr-2'></i> Share
+
+
+        <!-- Reactions -->
+        <div class="argon-reaction">
+            <span class="like-btn">
+                <!-- Nút chính: Hiển thị ảnh reaction hoặc icon like -->
+                <a class="post-card-buttons" @click="removeReaction">
+                    <img v-if="isReaction" :src="getReactionImage" width="24px" class="mr-1 mb-1" />
+                    <i v-else class="bx bxs-like mr-2"></i>
+
+                    {{ likesCount }}
                 </a>
-                <div class="dropdown-menu post-dropdown-menu">
-                    <a href="#" class="dropdown-item">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <i class='bx bx-share-alt'></i>
-                            </div>
-                            <div class="col-md-10">
-                                <span>Share Now (Public)</span>
-                            </div>
+
+                <!-- Danh sách các reaction -->
+                <ul class="reactions-box dropdown-shadow">
+                    <li v-for="reaction in reactions" :key="reaction.type" class="reaction"
+                        :class="'reaction-' + reaction.type" @click="toggleLike(reaction.type)">
+                    </li>
+                </ul>
+            </span>
+        </div>
+
+
+        <a href="javascript:void(0)" @click="ShowComment" class="post-card-buttons" id="show-comments"><i
+                class='bx bx-message-rounded mr-1'></i> {{ post.comments_count }}</a>
+        <div class="dropdown dropup share-dropup">
+            <a href="#" class="post-card-buttons" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class='bx bx-share-alt mr-1'></i> Share
+            </a>
+            <div class="dropdown-menu post-dropdown-menu">
+                <a href="#" class="dropdown-item">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <i class='bx bx-share-alt'></i>
                         </div>
-                    </a>
-                    <a href="#" class="dropdown-item">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <i class='bx bx-share-alt'></i>
-                            </div>
-                            <div class="col-md-10">
-                                <span>Share...</span>
-                            </div>
+                        <div class="col-md-10">
+                            <span>Share Now (Public)</span>
                         </div>
-                    </a>
-                    <a href="#" class="dropdown-item">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <i class='bx bx-message'></i>
-                            </div>
-                            <div class="col-md-10">
-                                <span>Send as Message</span>
-                            </div>
+                    </div>
+                </a>
+                <a href="#" class="dropdown-item">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <i class='bx bx-share-alt'></i>
                         </div>
-                    </a>
-                </div>
+                        <div class="col-md-10">
+                            <span>Share...</span>
+                        </div>
+                    </div>
+                </a>
+                <a href="#" class="dropdown-item">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <i class='bx bx-message'></i>
+                        </div>
+                        <div class="col-md-10">
+                            <span>Send as Message</span>
+                        </div>
+                    </div>
+                </a>
             </div>
         </div>
-        <div class="border-top pt-3 hide-comments" style="display: none;">
+        <div class="border-top pt-3 hide-comments mt-3" style="display: none;">
             <div class="row bootstrap snippets">
                 <div class="col-md-12">
                     <div class="comment-wrapper">
@@ -173,7 +181,7 @@
                                 <ul class="media-list comments-list">
                                     <li class="media comment-form">
                                         <a href="#" class="pull-left">
-                                            <img src="assets/images/users/user-4.jpg" alt="" class="img-circle">
+                                            <img src="assets/images/users/user-4.jpg" class="img-circle">
                                         </a>
                                         <div class="media-body">
                                             <form action="" method="" role="form">
@@ -211,7 +219,7 @@
                                     </li>
                                     <li class="media">
                                         <a href="#" class="pull-left">
-                                            <img src="assets/images/users/user-2.jpg" alt="" class="img-circle">
+                                            <img src="assets/images/users/user-2.jpg" class="img-circle">
                                         </a>
                                         <div class="media-body">
                                             <div class="d-flex justify-content-between align-items-center w-100">
@@ -232,8 +240,7 @@
                                     </li>
                                     <li class="media">
                                         <a href="#" class="pull-left">
-                                            <img src="https://bootdey.com/img/Content/user_2.jpg" alt=""
-                                                class="img-circle">
+                                            <img src="https://bootdey.com/img/Content/user_2.jpg" class="img-circle">
                                         </a>
                                         <div class="media-body">
                                             <div class="d-flex justify-content-between align-items-center w-100">
@@ -254,8 +261,7 @@
                                     </li>
                                     <li class="media">
                                         <a href="#" class="pull-left">
-                                            <img src="https://bootdey.com/img/Content/user_3.jpg" alt=""
-                                                class="img-circle">
+                                            <img src="https://bootdey.com/img/Content/user_3.jpg" class="img-circle">
                                         </a>
                                         <div class="media-body">
                                             <div class="d-flex justify-content-between align-items-center w-100">
@@ -293,15 +299,18 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps } from "vue";
+import { ref, computed, defineProps, onMounted } from "vue";
 import axios from "axios";
 
 const props = defineProps({
     post: Object
 });
 
+// Lưu trạng thái like và số lượng like
 const likesCount = ref(props.post.likes_count);
+const isReaction = ref(false);
 
+// Danh sách reactions
 const reactions = [
     { type: "like" },
     { type: "love" },
@@ -311,43 +320,73 @@ const reactions = [
     { type: "angry" },
 ];
 
+// Lấy ảnh của reaction hiện tại
+const getReactionImage = computed(() => {
+    return isReaction.value
+        ? `/images/web/icons/reactions/reactions_${isReaction.value}.png`
+        : '';
+});
 
+// 🛠 Kiểm tra xem user đã like chưa
+const CheckReaction = async () => {
+    try {
+        const response = await axios.get(`/posts/check-reaction/${props.post.id}`);
+        isReaction.value = response.data.reaction || null;
+    } catch (error) {
+        console.error("Error fetching reaction:", error);
+    }
+};
+
+// 🛠 Gửi reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
 const toggleLike = async (reactionType) => {
     if (!props.post?.id) {
         console.error("Post ID is missing");
         return;
     }
 
+    isReaction.value = reactionType; // ✅ Cập nhật UI ngay lập tức
+
     try {
-        const response = await axios.post(`/posts/reaction/${props.post.id}`, { reaction_type: reactionType });
-        if (response.data?.likes_count !== undefined) {
-            likesCount.value = response.data.likes_count;
-        } else {
-            console.warn("Unexpected response structure:", response.data);
-        }
+        const response = await axios.post(`/posts/reaction/${props.post.id}`, { reaction: reactionType });
+        likesCount.value = response.data.likes_count ?? likesCount.value; // Cập nhật số like nếu API trả về
     } catch (error) {
         console.error("Error liking post:", error);
     }
 };
 
+// 🛠 Xóa reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
+const removeReaction = async () => {
+    if (!isReaction.value) return; // Nếu chưa có reaction, không làm gì cả
 
+    isReaction.value = null; // Cập nhật UI ngay lập tức
+
+    try {
+        const response = await axios.post(`/posts/remove-reaction/${props.post.id}`);
+        likesCount.value = response.data.likes_count ?? likesCount.value; // Cập nhật số like nếu API trả về
+    } catch (error) {
+        console.error("Error removing reaction:", error);
+    }
+};
+
+
+// 🛠 Hiển thị / Ẩn comment
 const ShowComment = () => {
     const comments = document.querySelector('.hide-comments');
-    comments.style.display = comments.style.display === 'none' ? 'block' : 'none';
-}
+    if (comments) {
+        comments.style.display = comments.style.display === 'none' ? 'block' : 'none';
+    }
+};
 
-
-
-
-
-// Lấy danh sách URL ảnh
+// 🛠 Lấy danh sách ảnh của bài viết
 const images = computed(() => props.post.media ? props.post.media.map(media => media.media_url) : []);
-
 const displayImages = computed(() => images.value.slice(0, 2));
-const galleryClass = computed(() => (images.value.length === 1 ? "single-image" : "multi-images"));
+const galleryClass = computed(() => images.value.length === 1 ? "single-image" : "multi-images");
 
-
+onMounted(() => {
+    CheckReaction();
+});
 </script>
+
 <style scoped>
 .gallery {
     display: grid;
