@@ -128,8 +128,8 @@
                 </ul>
             </span>
         </div>
-        <a href="javascript:void(0)" class="post-card-buttons" id="show-comments"
-            data-toggle="modal" :data-target="'#exampleModalScrollable-' + post.id"><i class="bx bx-message-rounded mr-1"></i>
+        <a href="javascript:void(0)" class="post-card-buttons" id="show-comments" data-toggle="modal"
+            :data-target="'#exampleModalScrollable-' + post.id"><i class="bx bx-message-rounded mr-1"></i>
             {{ post.comments_count }}</a>
         <div class="dropdown dropup share-dropup">
             <a href="#" class="post-card-buttons" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -170,8 +170,8 @@
         </div>
 
         <!-- Modal bình luận -->
-        <div class="modal fade bd-example-modal-lg" :id="'exampleModalScrollable-' + post.id" tabindex="-1" role="dialog"
-            aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
+        <div class="modal fade bd-example-modal-lg" :id="'exampleModalScrollable-' + post.id" tabindex="-1"
+            role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -189,11 +189,12 @@
                                     <div class="comment-wrapper">
                                         <div class="panel panel-info">
                                             <div class="panel-body">
-                                                <ul class="media-list comments-list overflow-auto" style="max-height: 600px">
+                                                <ul class="media-list comments-list overflow-auto"
+                                                    style="max-height: 600px">
                                                     <!-- v-for lặp qua các comment cha -->
-                                                    <li  class="media" v-for="comment in comments" :key="comment.id">
+                                                    <li class="media" v-for="comment in comments" :key="comment.id">
                                                         <a href="#" class="pull-left">
-                                                            <img  :src="comment.user.avatar ? `/images/client/avatar/${comment.user.avatar}` : '/images/web/users/avatar.jpg'"
+                                                            <img :src="comment.user.avatar ? `/images/client/avatar/${comment.user.avatar}` : '/images/web/users/avatar.jpg'"
                                                                 alt="" class="img-circle" />
                                                         </a>
                                                         <div class="media-body">
@@ -207,7 +208,8 @@
                                                             </div>
                                                             <span class="d-block comment-created-time">{{
                                                                 formatTime(comment.created_at) }}</span>
-                                                            <p class="fs-8 pt-2" v-html="comment.content"></p>
+                                                            <p class="fs-8 pt-2"
+                                                                v-html="highlightMentions(comment.content)"></p>
                                                             <div class="commentLR">
                                                                 <button type="button"
                                                                     class="btn btn-link fs-8">Like</button>
@@ -216,8 +218,7 @@
                                                             </div>
 
                                                             <!-- REPLIES -->
-                                                    <li class="media" v-for="reply in comment.replies"
-                                                        :key="reply.id">
+                                                    <li class="media" v-for="reply in comment.replies" :key="reply.id">
                                                         <a href="#" class="pull-left">
                                                             <img :src="reply.user.avatar ? `/images/client/avatar/${reply.user.avatar}` : '/images/web/users/avatar.jpg'"
                                                                 alt="" class="img-circle" />
@@ -233,12 +234,13 @@
                                                             </div>
                                                             <span class="d-block comment-created-time">{{
                                                                 formatTime(reply.created_at) }}</span>
-                                                            <p class="fs-8 pt-2" v-html="reply.content"></p>
+                                                            <p class="fs-8 pt-2"
+                                                                v-html="highlightMentions(reply.content)"></p>
                                                             <div class="commentLR">
                                                                 <button type="button"
                                                                     class="btn btn-link fs-8">Like</button>
                                                                 <button type="button" class="btn btn-link fs-8"
-                                                                    @click="setReply(comment.id)">Reply</button>
+                                                                    @click="setReply(reply.id)">Reply</button>
                                                             </div>
                                                         </div>
                                                     </li>
@@ -278,6 +280,7 @@
 <script setup>
 import { ref, computed, defineProps, onMounted } from "vue";
 import axios from "axios";
+import { comment } from "postcss";
 
 const props = defineProps({
     post: Object,
@@ -374,7 +377,6 @@ const galleryClass = computed(() =>
     images.value.length === 1 ? "single-image" : "multi-images"
 );
 
-const currentPostId = ref(null);
 const content_comment = ref('');
 const comments = ref([]);
 const page = ref(1);
@@ -391,17 +393,30 @@ const submitComment = async () => {
             content: content_comment.value,
             parent_comment_id: parentCommentId.value
         });
+
         // Reset input
         content_comment.value = '';
         parentCommentId.value = null;
-        // Chèn comment mới vào đầu danh sách
-        comments.value.unshift(response.data.comment);
 
+        const newComment = response.data.comment; // 🟢 Sửa ở đây
+
+        if (newComment.parent_comment_id) {
+            const parentComment = comments.value.find(comment => comment.id === newComment.parent_comment_id);
+            if (parentComment) {
+                parentComment.replies.unshift(newComment); // 🟢 Không phải .content
+                console.log('comments vào con');
+            }
+        } else {
+            comments.value.unshift(newComment);
+            console.log('comments vào cha');
+        }
 
     } catch (error) {
         console.error('Lỗi khi gửi bình luận:', error);
     }
 };
+
+
 
 
 // 🛠 Hiện comment bình luận bài post
@@ -426,9 +441,44 @@ const loadMoreComments = () => {
 };
 
 const setReply = (commentId) => {
-    console.log("Reply to comment id:", commentId);
-    // Hiện form trả lời ở đây nếu muốn
+    // Tìm comment cha hoặc reply con
+    let replyTarget = null;
+
+    for (const c of comments.value) {
+        if (c.id === commentId) {
+            replyTarget = c;
+            break;
+        }
+        if (c.replies) {
+            const found = c.replies.find(r => r.id === commentId);
+            if (found) {
+                replyTarget = found;
+                break;
+            }
+        }
+    }
+
+    console.log('replyTarget', replyTarget.user.name);
+
+    if (replyTarget) {
+        const mention = `@${replyTarget.user.name}`;
+
+        // Chỉ thêm nếu chưa có
+        if (!content_comment.value.includes(mention)) {
+            content_comment.value = mention + ' ' + content_comment.value;
+        }
+
+        parentCommentId.value = replyTarget.id;
+    }
 };
+
+
+
+const highlightMentions = (text) => {
+    return text.replace(/(@\w[\w\s]*)/g, '<span class="text-primary">$1</span>');
+};
+
+
 
 const formatTime = (time) => {
     return new Date(time).toLocaleString();
