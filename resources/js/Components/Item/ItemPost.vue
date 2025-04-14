@@ -1,21 +1,23 @@
 <template>
     <div class="post border-bottom p-3 bg-white w-shadow mb-3">
         <div class="media text-muted pt-3">
-            <img src="assets/images/users/user-4.jpg" class="mr-3 post-user-image">
+            <img :src="props.user.avatar ? `/images/client/avatar/${props.user.avatar}` : '/images/web/users/avatar.jpg'"
+                class="mr-3 post-user-image" />
             <div class="media-body pb-3 mb-0 small lh-125">
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <span class="post-type text-muted"><a href="#" class="text-gray-dark post-user-name mr-2">Arthur
-                            Minasyan</a> updated his cover photo.</span>
+                            Minasyan</a>
+                        updated his cover photo.</span>
                     <div class="dropdown">
                         <a href="#" class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
                             aria-haspopup="true" aria-expanded="false">
-                            <i class='bx bx-dots-horizontal-rounded'></i>
+                            <i class="bx bx-dots-horizontal-rounded"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
                             <a href="#" class="dropdown-item" aria-describedby="savePost">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <i class='bx bx-bookmark-plus post-option-icon'></i>
+                                        <i class="bx bx-bookmark-plus post-option-icon"></i>
                                     </div>
                                     <div class="col-md-10">
                                         <span class="fs-9">Save post</span>
@@ -27,7 +29,7 @@
                             <a href="#" class="dropdown-item" aria-describedby="hidePost">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <i class='bx bx-hide post-option-icon'></i>
+                                        <i class="bx bx-hide post-option-icon"></i>
                                     </div>
                                     <div class="col-md-10">
                                         <span class="fs-9">Hide post</span>
@@ -39,7 +41,7 @@
                             <a href="#" class="dropdown-item" aria-describedby="snoozePost">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <i class='bx bx-time post-option-icon'></i>
+                                        <i class="bx bx-time post-option-icon"></i>
                                     </div>
                                     <div class="col-md-10">
                                         <span class="fs-9">Snooze Arthur for 30 days</span>
@@ -51,7 +53,7 @@
                             <a href="#" class="dropdown-item" aria-describedby="reportPost">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <i class='bx bx-block post-option-icon'></i>
+                                        <i class="bx bx-block post-option-icon"></i>
                                     </div>
                                     <div class="col-md-10">
                                         <span class="fs-9">Report</span>
@@ -63,7 +65,7 @@
                         </div>
                     </div>
                 </div>
-                <span class="d-block">{{ props.post.created_at }} <i class='bx bx-globe ml-3'></i></span>
+                <span class="d-block">{{ props.post.created_at }} <i class="bx bx-globe ml-3"></i></span>
             </div>
         </div>
         <p>{{ props.post.content }}</p>
@@ -76,7 +78,9 @@
                     <img :src="'/images/client/post/' + src" loading="lazy" />
                 </div>
                 <div v-if="images.length > 2" class="more-overlay" data-toggle="modal"
-                    data-target="#exampleModalCenter">+{{ images.length - 2 }}</div>
+                    data-target="#exampleModalCenter">
+                    +{{ images.length - 2 }}
+                </div>
             </div>
         </div>
 
@@ -88,7 +92,7 @@
                         <div class="carousel-inner">
                             <div v-for="(src, index) in images" :key="index" class="carousel-item"
                                 :class="{ active: index === 0 }">
-                                <img :src="'/images/client/post/' + src" class="d-block w-100" loading="lazy">
+                                <img :src="'/images/client/post/' + src" class="d-block w-100" loading="lazy" />
                             </div>
                         </div>
                         <a class="carousel-control-prev" href="#carouselExampleControls" role="button"
@@ -106,12 +110,6 @@
             </div>
         </div>
 
-
-
-
-
-
-
         <!-- Reactions -->
         <div class="argon-reaction">
             <span class="like-btn">
@@ -120,30 +118,28 @@
                     <img v-if="isReaction" :src="getReactionImage" width="24px" class="mr-1 mb-1" />
                     <i v-else class="bx bxs-like mr-2"></i>
 
-                    {{ likesCount }}
+                    {{ totalReaction }}
                 </a>
 
                 <!-- Danh sách các reaction -->
                 <ul class="reactions-box dropdown-shadow">
                     <li v-for="reaction in reactions" :key="reaction.type" class="reaction"
-                        :class="'reaction-' + reaction.type" @click="toggleLike(reaction.type)">
-                    </li>
+                        :class="'reaction-' + reaction.type" @click="toggleLike(reaction.type)"></li>
                 </ul>
             </span>
         </div>
-
-
-        <a href="javascript:void(0)" @click="ShowComment" class="post-card-buttons" id="show-comments"><i
-                class='bx bx-message-rounded mr-1'></i> {{ post.comments_count }}</a>
+        <a href="javascript:void(0)" class="post-card-buttons" id="show-comments"
+            data-toggle="modal" :data-target="'#exampleModalScrollable-' + post.id"><i class="bx bx-message-rounded mr-1"></i>
+            {{ post.comments_count }}</a>
         <div class="dropdown dropup share-dropup">
             <a href="#" class="post-card-buttons" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class='bx bx-share-alt mr-1'></i> Share
+                <i class="bx bx-share-alt mr-1"></i> Share
             </a>
             <div class="dropdown-menu post-dropdown-menu">
                 <a href="#" class="dropdown-item">
                     <div class="row">
                         <div class="col-md-2">
-                            <i class='bx bx-share-alt'></i>
+                            <i class="bx bx-share-alt"></i>
                         </div>
                         <div class="col-md-10">
                             <span>Share Now (Public)</span>
@@ -153,7 +149,7 @@
                 <a href="#" class="dropdown-item">
                     <div class="row">
                         <div class="col-md-2">
-                            <i class='bx bx-share-alt'></i>
+                            <i class="bx bx-share-alt"></i>
                         </div>
                         <div class="col-md-10">
                             <span>Share...</span>
@@ -163,7 +159,7 @@
                 <a href="#" class="dropdown-item">
                     <div class="row">
                         <div class="col-md-2">
-                            <i class='bx bx-message'></i>
+                            <i class="bx bx-message"></i>
                         </div>
                         <div class="col-md-10">
                             <span>Send as Message</span>
@@ -172,129 +168,110 @@
                 </a>
             </div>
         </div>
-        <div class="border-top pt-3 hide-comments mt-3" style="display: none;">
-            <div class="row bootstrap snippets">
-                <div class="col-md-12">
-                    <div class="comment-wrapper">
-                        <div class="panel panel-info">
-                            <div class="panel-body">
-                                <ul class="media-list comments-list">
-                                    <li class="media comment-form">
-                                        <a href="#" class="pull-left">
-                                            <img src="assets/images/users/user-4.jpg" class="img-circle">
-                                        </a>
-                                        <div class="media-body">
-                                            <form action="" method="" role="form">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control comment-input"
-                                                                placeholder="Write a comment...">
 
-                                                            <div class="input-group-btn">
-                                                                <button type="button" class="btn comment-form-btn"
-                                                                    data-toggle="tooltip" data-placement="top"
-                                                                    title="Tooltip on top"><i
-                                                                        class='bx bxs-smiley-happy'></i></button>
+        <!-- Modal bình luận -->
+        <div class="modal fade bd-example-modal-lg" :id="'exampleModalScrollable-' + post.id" tabindex="-1" role="dialog"
+            aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalScrollableTitle">
+                            Bình luận
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="hide-comments">
+                            <div class="row bootstrap snippets">
+                                <div class="col-md-12">
+                                    <div class="comment-wrapper">
+                                        <div class="panel panel-info">
+                                            <div class="panel-body">
+                                                <ul class="media-list comments-list overflow-auto" style="max-height: 600px">
+                                                    <!-- v-for lặp qua các comment cha -->
+                                                    <li  class="media" v-for="comment in comments" :key="comment.id">
+                                                        <a href="#" class="pull-left">
+                                                            <img  :src="comment.user.avatar ? `/images/client/avatar/${comment.user.avatar}` : '/images/web/users/avatar.jpg'"
+                                                                alt="" class="img-circle" />
+                                                        </a>
+                                                        <div class="media-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center w-100">
+                                                                <strong class="text-gray-dark">
+                                                                    <a href="#" class="fs-8">{{ comment.user.name }}</a>
+                                                                </strong>
+                                                                <a href="#"><i
+                                                                        class="bx bx-dots-horizontal-rounded"></i></a>
+                                                            </div>
+                                                            <span class="d-block comment-created-time">{{
+                                                                formatTime(comment.created_at) }}</span>
+                                                            <p class="fs-8 pt-2" v-html="comment.content"></p>
+                                                            <div class="commentLR">
                                                                 <button type="button"
-                                                                    class="btn comment-form-btn comment-form-btn"
-                                                                    data-toggle="tooltip" data-placement="top"
-                                                                    title="Tooltip on top"><i
-                                                                        class='bx bx-camera'></i></button>
+                                                                    class="btn btn-link fs-8">Like</button>
+                                                                <button type="button" class="btn btn-link fs-8"
+                                                                    @click="setReply(comment.id)">Reply</button>
+                                                            </div>
+
+                                                            <!-- REPLIES -->
+                                                    <li class="media" v-for="reply in comment.replies"
+                                                        :key="reply.id">
+                                                        <a href="#" class="pull-left">
+                                                            <img :src="reply.user.avatar ? `/images/client/avatar/${reply.user.avatar}` : '/images/web/users/avatar.jpg'"
+                                                                alt="" class="img-circle" />
+                                                        </a>
+                                                        <div class="media-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center w-100">
+                                                                <strong class="text-gray-dark">
+                                                                    <a href="#" class="fs-8">{{ reply.user.name }}</a>
+                                                                </strong>
+                                                                <a href="#"><i
+                                                                        class="bx bx-dots-horizontal-rounded"></i></a>
+                                                            </div>
+                                                            <span class="d-block comment-created-time">{{
+                                                                formatTime(reply.created_at) }}</span>
+                                                            <p class="fs-8 pt-2" v-html="reply.content"></p>
+                                                            <div class="commentLR">
                                                                 <button type="button"
-                                                                    class="btn comment-form-btn comment-form-btn"
-                                                                    data-toggle="tooltip" data-placement="top"
-                                                                    title="Tooltip on top"><i
-                                                                        class='bx bx-microphone'></i></button>
-                                                                <button type="button" class="btn comment-form-btn"
-                                                                    data-toggle="tooltip" data-placement="top"
-                                                                    title="Tooltip on top"><i
-                                                                        class='bx bx-file-blank'></i></button>
+                                                                    class="btn btn-link fs-8">Like</button>
+                                                                <button type="button" class="btn btn-link fs-8"
+                                                                    @click="setReply(comment.id)">Reply</button>
                                                             </div>
                                                         </div>
+                                                    </li>
+                                            </div>
+                                            </li>
+
+                                            <!-- Nút Xem thêm -->
+                                            <li class="media" v-if="hasMore">
+                                                <div class="media-body">
+                                                    <div class="comment-see-more text-center">
+                                                        <button type="button" class="btn btn-link fs-8"
+                                                            @click="loadMoreComments">See More</button>
                                                     </div>
                                                 </div>
-                                            </form>
+                                            </li>
+                                            </ul>
                                         </div>
-                                    </li>
-                                    <li class="media">
-                                        <a href="#" class="pull-left">
-                                            <img src="assets/images/users/user-2.jpg" class="img-circle">
-                                        </a>
-                                        <div class="media-body">
-                                            <div class="d-flex justify-content-between align-items-center w-100">
-                                                <strong class="text-gray-dark"><a href="#" class="fs-8">Karen
-                                                        Minas</a></strong>
-                                                <a href="#"><i class='bx bx-dots-horizontal-rounded'></i></a>
-                                            </div>
-                                            <span class="d-block comment-created-time">30 min ago</span>
-                                            <p class="fs-8 pt-2">
-                                                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                                                Lorem ipsum dolor sit amet, <a href="#">#consecteturadipiscing </a>.
-                                            </p>
-                                            <div class="commentLR">
-                                                <button type="button" class="btn btn-link fs-8">Like</button>
-                                                <button type="button" class="btn btn-link fs-8">Reply</button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="media">
-                                        <a href="#" class="pull-left">
-                                            <img src="https://bootdey.com/img/Content/user_2.jpg" class="img-circle">
-                                        </a>
-                                        <div class="media-body">
-                                            <div class="d-flex justify-content-between align-items-center w-100">
-                                                <strong class="text-gray-dark"><a href="#" class="fs-8">Lia
-                                                        Earnest</a></strong>
-                                                <a href="#"><i class='bx bx-dots-horizontal-rounded'></i></a>
-                                            </div>
-                                            <span class="d-block comment-created-time">2 hours ago</span>
-                                            <p class="fs-8 pt-2">
-                                                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                                                Lorem ipsum dolor sit amet, <a href="#">#consecteturadipiscing </a>.
-                                            </p>
-                                            <div class="commentLR">
-                                                <button type="button" class="btn btn-link fs-8">Like</button>
-                                                <button type="button" class="btn btn-link fs-8">Reply</button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="media">
-                                        <a href="#" class="pull-left">
-                                            <img src="https://bootdey.com/img/Content/user_3.jpg" class="img-circle">
-                                        </a>
-                                        <div class="media-body">
-                                            <div class="d-flex justify-content-between align-items-center w-100">
-                                                <strong class="text-gray-dark"><a href="#" class="fs-8">Rusty
-                                                        Mickelsen</a></strong>
-                                                <a href="#"><i class='bx bx-dots-horizontal-rounded'></i></a>
-                                            </div>
-                                            <span class="d-block comment-created-time">17 hours ago</span>
-                                            <p class="fs-8 pt-2">
-                                                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                                                Lorem ipsum dolor sit amet, <a href="#">#consecteturadipiscing </a>.
-                                            </p>
-                                            <div class="commentLR">
-                                                <button type="button" class="btn btn-link fs-8">Like</button>
-                                                <button type="button" class="btn btn-link fs-8">Reply</button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="media">
-                                        <div class="media-body">
-                                            <div class="comment-see-more text-center">
-                                                <button type="button" class="btn btn-link fs-8">See More</button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
+                <form class="modal-footer">
+                    <input type="text" v-model="content_comment" class="form-control comment-input"
+                        placeholder="Nhập bình luận của bạn..." />
+                    <button type="button" class="btn btn-primary" @click="submitComment">
+                        Gửi
+                    </button>
+                </form>
             </div>
         </div>
+    </div>
     </div>
 </template>
 
@@ -303,11 +280,12 @@ import { ref, computed, defineProps, onMounted } from "vue";
 import axios from "axios";
 
 const props = defineProps({
-    post: Object
+    post: Object,
+    user: Object,
 });
 
 // Lưu trạng thái like và số lượng like
-const likesCount = ref(props.post.likes_count);
+const totalReaction = ref(0);
 const isReaction = ref(false);
 
 // Danh sách reactions
@@ -324,13 +302,15 @@ const reactions = [
 const getReactionImage = computed(() => {
     return isReaction.value
         ? `/images/web/icons/reactions/reactions_${isReaction.value}.png`
-        : '';
+        : "";
 });
 
 // 🛠 Kiểm tra xem user đã like chưa
 const CheckReaction = async () => {
     try {
-        const response = await axios.get(`/posts/check-reaction/${props.post.id}`);
+        const response = await axios.get(
+            `/posts/check-reaction/${props.post.id}`
+        );
         isReaction.value = response.data.reaction || null;
     } catch (error) {
         console.error("Error fetching reaction:", error);
@@ -347,7 +327,9 @@ const toggleLike = async (reactionType) => {
     isReaction.value = reactionType; // ✅ Cập nhật UI ngay lập tức
 
     try {
-        const response = await axios.post(`/posts/reaction/${props.post.id}`, { reaction: reactionType });
+        const response = await axios.post(`/posts/reaction/${props.post.id}`, {
+            reaction: reactionType,
+        });
         likesCount.value = response.data.likes_count ?? likesCount.value; // Cập nhật số like nếu API trả về
     } catch (error) {
         console.error("Error liking post:", error);
@@ -361,29 +343,101 @@ const removeReaction = async () => {
     isReaction.value = null; // Cập nhật UI ngay lập tức
 
     try {
-        const response = await axios.post(`/posts/remove-reaction/${props.post.id}`);
+        const response = await axios.post(
+            `/posts/remove-reaction/${props.post.id}`
+        );
         likesCount.value = response.data.likes_count ?? likesCount.value; // Cập nhật số like nếu API trả về
     } catch (error) {
         console.error("Error removing reaction:", error);
     }
 };
 
-
-// 🛠 Hiển thị / Ẩn comment
-const ShowComment = () => {
-    const comments = document.querySelector('.hide-comments');
-    if (comments) {
-        comments.style.display = comments.style.display === 'none' ? 'block' : 'none';
+// 🛠 Tổng số lượt reaction
+const totalReactions = async () => {
+    try {
+        const response = await axios.get(
+            `/posts/total-reaction/${props.post.id}`
+        );
+        totalReaction.value = response.data.totalReaction;
+    } catch (error) {
+        console.error("Error calculating total reactions:", error);
+        return 0;
     }
 };
 
 // 🛠 Lấy danh sách ảnh của bài viết
-const images = computed(() => props.post.media ? props.post.media.map(media => media.media_url) : []);
+const images = computed(() =>
+    props.post.media ? props.post.media.map((media) => media.media_url) : []
+);
 const displayImages = computed(() => images.value.slice(0, 2));
-const galleryClass = computed(() => images.value.length === 1 ? "single-image" : "multi-images");
+const galleryClass = computed(() =>
+    images.value.length === 1 ? "single-image" : "multi-images"
+);
+
+const currentPostId = ref(null);
+const content_comment = ref('');
+const comments = ref([]);
+const page = ref(1);
+const hasMore = ref(true);
+const parentCommentId = ref(null);
+
+
+
+// 🛠 Gửi comment bình luận bài post
+const submitComment = async () => {
+    try {
+        const response = await axios.post('/comments', {
+            post_id: props.post.id,
+            content: content_comment.value,
+            parent_comment_id: parentCommentId.value
+        });
+        // Reset input
+        content_comment.value = '';
+        parentCommentId.value = null;
+        // Chèn comment mới vào đầu danh sách
+        comments.value.unshift(response.data.comment);
+
+
+    } catch (error) {
+        console.error('Lỗi khi gửi bình luận:', error);
+    }
+};
+
+
+// 🛠 Hiện comment bình luận bài post
+const fetchComments = async () => {
+    try {
+        const response = await axios.get(`/comments/${props.post.id}?page=${page.value}`);
+        if (response.data.length === 0) {
+            hasMore.value = false;
+        } else {
+            comments.value.push(...response.data);
+            page.value++;
+        }
+
+    } catch (error) {
+        console.error("Error fetching comments:", error);
+    }
+};
+
+
+const loadMoreComments = () => {
+    fetchComments();
+};
+
+const setReply = (commentId) => {
+    console.log("Reply to comment id:", commentId);
+    // Hiện form trả lời ở đây nếu muốn
+};
+
+const formatTime = (time) => {
+    return new Date(time).toLocaleString();
+};
 
 onMounted(() => {
     CheckReaction();
+    totalReactions();
+    fetchComments();
 });
 </script>
 

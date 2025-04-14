@@ -92,34 +92,24 @@ class PostController extends Controller
     {
         $user = auth()->user();
         $reactionType = $request->reaction;
-        // Kiểm tra xem đã like chưa
-        $existingLike = Like::where([
-            'user_id' => $user->id,
-            'content_type' => 'post',
-            'content_id' => $postId,
-        ])->first();
-        if ($existingLike) {
-            if ($existingLike->reaction_type == $reactionType) {
-                // Nếu đã like với reaction đó thì bỏ like
-                $existingLike->delete();
-                return response()->json(['message' => 'Unliked', 'likes_count' => Post::find($postId)->likes()->count()]);
-            } else {
-                // Nếu muốn đổi reaction
-                $existingLike->update(['reaction_type' => $reactionType]);
-                return response()->json(['message' => 'Reaction updated', 'likes_count' => Post::find($postId)->likes()->count()]);
-            }
-        }
 
-        // Nếu chưa like thì tạo mới
-        Like::create([
-            'user_id' => $user->id,
-            'content_type' => 'post',
-            'content_id' => $postId,
-            'reaction_type' => $reactionType,
+        Like::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'content_type' => 'post',
+                'content_id' => $postId
+            ],
+            [
+                'reaction_type' => $reactionType
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Liked',
+            'likes_count' => Post::find($postId)->likes()->count()
         ]);
-
-        return response()->json(['message' => 'Liked', 'likes_count' => Post::find($postId)->likes()->count()]);
     }
+
 
     public function checkReaction($postId)
     {
@@ -144,8 +134,14 @@ class PostController extends Controller
 
         return response()->json([
             'message' => 'Reaction removed',
-            'likes_count' => $post->reactions()->count()
         ]);
+    }
+
+    public function totalReaction($postId)
+    {
+
+        $totalReaction = Like::where('content_id', $postId)->count();
+        return response()->json(['totalReaction' => $totalReaction]);
     }
 
 

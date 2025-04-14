@@ -9,6 +9,7 @@ use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FriendshipController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\CommentController;
 
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
@@ -31,10 +32,17 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     });
     Route::post('/posts', [PostController::class, 'store']);
 
+    //reaction
     Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);
     Route::get('/posts/check-reaction/{postId}', [PostController::class, 'checkReaction']);
     Route::post('/posts/remove-reaction/{postId}', [PostController::class, 'removeReaction']);
+    Route::get('/posts/total-reaction/{postId}', [PostController::class, 'totalReaction']);
 
+    //comment
+    Route::post('/comments', [CommentController::class, 'store']);
+    Route::get('/comments/{postId}', [CommentController::class, 'getComments']);
+
+    //friendship
     Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
     Route::post('/send-friend-request', [FriendshipController::class, 'sendFriendRequest']);
     Route::post('/accept-friend-request', [FriendshipController::class, 'acceptFriendRequest']);

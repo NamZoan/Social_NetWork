@@ -46,7 +46,7 @@ class ProfileController extends Controller
                 'originalPost.user' // Bài đăng gốc (nếu là bài chia sẻ)
             ])
             ->latest()
-            ->paginate(2);
+            ->paginate(10);
 
         // Chuyển đổi dữ liệu để Inertia có thể xử lý
         $posts->getCollection()->transform(function ($post) {

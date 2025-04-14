@@ -3,7 +3,7 @@
 
         <Post v-if="isOwner" :user="user_auth"></Post>
 
-            <ItemPost v-for="post in allPosts" :key="post.id" :post="post">
+            <ItemPost v-for="post in allPosts" :key="post.id" :post="post" :user="user">
             </ItemPost>
 
 

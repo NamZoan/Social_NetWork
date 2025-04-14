@@ -594,7 +594,6 @@ body::-webkit-scrollbar-thumb:hover {
 
 .comment-wrapper .media-list .media {
     border-bottom: 1px solid #efefef;
-    margin-bottom: 25px;
 }
 
 .comment-wrapper .media-list .media:first-child {
