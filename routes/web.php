@@ -28,6 +28,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/accept-friend-request', [FriendshipController::class, 'acceptFriendRequest']);
     Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
 
+    Route::put('/user/update', [UserController::class, 'update'])->name('user.update');
+    
+    Route::middleware(['auth'])->put('/user/update', [UserController::class, 'update'])->name('user.update');
+
 });
 
 
