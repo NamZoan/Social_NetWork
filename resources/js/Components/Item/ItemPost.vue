@@ -1,64 +1,41 @@
 <template>
     <div class="post border-bottom p-3 bg-white w-shadow mb-3">
         <div class="media text-muted pt-3">
-            <img :src="props.user.avatar ? `/images/client/avatar/${props.user.avatar}` : '/images/web/users/avatar.jpg'"
-                class="mr-3 post-user-image" />
+            <img :src="props.user.avatar
+                ? `/images/client/avatar/${props.user.avatar}`
+                : '/images/web/users/avatar.jpg'
+                " class="mr-3 post-user-image" />
             <div class="media-body pb-3 mb-0 small lh-125">
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <span class="post-type text-muted"><a href="#" class="text-gray-dark post-user-name mr-2">Arthur
                             Minasyan</a>
                         updated his cover photo.</span>
                     <div class="dropdown">
-                        <a href="#" class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
+                        <a href="#"  class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
                             aria-haspopup="true" aria-expanded="false">
                             <i class="bx bx-dots-horizontal-rounded"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
-                            <a href="#" class="dropdown-item" aria-describedby="savePost">
+                            <a href="#" @click="openEditModal" class="dropdown-item" aria-describedby="editPost">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <i class="bx bx-bookmark-plus post-option-icon"></i>
+                                        <i class="bx bx-edit-alt post-option-icon"></i>
                                     </div>
                                     <div class="col-md-10">
-                                        <span class="fs-9">Save post</span>
-                                        <small id="savePost" class="form-text text-muted">Add this to your saved
-                                            items</small>
+                                        <span class="fs-9">Chỉnh sửa</span>
+                                        <small id="editPost" class="form-text text-muted">edit post article</small>
                                     </div>
                                 </div>
                             </a>
-                            <a href="#" class="dropdown-item" aria-describedby="hidePost">
+                            <a href="#" class="dropdown-item" aria-describedby="deletePost"
+                                @click.prevent="deletePost(post.id)">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <i class="bx bx-hide post-option-icon"></i>
+                                        <i class="bx bx-trash post-option-icon"></i>
                                     </div>
                                     <div class="col-md-10">
-                                        <span class="fs-9">Hide post</span>
-                                        <small id="hidePost" class="form-text text-muted">See fewer posts like
-                                            this</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#" class="dropdown-item" aria-describedby="snoozePost">
-                                <div class="row">
-                                    <div class="col-md-2">
-                                        <i class="bx bx-time post-option-icon"></i>
-                                    </div>
-                                    <div class="col-md-10">
-                                        <span class="fs-9">Snooze Arthur for 30 days</span>
-                                        <small id="snoozePost" class="form-text text-muted">Temporarily stop seeing
-                                            posts</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#" class="dropdown-item" aria-describedby="reportPost">
-                                <div class="row">
-                                    <div class="col-md-2">
-                                        <i class="bx bx-block post-option-icon"></i>
-                                    </div>
-                                    <div class="col-md-10">
-                                        <span class="fs-9">Report</span>
-                                        <small id="reportPost" class="form-text text-muted">I'm concerned about this
-                                            post</small>
+                                        <span class="fs-9">Xóa bỏ</span>
+                                        <small id="deletePost" class="form-text text-muted">delete post</small>
                                     </div>
                                 </div>
                             </a>
@@ -194,53 +171,90 @@
                                                     <!-- v-for lặp qua các comment cha -->
                                                     <li class="media" v-for="comment in comments" :key="comment.id">
                                                         <a href="#" class="pull-left">
-                                                            <img :src="comment.user.avatar ? `/images/client/avatar/${comment.user.avatar}` : '/images/web/users/avatar.jpg'"
-                                                                alt="" class="img-circle" />
+                                                            <img :src="comment.user
+                                                                .avatar
+                                                                ? `/images/client/avatar/${comment.user.avatar}`
+                                                                : '/images/web/users/avatar.jpg'
+                                                                " alt="" class="img-circle" />
                                                         </a>
                                                         <div class="media-body">
                                                             <div
                                                                 class="d-flex justify-content-between align-items-center w-100">
                                                                 <strong class="text-gray-dark">
-                                                                    <a href="#" class="fs-8">{{ comment.user.name }}</a>
+                                                                    <a href="#" class="fs-8">{{
+                                                                        comment
+                                                                            .user
+                                                                            .name
+                                                                    }}</a>
                                                                 </strong>
                                                                 <a href="#"><i
                                                                         class="bx bx-dots-horizontal-rounded"></i></a>
                                                             </div>
                                                             <span class="d-block comment-created-time">{{
-                                                                formatTime(comment.created_at) }}</span>
-                                                            <p class="fs-8 pt-2"
-                                                                v-html="highlightMentions(comment.content)"></p>
+                                                                formatTime(
+                                                                    comment.created_at
+                                                                )
+                                                            }}</span>
+                                                            <p class="fs-8 pt-2" v-html="highlightMentions(
+                                                                comment.content
+                                                            )
+                                                                "></p>
                                                             <div class="commentLR">
-                                                                <button type="button"
-                                                                    class="btn btn-link fs-8">Like</button>
-                                                                <button type="button" class="btn btn-link fs-8"
-                                                                    @click="setReply(comment.id)">Reply</button>
+                                                                <button type="button" class="btn btn-link fs-8">
+                                                                    Like
+                                                                </button>
+                                                                <button type="button" class="btn btn-link fs-8" @click="
+                                                                    setReply(
+                                                                        comment.id
+                                                                    )
+                                                                    ">
+                                                                    Reply
+                                                                </button>
                                                             </div>
 
                                                             <!-- REPLIES -->
                                                     <li class="media" v-for="reply in comment.replies" :key="reply.id">
                                                         <a href="#" class="pull-left">
-                                                            <img :src="reply.user.avatar ? `/images/client/avatar/${reply.user.avatar}` : '/images/web/users/avatar.jpg'"
-                                                                alt="" class="img-circle" />
+                                                            <img :src="reply
+                                                                .user
+                                                                .avatar
+                                                                ? `/images/client/avatar/${reply.user.avatar}`
+                                                                : '/images/web/users/avatar.jpg'
+                                                                " alt="" class="img-circle" />
                                                         </a>
                                                         <div class="media-body">
                                                             <div
                                                                 class="d-flex justify-content-between align-items-center w-100">
                                                                 <strong class="text-gray-dark">
-                                                                    <a href="#" class="fs-8">{{ reply.user.name }}</a>
+                                                                    <a href="#" class="fs-8">{{
+                                                                        reply
+                                                                            .user
+                                                                            .name
+                                                                    }}</a>
                                                                 </strong>
                                                                 <a href="#"><i
                                                                         class="bx bx-dots-horizontal-rounded"></i></a>
                                                             </div>
                                                             <span class="d-block comment-created-time">{{
-                                                                formatTime(reply.created_at) }}</span>
-                                                            <p class="fs-8 pt-2"
-                                                                v-html="highlightMentions(reply.content)"></p>
+                                                                formatTime(
+                                                                    reply.created_at
+                                                                )
+                                                            }}</span>
+                                                            <p class="fs-8 pt-2" v-html="highlightMentions(
+                                                                reply.content
+                                                            )
+                                                                "></p>
                                                             <div class="commentLR">
-                                                                <button type="button"
-                                                                    class="btn btn-link fs-8">Like</button>
-                                                                <button type="button" class="btn btn-link fs-8"
-                                                                    @click="setReply(reply.id)">Reply</button>
+                                                                <button type="button" class="btn btn-link fs-8">
+                                                                    Like
+                                                                </button>
+                                                                <button type="button" class="btn btn-link fs-8" @click="
+                                                                    setReply(
+                                                                        reply.id
+                                                                    )
+                                                                    ">
+                                                                    Reply
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </li>
@@ -251,8 +265,11 @@
                                             <li class="media" v-if="hasMore">
                                                 <div class="media-body">
                                                     <div class="comment-see-more text-center">
-                                                        <button type="button" class="btn btn-link fs-8"
-                                                            @click="loadMoreComments">See More</button>
+                                                        <button type="button" class="btn btn-link fs-8" @click="
+                                                            loadMoreComments
+                                                        ">
+                                                            See More
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </li>
@@ -275,12 +292,53 @@
         </div>
     </div>
     </div>
+
+
+    <!-- modal update post -->
+    <div class="modal fade bd-example-modal-lg" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" v-if="isModalVisible">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Chỉnh sửa bài viết</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" @click="closeModal">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="submitPost">
+              <!-- Chọn quyền riêng tư -->
+              <select v-model="form.privacy_setting" class="form-control" aria-label="Default select example">
+                <option value="public">Công Khai</option>
+                <option value="friends">Bạn Bè</option>
+                <option value="private">Chỉ Mình Tôi</option>
+              </select>
+
+              <!-- Nội dung bài viết -->
+              <div class="form-group">
+                <label for="message-text" class="col-form-label">Bạn đang nghĩ gì:</label>
+                <textarea v-model="form.content" class="form-control" id="message-text"></textarea>
+              </div>
+
+              <!-- Upload file -->
+              <input id="input-b3" type="file" class="file" multiple @change="handleFileUpload">
+
+              <div class="modal-footer p-0 mt-5">
+                <button type="submit" class="btn btn-primary">Đăng Tin</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
 </template>
 
 <script setup>
 import { ref, computed, defineProps, onMounted } from "vue";
 import axios from "axios";
-import { comment } from "postcss";
+import { useForm  } from '@inertiajs/vue3';
 
 const props = defineProps({
     post: Object,
@@ -377,64 +435,65 @@ const galleryClass = computed(() =>
     images.value.length === 1 ? "single-image" : "multi-images"
 );
 
-const content_comment = ref('');
+const content_comment = ref("");
 const comments = ref([]);
 const page = ref(1);
 const hasMore = ref(true);
 const parentCommentId = ref(null);
 
-
-
 // 🛠 Gửi comment bình luận bài post
 const submitComment = async () => {
     try {
-        const response = await axios.post('/comments', {
+        const response = await axios.post("/comments", {
             post_id: props.post.id,
             content: content_comment.value,
-            parent_comment_id: parentCommentId.value
+            parent_comment_id: parentCommentId.value,
         });
 
         // Reset input
-        content_comment.value = '';
+        content_comment.value = "";
         parentCommentId.value = null;
 
-        const newComment = response.data.comment; // 🟢 Sửa ở đây
+        const newComment = response.data.comment;
 
         if (newComment.parent_comment_id) {
-            const parentComment = comments.value.find(comment => comment.id === newComment.parent_comment_id);
+            const parentComment = comments.value.find(
+                (comment) => comment.id === newComment.parent_comment_id
+            );
             if (parentComment) {
-                parentComment.replies.unshift(newComment); // 🟢 Không phải .content
-                console.log('comments vào con');
+                // ✅ Nếu replies chưa tồn tại, khởi tạo nó là mảng rỗng
+                if (!Array.isArray(parentComment.replies)) {
+                    parentComment.replies = [];
+                }
+
+                parentComment.replies.unshift(newComment);
+                console.log("comments vào con");
             }
         } else {
             comments.value.unshift(newComment);
-            console.log('comments vào cha');
+            console.log("comments vào cha");
         }
-
     } catch (error) {
-        console.error('Lỗi khi gửi bình luận:', error);
+        console.error("Lỗi khi gửi bình luận:", error);
     }
 };
-
-
-
 
 // 🛠 Hiện comment bình luận bài post
 const fetchComments = async () => {
     try {
-        const response = await axios.get(`/comments/${props.post.id}?page=${page.value}`);
+        const response = await axios.get(
+            `/comments/${props.post.id}?page=${page.value}`
+        );
         if (response.data.length === 0) {
             hasMore.value = false;
         } else {
             comments.value.push(...response.data);
             page.value++;
         }
-
     } catch (error) {
         console.error("Error fetching comments:", error);
     }
 };
-
 
 const loadMoreComments = () => {
     fetchComments();
@@ -450,7 +509,7 @@ const setReply = (commentId) => {
             break;
         }
         if (c.replies) {
-            const found = c.replies.find(r => r.id === commentId);
+            const found = c.replies.find((r) => r.id === commentId);
             if (found) {
                 replyTarget = found;
                 break;
@@ -458,31 +517,96 @@ const setReply = (commentId) => {
         }
     }
 
-    console.log('replyTarget', replyTarget.user.name);
+    console.log("replyTarget", replyTarget.user.name);
 
     if (replyTarget) {
         const mention = `@${replyTarget.user.name}`;
 
         // Chỉ thêm nếu chưa có
         if (!content_comment.value.includes(mention)) {
-            content_comment.value = mention + ' ' + content_comment.value;
+            content_comment.value = mention + " " + content_comment.value;
         }
 
         parentCommentId.value = replyTarget.id;
     }
 };
 
-
-
 const highlightMentions = (text) => {
-    return text.replace(/(@\w[\w\s]*)/g, '<span class="text-primary">$1</span>');
+    return text.replace(
+        /(@\w[\w\s]*)/g,
+        '<span class="text-primary">$1</span>'
+    );
 };
-
-
 
 const formatTime = (time) => {
     return new Date(time).toLocaleString();
 };
+
+
+// 🛠 Xóa bài viết
+const emit = defineEmits(['deleted']);
+const deletePost = async (postId) => {
+    try {
+        const response = await axios.post(`/posts/${postId}`);
+        if (response.status === 200) {
+            emit('deleted', postId);
+            console.log("Post deleted successfully");
+        }
+    } catch (error) {
+        console.error("Error deleting post:", error);
+    }
+};
+
+// 🛠 Mở modal chỉnh sửa bài viết
+// Dữ liệu form
+const form = useForm({
+  privacy_setting: 'public',
+  content: '',
+  files: []
+});
+
+// Cờ kiểm tra modal có mở hay không
+const isModalVisible = ref(false);
+
+// Mở modal khi nhấn vào link "Chỉnh sửa"
+const openEditModal = () => {
+  isModalVisible.value = true;
+};
+
+// Đóng modal
+const closeModal = () => {
+  isModalVisible.value = false;
+};
+
+// Gán file vào form khi người dùng chọn file
+const handleFileUpload = (event) => {
+  form.files = Array.from(event.target.files);
+};
+
+// Gửi form lên server
+const submitPost = () => {
+  const formData = new FormData();
+  formData.append('privacy_setting', form.privacy_setting);
+  formData.append('content', form.content);
+
+  form.files.forEach((file) => {
+    formData.append('files[]', file);
+  });
+
+  form.post('/posts', {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onSuccess: () => {
+      alert('✅ Bài viết đã được đăng thành công!');
+      form.reset();
+      closeModal(); // Đóng modal khi gửi thành công
+    },
+    onError: (errors) => {
+      alert('❌ Đăng bài thất bại! Vui lòng thử lại.');
+      console.error(errors);
+    }
+  });
+};
+
 
 onMounted(() => {
     CheckReaction();

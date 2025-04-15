@@ -3,8 +3,8 @@
 
         <Post v-if="isOwner" :user="user_auth"></Post>
 
-            <ItemPost v-for="post in allPosts" :key="post.id" :post="post" :user="user">
-            </ItemPost>
+        <ItemPost v-for="post in allPosts" :key="post.id" :post="post" :user="user" @deleted="removePost">
+        </ItemPost>
 
 
         <div v-if="hasMorePages" ref="loadMoreTrigger">
@@ -77,6 +77,10 @@ const loadMorePosts = async () => {
         console.error('Lỗi tải thêm bài viết:', error)
     }
 }
+
+const removePost = (postId) => {
+    allPosts.value = allPosts.value.filter(post => post.id !== postId);
+};
 
 onMounted(() => {
     observeLastPost()

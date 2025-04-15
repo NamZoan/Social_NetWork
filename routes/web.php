@@ -30,7 +30,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::get('/media', [ProfileController::class, 'media'])->name('profile.media');
         Route::get('/load-more', [ProfileController::class, 'loadMore'])->name('posts.load-more');
     });
+    //post
     Route::post('/posts', [PostController::class, 'store']);
+    Route::post('/posts/{id}', [PostController::class, 'destroy']);
 
     //reaction
     Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);

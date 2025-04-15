@@ -144,5 +144,15 @@ class PostController extends Controller
         return response()->json(['totalReaction' => $totalReaction]);
     }
 
+    public function destroy($id)
+    {
+        $post = Post::findOrFail($id);
+        if ($post->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Không có quyền xoá bài viết này'], 403);
+        }
+        $post->delete();
+
+        return response()->json(['message' => 'Xoá thành công']);
+    }
 
 }
