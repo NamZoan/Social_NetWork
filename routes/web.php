@@ -33,6 +33,7 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     //post
     Route::post('/posts', [PostController::class, 'store']);
     Route::post('/posts/{id}', [PostController::class, 'destroy']);
+    Route::post('/posts/{post}/media/delete', [PostController::class, 'deleteMedia'])->name('posts.media.delete');
 
     //reaction
     Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);

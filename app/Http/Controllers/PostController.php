@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Models\Post;
 use App\Models\Media;
 use App\Models\Like;
-
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 class PostController extends Controller
@@ -154,5 +154,28 @@ class PostController extends Controller
 
         return response()->json(['message' => 'Xoá thành công']);
     }
+
+
+    public function deleteMedia(Request $request, Post $post)
+{
+    $mediaId = $request->input('id');
+    $media = $post->media()->where('id', $mediaId)->first();
+
+    if ($media) {
+        // Xoá file vật lý
+        $path = public_path('images/client/post/' . $media->media_url);
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        // Xoá record trong database
+        $media->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    return response()->json(['success' => false, 'message' => 'Không tìm thấy ảnh'], 404);
+}
+
 
 }

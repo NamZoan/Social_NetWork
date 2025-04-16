@@ -11,12 +11,12 @@
                             Minasyan</a>
                         updated his cover photo.</span>
                     <div class="dropdown">
-                        <a href="#"  class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
+                        <a href="#" class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
                             aria-haspopup="true" aria-expanded="false">
                             <i class="bx bx-dots-horizontal-rounded"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
-                            <a href="#" @click="openEditModal" class="dropdown-item" aria-describedby="editPost">
+                            <a href="#" class="dropdown-item" data-toggle="modal" :data-target="'#modal-update' + post.id">
                                 <div class="row">
                                     <div class="col-md-2">
                                         <i class="bx bx-edit-alt post-option-icon"></i>
@@ -295,40 +295,44 @@
 
 
     <!-- modal update post -->
-    <div class="modal fade bd-example-modal-lg" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" v-if="isModalVisible">
-      <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Chỉnh sửa bài viết</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close" @click="closeModal">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <form @submit.prevent="submitPost">
-              <!-- Chọn quyền riêng tư -->
-              <select v-model="form.privacy_setting" class="form-control" aria-label="Default select example">
-                <option value="public">Công Khai</option>
-                <option value="friends">Bạn Bè</option>
-                <option value="private">Chỉ Mình Tôi</option>
-              </select>
 
-              <!-- Nội dung bài viết -->
-              <div class="form-group">
-                <label for="message-text" class="col-form-label">Bạn đang nghĩ gì:</label>
-                <textarea v-model="form.content" class="form-control" id="message-text"></textarea>
-              </div>
+    <div class="modal fade bd-example-modal-lg" :id="'modal-update'+post.id" tabindex="-1" role="dialog"
+        aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chỉnh sửa bài viết</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
 
-              <!-- Upload file -->
-              <input id="input-b3" type="file" class="file" multiple @change="handleFileUpload">
+                <div class="modal-body">
+                    <form @submit.prevent="submitPost">
+                        <!-- Quyền riêng tư -->
+                        <select v-model="form.privacy_setting" class="form-control mb-3">
+                            <option value="public">Công Khai</option>
+                            <option value="friends">Bạn Bè</option>
+                            <option value="private">Chỉ Mình Tôi</option>
+                        </select>
 
-              <div class="modal-footer p-0 mt-5">
-                <button type="submit" class="btn btn-primary">Đăng Tin</button>
-              </div>
-            </form>
-          </div>
+                        <!-- Nội dung bài viết -->
+                        <div class="form-group">
+                            <label for="message-text">Bạn đang nghĩ gì:</label>
+                            <textarea v-model="form.content" class="form-control" id="message-text" rows="4"></textarea>
+                        </div>
+
+                        <!-- Upload ảnh -->
+                        <input type="file" class="form-control mt-3" ref="fileInput" multiple @change="handleFileUpload">
+
+                        <!-- Nút submit -->
+                        <div class="modal-footer p-0 mt-4">
+                            <button type="submit" class="btn btn-primary">Cập nhật</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
 
@@ -336,9 +340,11 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, onMounted } from "vue";
+import 'bootstrap-fileinput/css/fileinput.min.css';
+import 'bootstrap-fileinput/js/fileinput.min.js';
+import $ from 'jquery';
+import { ref, computed, defineProps, onMounted,watch,nextTick } from "vue";
 import axios from "axios";
-import { useForm  } from '@inertiajs/vue3';
 
 const props = defineProps({
     post: Object,
@@ -541,8 +547,6 @@ const highlightMentions = (text) => {
 const formatTime = (time) => {
     return new Date(time).toLocaleString();
 };
-
-
 // 🛠 Xóa bài viết
 const emit = defineEmits(['deleted']);
 const deletePost = async (postId) => {
@@ -556,57 +560,72 @@ const deletePost = async (postId) => {
         console.error("Error deleting post:", error);
     }
 };
-
-// 🛠 Mở modal chỉnh sửa bài viết
-// Dữ liệu form
-const form = useForm({
-  privacy_setting: 'public',
-  content: '',
+// Khởi tạo form với dữ liệu từ props.post
+const form = ref({
+  privacy_setting: props.post?.privacy_setting || 'public',
+  content: props.post?.content || '',
   files: []
 });
+const fileInput = ref(null);
 
-// Cờ kiểm tra modal có mở hay không
-const isModalVisible = ref(false);
+// Watch post để cập nhật lại form và khởi tạo fileinput
+watch(() => props.post, (newPost) => {
+  if (newPost) {
+    // Reset form values
+    form.value.privacy_setting = newPost.privacy_setting || 'public';
+    form.value.content = newPost.content || '';
+    form.value.files = [];
 
-// Mở modal khi nhấn vào link "Chỉnh sửa"
-const openEditModal = () => {
-  isModalVisible.value = true;
+    // Re-init fileinput
+    nextTick(() => {
+      initFileInput();
+    });
+  }
+}, { immediate: true });
+
+// Hàm khởi tạo fileinput
+const initFileInput = () => {
+  if (!props.post?.media || !fileInput.value) return;
+
+  const initialPreview = props.post.media.map(img => `/images/client/post/${img.media_url}`);
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+const initialPreviewConfig = props.post.media.map(img => ({
+  caption: img.media_url,
+  key: img.id,
+  url: `/posts/${props.post.id}/media/delete`,
+  extra: {
+    id: img.id,
+    _token: csrfToken
+  }
+}));
+
+  // Huỷ khởi tạo cũ trước khi khởi tạo lại
+  try {
+    $(fileInput.value).fileinput('destroy');
+  } catch (e) {
+    console.warn("Không có fileinput để destroy:", e);
+  }
+
+  $(fileInput.value).fileinput({
+    theme: 'fas',
+    language: 'vi',
+    showUpload: false,
+    showCaption: true,
+    browseClass: "btn btn-primary btn-sm",
+    allowedFileExtensions: ['jpg', 'jpeg', 'png', 'gif'],
+    overwriteInitial: false,
+    initialPreviewAsData: true,
+    initialPreview,
+    initialPreviewConfig,
+    deleteUrl: `/posts/${props.post.id}/media/delete`
+  });
 };
 
-// Đóng modal
-const closeModal = () => {
-  isModalVisible.value = false;
-};
-
-// Gán file vào form khi người dùng chọn file
+// Nếu cần xử lý file mới được chọn
 const handleFileUpload = (event) => {
-  form.files = Array.from(event.target.files);
+  form.value.files = Array.from(event.target.files);
 };
-
-// Gửi form lên server
-const submitPost = () => {
-  const formData = new FormData();
-  formData.append('privacy_setting', form.privacy_setting);
-  formData.append('content', form.content);
-
-  form.files.forEach((file) => {
-    formData.append('files[]', file);
-  });
-
-  form.post('/posts', {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    onSuccess: () => {
-      alert('✅ Bài viết đã được đăng thành công!');
-      form.reset();
-      closeModal(); // Đóng modal khi gửi thành công
-    },
-    onError: (errors) => {
-      alert('❌ Đăng bài thất bại! Vui lòng thử lại.');
-      console.error(errors);
-    }
-  });
-};
-
 
 onMounted(() => {
     CheckReaction();
