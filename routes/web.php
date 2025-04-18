@@ -50,6 +50,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/send-friend-request', [FriendshipController::class, 'sendFriendRequest']);
     Route::post('/accept-friend-request', [FriendshipController::class, 'acceptFriendRequest']);
     Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
+
+    //group
+    Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
+
 });
 
 
