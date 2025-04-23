@@ -184,44 +184,56 @@
             <div class="modal-content">
                 <form @submit.prevent="submit">
                     <div class="modal-header">
-                        <h5 class="modal-title">Tạo nhóm </h5>
+                        <h5 class="modal-title">Tạo nhóm</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
 
                     <div class="modal-body">
-                        <label for="recipient-status" class="col-form-label">Trạng Thái Nhóm</label>
-
-                        <select class="form-control" aria-label="Default select example">
-                            <option value="public">Công Khai</option>
-                            <option value="friends">Riêng Tư</option>
+                        <!-- Trạng thái nhóm -->
+                        <label class="col-form-label">Trạng Thái Nhóm</label>
+                        <select v-model="form.privacy_setting" class="form-control">
+                            <option :value="true">Công Khai</option>
+                            <option :value="false">Riêng Tư</option>
                         </select>
+
+                        <!-- Tên nhóm -->
                         <div class="form-group">
-                            <label for="recipient-name" class="col-form-label">Tên Nhóm</label>
-                            <input type="text" class="form-control" id="recipient-name">
+                            <label class="col-form-label">Tên Nhóm</label>
+                            <input v-model="form.name" type="text" class="form-control" />
+                            <div v-if="errors.name" class="text-danger">{{ errors.name }}</div>
                         </div>
+
+                        <!-- Mô tả -->
                         <div class="form-group">
-                            <label for="message-text" class="col-form-label">Mô Tả</label>
-                            <textarea class="form-control" id="message-text"></textarea>
+                            <label class="col-form-label">Mô Tả</label>
+                            <textarea v-model="form.description" class="form-control"></textarea>
+                            <div v-if="errors.description" class="text-danger">{{ errors.description }}</div>
                         </div>
-                        <div>
-                            <label for="cover_photo_url" class="col-form-label">Ảnh</label>
-                            <input id="input-b3" type="file" class="file" data-browse-on-zone-click="true" @change="handleFileChange">
+
+                        <!-- Ảnh -->
+                        <div class="form-group">
+                            <label class="col-form-label">Ảnh</label>
+                            <input type="file" class="form-control-file" @change="handleFileChange" />
+                            <div v-if="errors.cover_photo_url" class="text-danger">{{ errors.cover_photo_url }}</div>
                         </div>
-                        <div>
-                            <label for="post_approval_required" class="col-form-label">Cho Phép Người Dùng Đăng
-                                Bài</label>
-                            <select class="form-control" aria-label="Default select example">
-                                <option value="friends">Không</option>
-                                <option value="public">Có</option>
+
+                        <!-- Cho phép đăng bài -->
+                        <div class="form-group">
+                            <label class="col-form-label">Cho phép người dùng đăng bài</label>
+                            <select v-model="form.post_approval_required" class="form-control">
+                                <option :value="false">Không</option>
+                                <option :value="true">Có</option>
                             </select>
+                            <div v-if="errors.post_approval_required" class="text-danger">{{
+                                errors.post_approval_required }}</div>
                         </div>
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                        <button type="submit" class="btn btn-primary">Tạo Nhóm</button>
+                        <button type="submit" class="btn btn-primary" :disabled="form.processing">Tạo Nhóm</button>
                     </div>
                 </form>
             </div>
@@ -232,32 +244,29 @@
 <script setup>
 import { ref } from 'vue'
 import { Inertia } from '@inertiajs/inertia'
+import { useForm,usePage } from '@inertiajs/vue3'
 import Index from "./Index.vue";
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
 
-const form = ref({
-  name: '',
-  description: '',
-  privacy_setting: 0,
-  post_approval_required: 0,
-  cover_photo_url: null,
+const { props } = usePage()
+const errors = props.errors || {}
+
+const form = useForm({
+    name: '',
+    description: '',
+    privacy_setting: true, // true = công khai, false = riêng tư
+    post_approval_required: false, // true = cần duyệt, false = không cần
+    cover_photo_url: null,
 })
 
 const handleFileChange = (e) => {
-  form.value.cover_photo_url = e.target.files[0]
+    form.cover_photo_url = e.target.files[0]
 }
 
 const submit = () => {
-  const formData = new FormData()
-  formData.append('name', form.value.name)
-  formData.append('description', form.value.description)
-  formData.append('privacy_setting', form.value.privacy_setting)
-  formData.append('post_approval_required', form.value.post_approval_required)
-  if (form.value.cover_photo_url) {
-    formData.append('cover_photo_url', form.value.cover_photo_url)
-  }
-
-  Inertia.post('/groups', formData)
+    form.post('/groups', {
+        forceFormData: true,
+    })
 }
 </script>
