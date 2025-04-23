@@ -27,7 +27,16 @@ class GroupController extends Controller
 
         $coverPath = null;
         if ($request->hasFile('cover_photo_url')) {
-            $coverPath = $request->file('cover_photo_url')->store('group_covers', 'public');
+            $file = $request->file('cover_photo_url');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('images/client/group/thumbnail');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $file->move($destinationPath, $filename);
+            $coverPath = 'images/client/group/thumbnail/' . $filename;
         }
 
         Group::create([
@@ -41,4 +50,13 @@ class GroupController extends Controller
 
         return back()->with('success', 'Tạo nhóm thành công!');
     }
+
+    public function show($groupId)
+    {
+        $group = Group::findOrFail($groupId);
+        return Inertia::render('Groups/GroupDetail', [
+            'group' => $group,
+        ]);
+    }
+
 }

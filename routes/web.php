@@ -53,7 +53,7 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
     //group
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
-
+    Route::get('/groups/{groupId}', [GroupController::class, 'show'])->name('groups.show');
 });
 
 

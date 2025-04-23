@@ -215,7 +215,7 @@
                         <!-- Ảnh -->
                         <div class="form-group">
                             <label class="col-form-label">Ảnh</label>
-                            <input type="file" class="form-control-file" @change="handleFileChange" />
+                            <input id="input-b1" name="input-b1" type="file" class="file" data-browse-on-zone-click="true" @change="handleFileChange" />
                             <div v-if="errors.cover_photo_url" class="text-danger">{{ errors.cover_photo_url }}</div>
                         </div>
 
@@ -242,12 +242,13 @@
 
 </template>
 <script setup>
-import { ref } from 'vue'
-import { Inertia } from '@inertiajs/inertia'
-import { useForm,usePage } from '@inertiajs/vue3'
+import { ref, onMounted } from 'vue'
+import { useForm, usePage } from '@inertiajs/vue3'
 import Index from "./Index.vue";
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
+import $ from 'jquery';
+
 
 const { props } = usePage()
 const errors = props.errors || {}
@@ -259,6 +260,15 @@ const form = useForm({
     post_approval_required: false, // true = cần duyệt, false = không cần
     cover_photo_url: null,
 })
+
+onMounted(() => {
+        $('#input-b1').fileinput({
+            showUpload: false,
+            showPreview: true,
+            allowedFileExtensions: ['jpg', 'png', 'gif'],
+        })
+})
+
 
 const handleFileChange = (e) => {
     form.cover_photo_url = e.target.files[0]
