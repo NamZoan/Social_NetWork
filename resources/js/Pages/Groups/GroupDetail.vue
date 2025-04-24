@@ -1,5 +1,12 @@
 <template>
     <App>
+        <div class="jumbotron groups-banner">
+            <div class="container group-banner-content">
+                <h1 class="jumbotron-heading mt-auto"><img :src="'assets/images/icons/theme/group-white.png'"
+                        class="mr-3" alt="Welcome to groups"></h1>
+                <p>Get latest active from your groups.</p>
+            </div>
+        </div>
         <div id="content-page" class="content-page">
             <div class="container">
                 <div class="row">
@@ -7,12 +14,14 @@
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap">
                             <div class="group-info d-flex align-items-center">
                                 <div class="me-3">
-                                    <!-- <img class="rounded-circle img-fluid avatar-100"
-                                        src="../assets/images/page-img/gi-1.jpg" alt=""> -->
+                                    <img class="rounded-circle img-fluid avatar-100"
+                                        :src="`/images/client/group/thumbnail/${group.cover_photo_url}`">
+
                                 </div>
                                 <div class="info">
-                                    <h4>Developer's...</h4>
-                                    <p class="mb-0"><i class="ri-lock-fill pe-2"></i>Private Group . 323 members</p>
+                                    <h3>{{ group.name }}</h3>
+                                    <p class="mb-0"><i class="bx bx-lock-alt pe-2"></i>Private Group . 323 thành viên
+                                    </p>
                                 </div>
                             </div>
                             <div class="group-member d-flex align-items-center  mt-md-0 mt-2">
@@ -22,8 +31,7 @@
                                             src="../assets/images/user/05.jpg" alt=""> -->
                                     </a>
                                 </div>
-                                <button type="submit" class="btn btn-primary mb-2"><i
-                                        class="ri-add-line me-1"></i>Invite</button>
+                                <button type="submit" class="btn btn-primary mb-2">Rời nhóm</button>
                             </div>
                         </div>
                     </div>
@@ -122,4 +130,10 @@
 import App from '../../Layouts/App.vue';
 import Post from '../../Components/Post.vue';
 import ItemPost from '../../Components/Item/ItemPost.vue';
+
+defineProps({ group: Object })
+
 </script>
+<style scoped>
+@import '../../../css/socialv.css';
+</style>

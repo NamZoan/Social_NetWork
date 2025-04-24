@@ -25,7 +25,6 @@ class GroupController extends Controller
             'cover_photo_url' => 'nullable|image|max:2048',
         ]);
 
-        $coverPath = null;
         if ($request->hasFile('cover_photo_url')) {
             $file = $request->file('cover_photo_url');
             $filename = uniqid() . '.' . $file->getClientOriginalExtension();
@@ -36,7 +35,6 @@ class GroupController extends Controller
             }
 
             $file->move($destinationPath, $filename);
-            $coverPath = 'images/client/group/thumbnail/' . $filename;
         }
 
         Group::create([
@@ -44,7 +42,7 @@ class GroupController extends Controller
             'description' => $request->description,
             'privacy_setting' => $request->privacy_setting,
             'post_approval_required' => $request->post_approval_required,
-            'cover_photo_url' => $coverPath,
+            'cover_photo_url' => $filename,
             'creator_id' => auth()->id(),
         ]);
 
