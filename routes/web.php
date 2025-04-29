@@ -28,12 +28,14 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::get('/friend', [ProfileController::class, 'friend'])->name('profile.friend');
         Route::get('/group', [ProfileController::class, 'group'])->name('profile.group');
         Route::get('/media', [ProfileController::class, 'media'])->name('profile.media');
-        Route::get('/load-more', [ProfileController::class, 'loadMore'])->name('posts.load-more');
+        Route::get('/load-more-posts', [ProfileController::class, 'loadMore'])->name('profile.load-more-posts');
     });
     //post
     Route::post('/posts', [PostController::class, 'store']);
     Route::post('/posts/{id}', [PostController::class, 'destroy']);
     Route::post('/posts/{post}/media/delete', [PostController::class, 'deleteMedia'])->name('posts.media.delete');
+    Route::post('/posts/{post}/privacy', [PostController::class, 'updatePrivacy'])->name('posts.privacy.update');
+    Route::post('/posts/{post}/update', [PostController::class, 'update'])->name('posts.update');
 
     //reaction
     Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);
@@ -42,8 +44,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::get('/posts/total-reaction/{postId}', [PostController::class, 'totalReaction']);
 
     //comment
-    Route::post('/comments', [CommentController::class, 'store']);
-    Route::get('/comments/{postId}', [CommentController::class, 'getComments']);
+    Route::get('/comments/{post}', [CommentController::class, 'index'])->name('comments.index');
+    Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::get('/posts/{post}/comments-count', [PostController::class, 'getCommentsCount'])->name('posts.comments-count');
 
     //friendship
     Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
@@ -52,8 +55,27 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
 
     //group
+    Route::get('/groups/{group}', [GroupController::class, 'show'])->name('groups.show');
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
-    Route::get('/groups/{groupId}', [GroupController::class, 'show'])->name('groups.show');
+    Route::post('/groups/{group}/join', [GroupController::class, 'join'])->name('groups.join');
+    Route::post('/groups/{group}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+
+    // Group join request routes
+    Route::get('/groups/{group}/pending-requests', [GroupController::class, 'getPendingRequests'])->name('groups.pending-requests');
+    Route::post('/groups/{group}/approve-request/{user}', [GroupController::class, 'approveJoinRequest'])->name('groups.approve-request');
+    Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
+
+    Route::get('/groups/{group}/posts', [GroupController::class, 'getPosts'])->name('groups.posts');
+    Route::get('/groups/{group}/load-more', [GroupController::class, 'loadMorePosts'])->name('groups.load-more');
+    Route::get('/groups/{group}/load-more-posts', [GroupController::class, 'loadMorePosts'])->name('groups.load-more-posts');
+
+    // Group membership routes
+    Route::get('/groups/{group}/pending-requests', [GroupController::class, 'showPendingRequests'])->name('groups.pending-requests');
+
+    Route::post('/groups/{group}/members/{member}/approve', [GroupController::class, 'approveMember'])->name('groups.members.approve');
+
+    Route::post('/groups/{group}/members/{member}/reject', [GroupController::class, 'rejectMember'])->name('groups.members.reject');
 });
+
 
 

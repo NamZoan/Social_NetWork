@@ -1,5 +1,5 @@
 <template>
-    <div class="container-fluid" id="wrapper">
+    <div class="container-fluid newsfeed" id="wrapper">
         <div class="row newsfeed-size">
             <div class="col-md-12 message-right-side">
                 <Navbar />

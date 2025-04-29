@@ -3,15 +3,16 @@
         <li class="media post-form w-shadow">
             <div class="media-body">
                 <div class="form-group post-input">
-                    <textarea class="form-control" id="postForm" rows="2"
-                        placeholder="What's on your mind, Arthur?"></textarea>
+                    <textarea v-model="form.content" class="form-control" id="postForm" rows="2"
+                        :placeholder="placeholder"></textarea>
                 </div>
                 <div class="row post-form-group">
                     <div class="col-md-9">
-                        <button type="file" class="btn btn-link post-form-btn btn-sm">
+                        <button type="button" class="btn btn-link post-form-btn btn-sm" @click="triggerFileInput">
                             <img :src="'/images/web/icons/theme/post-image.png'" alt="post form icon" />
                             <span>Photo/Video</span>
                         </button>
+                        <input type="file" ref="fileInput" @change="handleFileChange" multiple style="display: none" accept="image/*,video/*">
                         <button type="button" class="btn btn-link post-form-btn btn-sm">
                             <img :src="'/images/web/icons/theme/tag-friend.png'" alt="post form icon" />
                             <span>Tag Friends</span>
@@ -22,7 +23,7 @@
                         </button>
                     </div>
                     <div class="col-md-3 text-right">
-                        <button type="button" class="btn btn-primary btn-sm">
+                        <button type="button" class="btn btn-primary btn-sm" @click="submitPost" :disabled="form.processing">
                             Publish
                         </button>
                     </div>
@@ -44,11 +45,16 @@
                 <div class="modal-body">
                     <form @submit.prevent="submitPost">
                         <!-- Chọn quyền riêng tư -->
+                        <div v-if="!props.group_id">
                         <select v-model="form.privacy_setting" class="form-control" aria-label="Default select example">
                             <option value="public">Công Khai</option>
                             <option value="friends">Bạn Bè</option>
                             <option value="private">Chỉ Mình Tôi</option>
                         </select>
+                        </div>
+                        <div v-else class="alert" :class="props.group?.post_approval_required ? 'alert-info' : 'alert-warning'">
+                            {{ props.group?.post_approval_required ? 'Đăng bài tự do' : 'Cần quản trị viên duyệt bài viết' }}
+                        </div>
 
                         <!-- Nội dung bài viết -->
                         <div class="form-group">
@@ -64,7 +70,6 @@
                         </div>
                     </form>
                 </div>
-
             </div>
         </div>
     </div>
@@ -74,19 +79,51 @@
 <script setup>
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
-import { onMounted,defineProps } from 'vue';
-import { useForm,router  } from '@inertiajs/vue3';
+import { onMounted, defineProps, ref } from 'vue';
+import { useForm, router } from '@inertiajs/vue3';
 import $ from 'jquery';
+import axios from 'axios';
+
 const props = defineProps({
-    user: Object,
+    group_id: {
+        type: Number,
+        default: null
+    },
+    user: {
+        type: Object,
+        required: true
+    },
+    group: {
+        type: Object,
+        default: null
+    },
+    createdGroups: {
+        type: Array,
+        default: () => []
+    },
+    joinedGroups: {
+        type: Array,
+        default: () => []
+    }
 });
 
-
+const fileInput = ref(null);
 const form = useForm({
-    privacy_setting: 'public',
     content: '',
-    files: []
+    privacy_setting: 'public',
+    files: [],
+    group_id: props.group_id || null
 });
+
+const placeholder = props.user ? `Bạn đang nghĩ gì..., ${props.user.name}?` : "Bạn đang nghĩ gì...?";
+
+const triggerFileInput = () => {
+    fileInput.value.click();
+};
+
+const handleFileChange = (event) => {
+    form.files = Array.from(event.target.files);
+};
 
 // Gán file vào form khi người dùng chọn file
 const handleFileUpload = (event) => {
@@ -102,31 +139,41 @@ onMounted(() => {
     });
 });
 
-
 // Gửi form lên server Laravel
 const submitPost = () => {
-    const formData = new FormData();
-    formData.append('privacy_setting', form.privacy_setting);
-    formData.append('content', form.content);
-
-    form.files.forEach(file => {
-        formData.append('files[]', file);
-    });
+    if (!form.content.trim()) return;
 
     form.post('/posts', {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        forceFormData: true,
         onSuccess: () => {
-            alert('✅ Bài viết đã được đăng thành công!');
             form.reset();
-
-            // Chuyển hướng về trang profile của user
-            router.visit(`/profile/${props.user.username}`);
-        },
-        onError: (errors) => {
-            alert('❌ Đăng bài thất bại! Vui lòng thử lại.');
-            console.error(errors);
+            if (fileInput.value) {
+                fileInput.value.value = '';
+            }
+            // Reload the page to show the new post
+            window.location.reload();
         }
     });
 };
 
 </script>
+<style scoped>
+.alert {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+}
+</style>
+

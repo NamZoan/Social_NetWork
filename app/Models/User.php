@@ -70,5 +70,29 @@ class User extends Authenticatable
             ->union($this->belongsToMany(User::class, 'friendships', 'user_id_2', 'user_id_1'));
     }
 
-    
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_members', 'user_id', 'group_id')
+            ->withPivot('role', 'joined_at', 'membership_status');
+    }
+
+    public function groupMembers()
+    {
+        return $this->hasMany(GroupMember::class, 'user_id');
+    }
+
+    /**
+     * Kiểm tra xem user hiện tại có phải là bạn của user khác không
+     */
+    public function isFriendWith($user)
+    {
+        if (!$user) return false;
+        
+        return $this->friends()
+            ->where(function($query) use ($user) {
+                $query->where('user_id_1', $user->id)
+                    ->orWhere('user_id_2', $user->id);
+            })
+            ->exists();
+    }
 }

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->text('content'); // Nội dung bài viết
             
-            $table->enum('privacy_setting', ['public', 'friends', 'private', 'custom'])
+            $table->enum('privacy_setting', ['public', 'friends', 'private'])
                   ->default('public'); // Cài đặt quyền riêng tư
             
             $table->boolean('allow_comments')->default(true); // Cho phép bình luận hay không

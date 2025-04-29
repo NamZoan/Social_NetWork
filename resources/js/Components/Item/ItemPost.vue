@@ -1,22 +1,25 @@
 <template>
     <div class="post border-bottom p-3 bg-white w-shadow mb-3">
         <div class="media text-muted pt-3">
-            <img :src="props.user.avatar
-                ? `/images/client/avatar/${props.user.avatar}`
+            <img :src="userData.avatar
+                ? `/images/client/avatar/${userData.avatar}`
                 : '/images/web/users/avatar.jpg'
                 " class="mr-3 post-user-image" />
             <div class="media-body pb-3 mb-0 small lh-125">
                 <div class="d-flex justify-content-between align-items-center w-100">
-                    <span class="post-type text-muted"><a href="#" class="text-gray-dark post-user-name mr-2">Arthur
-                            Minasyan</a>
-                        updated his cover photo.</span>
+                    <span class="post-type text-muted">
+                        <a href="#" class="text-gray-dark post-user-name mr-2">{{ userData.name }}</a>
+                        <span v-if="postData.group_id">đã đăng trong nhóm</span>
+                        <span v-else>đã đăng bài viết</span>
+                    </span>
                     <div class="dropdown">
                         <a href="#" class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
                             aria-haspopup="true" aria-expanded="false">
                             <i class="bx bx-dots-horizontal-rounded"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
-                            <a href="#" class="dropdown-item" data-toggle="modal" :data-target="'#modal-update' + post.id">
+                            <a href="#" class="dropdown-item" data-toggle="modal"
+                                :data-target="'#modal-update' + postData.id">
                                 <div class="row">
                                     <div class="col-md-2">
                                         <i class="bx bx-edit-alt post-option-icon"></i>
@@ -28,7 +31,7 @@
                                 </div>
                             </a>
                             <a href="#" class="dropdown-item" aria-describedby="deletePost"
-                                @click.prevent="deletePost(post.id)">
+                                @click.prevent="deletePost(postData.id)">
                                 <div class="row">
                                     <div class="col-md-2">
                                         <i class="bx bx-trash post-option-icon"></i>
@@ -42,10 +45,35 @@
                         </div>
                     </div>
                 </div>
-                <span class="d-block">{{ props.post.created_at }} <i class="bx bx-globe ml-3"></i></span>
+                <span class="d-block">{{ postData.created_at }}
+                    <div class="dropdown d-inline-block">
+                        <i :class="privacyIcon" class="ml-3 privacy-icon" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false"></i>
+                        <div class="dropdown-menu dropdown-menu-right privacy-dropdown">
+                            <div class="dropdown-item" :class="{ active: postData.privacy_setting === 'public' }"
+                                @click="updatePrivacy('public')">
+                                <i class="bx bx-globe mr-2"></i>
+                                <span>Public</span>
+                                <small class="d-block text-muted">Mọi người có thể xem bài viết này</small>
+                            </div>
+                            <div class="dropdown-item" :class="{ active: postData.privacy_setting === 'friends' }"
+                                @click="updatePrivacy('friends')">
+                                <i class="bx bx-user mr-2"></i>
+                                <span>Friends</span>
+                                <small class="d-block text-muted">Chỉ bạn bè có thể xem bài viết này</small>
+                            </div>
+                            <div class="dropdown-item" :class="{ active: postData.privacy_setting === 'private' }"
+                                @click="updatePrivacy('private')">
+                                <i class="bx bx-lock-alt mr-2"></i>
+                                <span>Private</span>
+                                <small class="d-block text-muted">Chỉ bạn có thể xem bài viết này</small>
+                            </div>
+                        </div>
+                    </div>
+                </span>
             </div>
         </div>
-        <p>{{ props.post.content }}</p>
+        <p>{{ postData.content }}</p>
 
         <div class="border-bottom"></div>
 
@@ -61,31 +89,40 @@
             </div>
         </div>
 
-        <div v-if="images.length > 2" class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog"
-            aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div id="carouselExampleControls" class="carousel slide" data-ride="carousel">
-                        <div class="carousel-inner">
-                            <div v-for="(src, index) in images" :key="index" class="carousel-item"
-                                :class="{ active: index === 0 }">
-                                <img :src="'/images/client/post/' + src" class="d-block w-100" loading="lazy" />
-                            </div>
+        <Teleport to="body">
+            <div v-if="images.length > 2" class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog"
+                aria-labelledby="exampleModalCenterTitle" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalCenterTitle">Image Gallery</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                         </div>
-                        <a class="carousel-control-prev" href="#carouselExampleControls" role="button"
-                            data-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="sr-only">Previous</span>
-                        </a>
-                        <a class="carousel-control-next" href="#carouselExampleControls" role="button"
-                            data-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="sr-only">Next</span>
-                        </a>
+                        <div id="carouselExampleControls" class="carousel slide" data-ride="carousel">
+                            <div class="carousel-inner">
+                                <div v-for="(src, index) in images" :key="index" class="carousel-item"
+                                    :class="{ active: index === 0 }">
+                                    <img :src="'/images/client/post/' + src" class="d-block w-100" loading="lazy"
+                                        alt="Gallery image" />
+                                </div>
+                            </div>
+                            <a class="carousel-control-prev" href="#carouselExampleControls" role="button"
+                                data-slide="prev" aria-label="Previous image">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a class="carousel-control-next" href="#carouselExampleControls" role="button"
+                                data-slide="next" aria-label="Next image">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Reactions -->
         <div class="argon-reaction">
@@ -106,8 +143,8 @@
             </span>
         </div>
         <a href="javascript:void(0)" class="post-card-buttons" id="show-comments" data-toggle="modal"
-            :data-target="'#exampleModalScrollable-' + post.id"><i class="bx bx-message-rounded mr-1"></i>
-            {{ post.comments_count }}</a>
+            :data-target="'#exampleModalScrollable-' + postData.id"><i class="bx bx-message-rounded mr-1"></i>
+            {{ postData.comments_count || 0 }}</a>
         <div class="dropdown dropup share-dropup">
             <a href="#" class="post-card-buttons" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="bx bx-share-alt mr-1"></i> Share
@@ -147,7 +184,7 @@
         </div>
 
         <!-- Modal bình luận -->
-        <div class="modal fade bd-example-modal-lg" :id="'exampleModalScrollable-' + post.id" tabindex="-1"
+        <div class="modal fade bd-example-modal-lg" :id="'exampleModalScrollable-' + postData.id" tabindex="-1"
             role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
@@ -265,10 +302,9 @@
                                             <li class="media" v-if="hasMore">
                                                 <div class="media-body">
                                                     <div class="comment-see-more text-center">
-                                                        <button type="button" class="btn btn-link fs-8" @click="
-                                                            loadMoreComments
-                                                        ">
-                                                            See More
+                                                        <button type="button" class="btn btn-link fs-8"
+                                                            @click="loadMoreComments" :disabled="isLoading">
+                                                            {{ isLoading ? 'Loading...' : 'Xem thêm' }}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -281,10 +317,10 @@
                         </div>
                     </div>
                 </div>
-                <form class="modal-footer">
+                <form class="modal-footer" @submit.prevent="submitComment">
                     <input type="text" v-model="content_comment" class="form-control comment-input"
-                        placeholder="Nhập bình luận của bạn..." />
-                    <button type="button" class="btn btn-primary" @click="submitComment">
+                        placeholder="Nhập bình luận của bạn..." @keydown.enter.prevent="submitComment" />
+                    <button type="submit" class="btn btn-primary">
                         Gửi
                     </button>
                 </form>
@@ -292,64 +328,56 @@
         </div>
     </div>
     </div>
-
-
-    <!-- modal update post -->
-
-    <div class="modal fade bd-example-modal-lg" :id="'modal-update'+post.id" tabindex="-1" role="dialog"
-        aria-labelledby="myLargeModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Chỉnh sửa bài viết</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div class="modal-body">
-                    <form @submit.prevent="submitPost">
-                        <!-- Quyền riêng tư -->
-                        <select v-model="form.privacy_setting" class="form-control mb-3">
-                            <option value="public">Công Khai</option>
-                            <option value="friends">Bạn Bè</option>
-                            <option value="private">Chỉ Mình Tôi</option>
-                        </select>
-
-                        <!-- Nội dung bài viết -->
-                        <div class="form-group">
-                            <label for="message-text">Bạn đang nghĩ gì:</label>
-                            <textarea v-model="form.content" class="form-control" id="message-text" rows="4"></textarea>
-                        </div>
-
-                        <!-- Upload ảnh -->
-                        <input type="file" class="form-control mt-3" ref="fileInput" multiple @change="handleFileUpload">
-
-                        <!-- Nút submit -->
-                        <div class="modal-footer p-0 mt-4">
-                            <button type="submit" class="btn btn-primary">Cập nhật</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-
+    <UpdatePost :post="postData" @updated="handlePostUpdated" />
 </template>
 
 <script setup>
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
-import $ from 'jquery';
-import { ref, computed, defineProps, onMounted,watch,nextTick } from "vue";
+import { ref, computed, defineProps, onMounted, watch } from "vue";
 import axios from "axios";
+import UpdatePost from './UpdatePost.vue';
+import { Teleport } from 'vue';
+import $ from 'jquery';
 
 const props = defineProps({
-    post: Object,
-    user: Object,
+    post: {
+        type: Object,
+        required: true,
+        default: () => ({
+            id: null,
+            content: '',
+            created_at: '',
+            privacy_setting: 'public',
+            media: [],
+            user: {}
+        })
+    },
+    user: {
+        type: Object,
+        required: true,
+        default: () => ({
+            id: null,
+            name: '',
+            avatar: null
+        })
+    }
 });
+
+const emit = defineEmits(['updated', 'deleted']);
+
+// Thay computed bằng ref để có thể cập nhật
+const postData = ref(props.post);
+const userData = ref(props.user);
+
+// Watch props để cập nhật khi props thay đổi
+watch(() => props.post, (newPost) => {
+    postData.value = newPost;
+}, { deep: true });
+
+watch(() => props.user, (newUser) => {
+    userData.value = newUser;
+}, { deep: true });
 
 // Lưu trạng thái like và số lượng like
 const totalReaction = ref(0);
@@ -375,47 +403,66 @@ const getReactionImage = computed(() => {
 // 🛠 Kiểm tra xem user đã like chưa
 const CheckReaction = async () => {
     try {
-        const response = await axios.get(
-            `/posts/check-reaction/${props.post.id}`
-        );
-        isReaction.value = response.data.reaction || null;
+        const response = await axios.get(`/posts/check-reaction/${postData.value.id}`);
+        if (response.data && response.data.reaction) {
+            isReaction.value = response.data.reaction;
+            console.log('Current reaction:', isReaction.value);
+        } else {
+            isReaction.value = null;
+        }
     } catch (error) {
         console.error("Error fetching reaction:", error);
+        isReaction.value = null;
     }
 };
 
 // 🛠 Gửi reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
 const toggleLike = async (reactionType) => {
-    if (!props.post?.id) {
+    if (!postData.value?.id) {
         console.error("Post ID is missing");
         return;
     }
 
-    isReaction.value = reactionType; // ✅ Cập nhật UI ngay lập tức
+    // Cập nhật UI ngay lập tức
+    const previousReaction = isReaction.value;
+    isReaction.value = reactionType;
 
     try {
-        const response = await axios.post(`/posts/reaction/${props.post.id}`, {
+        const response = await axios.post(`/posts/reaction/${postData.value.id}`, {
             reaction: reactionType,
         });
-        likesCount.value = response.data.likes_count ?? likesCount.value; // Cập nhật số like nếu API trả về
+
+        if (response.data && response.data.reaction) {
+            // Nếu server trả về reaction khác, cập nhật lại
+            isReaction.value = response.data.reaction;
+            totalReaction.value = response.data.likes_count ?? totalReaction.value;
+            console.log('Updated reaction:', isReaction.value);
+        }
     } catch (error) {
         console.error("Error liking post:", error);
+        // Nếu có lỗi, quay lại trạng thái trước đó
+        isReaction.value = previousReaction;
     }
 };
 
 // 🛠 Xóa reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
 const removeReaction = async () => {
-    if (!isReaction.value) return; // Nếu chưa có reaction, không làm gì cả
+    if (!isReaction.value) return;
 
-    isReaction.value = null; // Cập nhật UI ngay lập tức
+    // Cập nhật UI ngay lập tức
+    const previousReaction = isReaction.value;
+    isReaction.value = null;
 
     try {
-        const response = await axios.post(
-            `/posts/remove-reaction/${props.post.id}`
-        );
-        likesCount.value = response.data.likes_count ?? likesCount.value; // Cập nhật số like nếu API trả về
+        const response = await axios.post(`/posts/remove-reaction/${postData.value.id}`);
+        if (response.data && response.data.success) {
+            totalReaction.value = response.data.likes_count ?? totalReaction.value;
+            console.log('Removed reaction');
+        }
     } catch (error) {
         console.error("Error removing reaction:", error);
+        // Nếu có lỗi, quay lại trạng thái trước đó
+        isReaction.value = previousReaction;
     }
 };
 
@@ -423,7 +470,7 @@ const removeReaction = async () => {
 const totalReactions = async () => {
     try {
         const response = await axios.get(
-            `/posts/total-reaction/${props.post.id}`
+            `/posts/total-reaction/${postData.value.id}`
         );
         totalReaction.value = response.data.totalReaction;
     } catch (error) {
@@ -433,9 +480,12 @@ const totalReactions = async () => {
 };
 
 // 🛠 Lấy danh sách ảnh của bài viết
-const images = computed(() =>
-    props.post.media ? props.post.media.map((media) => media.media_url) : []
-);
+const images = computed(() => {
+    if (!postData.value?.media) return [];
+    return postData.value.media
+        .filter(media => media.media_type === 'image')
+        .map(media => media.media_url);
+});
 const displayImages = computed(() => images.value.slice(0, 2));
 const galleryClass = computed(() =>
     images.value.length === 1 ? "single-image" : "multi-images"
@@ -446,12 +496,29 @@ const comments = ref([]);
 const page = ref(1);
 const hasMore = ref(true);
 const parentCommentId = ref(null);
+const isLoading = ref(false);
+
+// Thêm hàm để cập nhật số lượng comment
+const updateCommentsCount = async () => {
+    try {
+        const response = await axios.get(`/posts/${postData.value.id}/comments-count`);
+        console.log('Comments count response:', response.data);
+        if (response.data && response.data.count !== undefined) {
+            postData.value.comments_count = response.data.count;
+            console.log('Updated comments count:', postData.value.comments_count);
+        }
+    } catch (error) {
+        console.error("Error updating comments count:", error);
+    }
+};
 
 // 🛠 Gửi comment bình luận bài post
 const submitComment = async () => {
+    if (!content_comment.value.trim()) return;
+    
     try {
         const response = await axios.post("/comments", {
-            post_id: props.post.id,
+            post_id: postData.value.id,
             content: content_comment.value,
             parent_comment_id: parentCommentId.value,
         });
@@ -467,18 +534,17 @@ const submitComment = async () => {
                 (comment) => comment.id === newComment.parent_comment_id
             );
             if (parentComment) {
-                // ✅ Nếu replies chưa tồn tại, khởi tạo nó là mảng rỗng
                 if (!Array.isArray(parentComment.replies)) {
                     parentComment.replies = [];
                 }
-
                 parentComment.replies.unshift(newComment);
-                console.log("comments vào con");
             }
         } else {
             comments.value.unshift(newComment);
-            console.log("comments vào cha");
         }
+
+        // Cập nhật số lượng comment
+        await updateCommentsCount();
     } catch (error) {
         console.error("Lỗi khi gửi bình luận:", error);
     }
@@ -486,23 +552,34 @@ const submitComment = async () => {
 
 // 🛠 Hiện comment bình luận bài post
 const fetchComments = async () => {
+    if (isLoading.value) return;
+
     try {
-        const response = await axios.get(
-            `/comments/${props.post.id}?page=${page.value}`
-        );
-        if (response.data.length === 0) {
+        isLoading.value = true;
+        const response = await axios.get(`/comments/${postData.value.id}?page=${page.value}`);
+        console.log('Comments response:', response.data);
+
+        const paginatedData = response.data;
+
+        if (paginatedData.data.length === 0) {
             hasMore.value = false;
         } else {
-            comments.value.push(...response.data);
+            // Chỉ thêm comments mới vào mảng hiện có
+            comments.value.push(...paginatedData.data);
             page.value++;
+            hasMore.value = paginatedData.next_page_url !== null;
         }
     } catch (error) {
         console.error("Error fetching comments:", error);
+    } finally {
+        isLoading.value = false;
     }
 };
 
 const loadMoreComments = () => {
-    fetchComments();
+    if (!isLoading.value && hasMore.value) {
+        fetchComments();
+    }
 };
 
 const setReply = (commentId) => {
@@ -547,8 +624,8 @@ const highlightMentions = (text) => {
 const formatTime = (time) => {
     return new Date(time).toLocaleString();
 };
+
 // 🛠 Xóa bài viết
-const emit = defineEmits(['deleted']);
 const deletePost = async (postId) => {
     try {
         const response = await axios.post(`/posts/${postId}`);
@@ -560,81 +637,140 @@ const deletePost = async (postId) => {
         console.error("Error deleting post:", error);
     }
 };
-// Khởi tạo form với dữ liệu từ props.post
-const form = ref({
-  privacy_setting: props.post?.privacy_setting || 'public',
-  content: props.post?.content || '',
-  files: []
-});
-const fileInput = ref(null);
 
-// Watch post để cập nhật lại form và khởi tạo fileinput
-watch(() => props.post, (newPost) => {
-  if (newPost) {
-    // Reset form values
-    form.value.privacy_setting = newPost.privacy_setting || 'public';
-    form.value.content = newPost.content || '';
-    form.value.files = [];
+// 🛠 Cập nhật quyền riêng tư của bài viết
+const updatePrivacy = async (privacy) => {
+    try {
+        console.log('Updating privacy to:', privacy);
+        const response = await axios.post(`/posts/${postData.value.id}/privacy`, {
+            privacy_setting: privacy
+        });
 
-    // Re-init fileinput
-    nextTick(() => {
-      initFileInput();
-    });
-  }
-}, { immediate: true });
+        // Cập nhật trạng thái quyền riêng tư trong component
+        postData.value.privacy_setting = privacy;
+        console.log('Updated privacy setting:', postData.value.privacy_setting);
 
-// Hàm khởi tạo fileinput
-const initFileInput = () => {
-  if (!props.post?.media || !fileInput.value) return;
-
-  const initialPreview = props.post.media.map(img => `/images/client/post/${img.media_url}`);
-  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-const initialPreviewConfig = props.post.media.map(img => ({
-  caption: img.media_url,
-  key: img.id,
-  url: `/posts/${props.post.id}/media/delete`,
-  extra: {
-    id: img.id,
-    _token: csrfToken
-  }
-}));
-
-  // Huỷ khởi tạo cũ trước khi khởi tạo lại
-  try {
-    $(fileInput.value).fileinput('destroy');
-  } catch (e) {
-    console.warn("Không có fileinput để destroy:", e);
-  }
-
-  $(fileInput.value).fileinput({
-    theme: 'fas',
-    language: 'vi',
-    showUpload: false,
-    showCaption: true,
-    browseClass: "btn btn-primary btn-sm",
-    allowedFileExtensions: ['jpg', 'jpeg', 'png', 'gif'],
-    overwriteInitial: false,
-    initialPreviewAsData: true,
-    initialPreview,
-    initialPreviewConfig,
-    deleteUrl: `/posts/${props.post.id}/media/delete`
-  });
+        // Hiển thị thông báo thành công
+        // Bạn có thể thêm toast notification ở đây
+    } catch (error) {
+        console.error("Lỗi khi cập nhật quyền riêng tư:", error);
+        // Hiển thị thông báo lỗi
+    }
 };
 
-// Nếu cần xử lý file mới được chọn
-const handleFileUpload = (event) => {
-  form.value.files = Array.from(event.target.files);
+// 🛠 Xác định icon quyền riêng tư
+const privacyIcon = computed(() => {
+    console.log('Current privacy setting:', postData.value.privacy_setting);
+    switch (postData.value.privacy_setting) {
+        case 'public':
+            return 'bx bx-globe';
+        case 'friends':
+            return 'bx bx-user';
+        case 'private':
+            return 'bx bx-lock-alt';
+        default:
+            console.log('Using default icon for privacy setting:', postData.value.privacy_setting);
+            return 'bx bx-globe';
+    }
+});
+
+const handlePostUpdated = (updatedPost) => {
+    postData.value = {
+        ...postData.value,
+        content: updatedPost.content,
+        media: updatedPost.media
+    };
+    // Cập nhật lại danh sách ảnh
+    images.value = updatedPost.media
+        ? updatedPost.media
+            .filter(media => media.media_type === 'image')
+            .map(media => media.media_url)
+        : [];
 };
 
 onMounted(() => {
     CheckReaction();
     totalReactions();
     fetchComments();
+    updateCommentsCount();
 });
 </script>
 
 <style scoped>
+@media (forced-colors: active) {
+    .privacy-dropdown .dropdown-item {
+        border: 1px solid CanvasText;
+        forced-color-adjust: none;
+    }
+
+    .privacy-dropdown .dropdown-item.active {
+        background-color: Highlight;
+        color: HighlightText;
+        forced-color-adjust: none;
+    }
+
+    .privacy-icon {
+        color: CanvasText;
+        forced-color-adjust: none;
+    }
+
+    .privacy-icon:hover {
+        color: Highlight;
+        forced-color-adjust: none;
+    }
+}
+
+.privacy-dropdown {
+    min-width: 250px;
+    padding: 10px;
+}
+
+.privacy-dropdown .dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-bottom: 2px;
+}
+
+.privacy-dropdown .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.privacy-dropdown .dropdown-item.active {
+    background-color: #e7f3ff;
+    color: #1877f2;
+}
+
+.privacy-dropdown i {
+    font-size: 1.2em;
+    vertical-align: middle;
+}
+
+.privacy-dropdown small {
+    font-size: 0.8em;
+    margin-top: 2px;
+}
+
+.bx-globe {
+    cursor: pointer;
+    color: #65676b;
+}
+
+.bx-globe:hover {
+    color: #1877f2;
+}
+
+.privacy-icon {
+    cursor: pointer;
+    color: #65676b;
+    font-size: 1.2em;
+    vertical-align: middle;
+}
+
+.privacy-icon:hover {
+    color: #1877f2;
+}
+
 .gallery {
     display: grid;
     gap: 1px;
@@ -673,5 +809,38 @@ onMounted(() => {
     border-radius: 5px;
     bottom: 0;
     right: 0;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+    outline: 0;
+}
+
+.comment-see-more {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.comment-see-more .btn-link {
+    color: #1877f2;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.comment-see-more .btn-link:hover {
+    text-decoration: underline;
+}
+
+.comment-see-more .btn-link:disabled {
+    color: #65676b;
+    cursor: not-allowed;
 }
 </style>

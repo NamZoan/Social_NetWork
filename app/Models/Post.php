@@ -12,6 +12,10 @@ class Post extends Model
 {
     use HasFactory;
 
+    const PRIVACY_PUBLIC = 'public';
+    const PRIVACY_FRIENDS = 'friends';
+    const PRIVACY_PRIVATE = 'private';
+
     protected $fillable = [
         'user_id',
         'content',
@@ -36,6 +40,15 @@ class Post extends Model
     {
         return $this->hasMany(Media::class);
     }
+
+    /**
+     * Quan hệ với Images (alias cho media với type là image).
+     */
+    public function images()
+    {
+        return $this->media()->where('media_type', 'image');
+    }
+
     // Quan hệ với Likes (polymorphic)
     public function likes(): MorphMany
     {
@@ -70,5 +83,43 @@ class Post extends Model
     public function shares(): HasMany
     {
         return $this->hasMany(Post::class, 'original_post_id');
+    }
+
+    /**
+     * Kiểm tra xem người dùng có quyền xem bài viết không
+     */
+    public function canView($user)
+    {
+        // Nếu không có user được truyền vào, chỉ cho phép xem bài viết public
+        if (!$user) {
+            return $this->privacy_setting === self::PRIVACY_PUBLIC;
+        }
+
+        // Người đăng bài luôn có quyền xem
+        if ($this->user_id === $user->id) {
+            return true;
+        }
+
+        switch ($this->privacy_setting) {
+            case self::PRIVACY_PUBLIC:
+                return true;
+            case self::PRIVACY_FRIENDS:
+                return $this->user->isFriendWith($user);
+            case self::PRIVACY_PRIVATE:
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Kiểm tra xem người dùng có quyền bình luận không
+     */
+    public function canComment($user)
+    {
+        if (!$this->allow_comments) {
+            return false;
+        }
+        return $this->canView($user);
     }
 }

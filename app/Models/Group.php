@@ -25,9 +25,24 @@ class Group extends Model
         return $this->belongsTo(User::class, 'creator_id');
     }
 
-    // Nếu bạn muốn thêm mối quan hệ với bài viết hoặc thành viên nhóm thì thêm ở đây:
-    // public function posts()
-    // {
-    //     return $this->hasMany(GroupPost::class);
-    // }
+    // Relationship with members
+    public function members()
+    {
+        return $this->belongsToMany(User::class, 'group_members', 'group_id', 'user_id')
+            ->withPivot('role', 'joined_at', 'membership_status')
+            ->withTimestamps();
+    }
+
+    public function getMembersCountAttribute()
+    {
+        return $this->members()
+            ->where('membership_status', 'active')
+            ->count();
+    }
+
+    // Relationship with posts
+    public function posts()
+    {
+        return $this->hasMany(Post::class, 'group_id');
+    }
 }

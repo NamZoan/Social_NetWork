@@ -1,7 +1,7 @@
 <template>
     <Index>
         <div class="col-md-9 second-section" id="page-content-wrapper">
-            <div class="mb-3">
+            <div>
                 <div class="btn-group d-flex top-links-fg">
                     <a href="index.html" class="btn btn-quick-links mr-3 ql-active">
                         <img :src="'images/web/icons/theme/group-white.png'" class="mr-2" alt="quick links icon">
@@ -17,86 +17,35 @@
                     </a>
                 </div>
             </div>
-            <div class="groups py-3 px-4 mt-3">
+            <div class="groups py-3 px-4">
                 <div class="card-head d-flex justify-content-between">
                     <h5 class="mb-4">Nhóm của bạn</h5>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 col-sm-6">
+                    <template v-if="allGroups && allGroups.length > 0">
+                        <div v-for="group in allGroups" :key="group?.id" class="col-md-6 col-sm-6">
                         <div class="card group-card bg-transparent group-card-inline mb-3">
-                            <div class="row no-gutters  d-flex align-items-center">
-                                <div class="col-md-4">
-                                    <img :src="'images/web/groups/group-5.jpg'" class="card-img group-card-inline-img"
-                                        alt="Group image">
+                                <div class="row no-gutters d-flex align-items-center">
+                                    <div class="col-md-3">
+                                        <img :src="group?.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : 'images/web/groups/group-5.jpg'" 
+                                             class="card-img group-card-inline-img" alt="Group image">
                                 </div>
                                 <div class="col-md-6">
                                     <div class="card-body">
-                                        <h5 class="card-title">Source Code Viewer</h5>
-                                        <p class="card-text">8.6k Members 29+ post a day</p>
-                                        <div class="like-user-img">
-                                            <ul class="list-unstyled liked-users">
-                                                <li>
-                                                    <a href="#"><img :src="'images/web/users/user-7.png'"
-                                                            alt="Like user image"></a>
-                                                </li>
-                                                <li>
-                                                    <a href="#"><img :src="'images/web/users/user-6.png'"
-                                                            alt="Like user image"></a>
-                                                </li>
-                                                <li>
-                                                    <a href="#"><img :src="'images/web/users/user-5.png'"
-                                                            alt="Like user image"></a>
-                                                </li>
-                                                <li>
-                                                    <span class="liked-info fs-8">9 friends are members</span>
-                                                </li>
-                                            </ul>
+                                            <h4 class="card-title limit-2-lines">{{ group?.name || 'Nhóm không có tên' }}</h4>
+                                            <h5 class="card-text">{{ group?.members_count || 0 }} thành viên</h5>
+                                            <p class="card-text limit-2-lines">{{ group?.description || 'Không có mô tả' }}</p>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <a href="#" class="btn btn-quick-link bg-white">Join</a>
+                                    <div class="col-md-3">
+                                        <Link v-if="group?.id" :href="`/groups/${group.id}`" class="btn btn-quick-link bg-white">Xem</Link>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-sm-6">
-                        <div class="card group-card bg-transparent group-card-inline mb-3">
-                            <div class="row no-gutters  d-flex align-items-center">
-                                <div class="col-md-4">
-                                    <img :src="'images/web/groups/group-6.jpg'" class="card-img group-card-inline-img"
-                                        alt="Group image">
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card-body">
-                                        <h5 class="card-title">T-Shirt</h5>
-                                        <p class="card-text">2.4k Members 5+ post a day</p>
-                                        <div class="like-user-img">
-                                            <ul class="list-unstyled liked-users">
-                                                <li>
-                                                    <a href="#"><img :src="'images/web/users/user-7.png'"
-                                                            alt="Like user image"></a>
-                                                </li>
-                                                <li>
-                                                    <a href="#"><img :src="'images/web/users/user-6.png'"
-                                                            alt="Like user image"></a>
-                                                </li>
-                                                <li>
-                                                    <a href="#"><img :src="'images/web/users/user-5.png'"
-                                                            alt="Like user image"></a>
-                                                </li>
-                                                <li>
-                                                    <span class="liked-info fs-8">4 friends are members</span>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <a href="#" class="btn btn-quick-link bg-white">Join</a>
-                                </div>
-                            </div>
-                        </div>
+                    </template>
+                    <div v-else class="col-12 text-center">
+                        <p>Bạn chưa tạo nhóm nào.</p>
                     </div>
                 </div>
             </div>
@@ -202,21 +151,18 @@
                         <div class="form-group">
                             <label class="col-form-label">Tên Nhóm</label>
                             <input v-model="form.name" type="text" class="form-control" />
-                            <div v-if="errors.name" class="text-danger">{{ errors.name }}</div>
                         </div>
 
                         <!-- Mô tả -->
                         <div class="form-group">
                             <label class="col-form-label">Mô Tả</label>
                             <textarea v-model="form.description" class="form-control"></textarea>
-                            <div v-if="errors.description" class="text-danger">{{ errors.description }}</div>
                         </div>
 
                         <!-- Ảnh -->
                         <div class="form-group">
                             <label class="col-form-label">Ảnh</label>
                             <input id="input-b1" name="input-b1" type="file" class="file" data-browse-on-zone-click="true" @change="handleFileChange" />
-                            <div v-if="errors.cover_photo_url" class="text-danger">{{ errors.cover_photo_url }}</div>
                         </div>
 
                         <!-- Cho phép đăng bài -->
@@ -226,8 +172,6 @@
                                 <option :value="false">Không</option>
                                 <option :value="true">Có</option>
                             </select>
-                            <div v-if="errors.post_approval_required" class="text-danger">{{
-                                errors.post_approval_required }}</div>
                         </div>
                     </div>
 
@@ -242,24 +186,42 @@
 
 </template>
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { ref, computed, onMounted } from 'vue'
+import { useForm, usePage, Link, router } from '@inertiajs/vue3'
 import Index from "./Index.vue";
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
 import $ from 'jquery';
 
+const page = usePage();
+const user_auth = computed(() => page.props.auth.user || {});
 
-const { props } = usePage()
-const errors = props.errors || {}
+const props = defineProps({
+    createdGroups: {
+        type: Array,
+        default: () => []
+    },
+    joinedGroups: {
+        type: Array,
+        default: () => []
+    }
+});
+
+const allGroups = computed(() => {
+    if (!props.createdGroups || !props.joinedGroups) return [];
+    return [...props.createdGroups, ...props.joinedGroups].filter(group => group !== null && group !== undefined);
+});
+
+const { errors } = usePage()
 
 const form = useForm({
     name: '',
     description: '',
-    privacy_setting: true, // true = công khai, false = riêng tư
-    post_approval_required: false, // true = cần duyệt, false = không cần
-    cover_photo_url: null,
+    privacy_setting: true,
+    post_approval_required: false,
+    cover_photo_url: null
 })
+
 
 onMounted(() => {
         $('#input-b1').fileinput({
@@ -269,14 +231,19 @@ onMounted(() => {
         })
 })
 
-
-const handleFileChange = (e) => {
-    form.cover_photo_url = e.target.files[0]
-}
+const handleFileChange = (event) => {
+    form.cover_photo_url = event.target.files[0];
+};
 
 const submit = () => {
     form.post('/groups', {
-        forceFormData: true,
-    })
-}
+        preserveScroll: true,
+        onSuccess: () => {
+            $('.bd-example-modal-lg').modal('hide');
+            form.reset();
+        }
+    });
+};
 </script>
+
+

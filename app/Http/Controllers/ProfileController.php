@@ -8,12 +8,15 @@ use App\Models\User;
 use App\Models\Friendship;
 use App\Models\Post;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+
 class ProfileController extends Controller
 {
     public function edit()
     {
         return Inertia::render('Profile/Edit');
     }
+
     public function update(Request $request)
     {
         $request->validate([
@@ -23,7 +26,7 @@ class ProfileController extends Controller
             'birthday' => 'required|date',
         ]);
 
-        $user = auth()->user();
+        $user = Auth::user();
         $user->name = $request->name;
         $user->email = $request->email;
         $user->phone = $request->phone;
@@ -32,21 +35,95 @@ class ProfileController extends Controller
 
         return redirect()->route('profile.index')->with('success', 'Cập nhật thông tin thành công!');
     }
+
     public function index($username)
     {
         $user = User::where('username', $username)->firstOrFail();
+        $currentUser = Auth::user();
 
+        $posts = $this->getUserPosts($user, $currentUser);
+
+        return Inertia::render('Profile/ListPost', [
+            'user' => $user,
+            'activeTab' => 'listpost',
+            'posts' => $posts,
+            'isOwnProfile' => $currentUser && $currentUser->id === $user->id,
+            'isFriend' => $currentUser ? $user->isFriendWith($currentUser) : false
+        ]);
+    }
+
+    public function loadMore($username, Request $request)
+    {
+        try {
+            $user = User::where('username', $username)->firstOrFail();
+            $currentUser = Auth::user();
+            $page = $request->input('page', 1);
+
+            $posts = $this->getUserPosts($user, $currentUser, $page);
+
+            return response()->json([
+                'data' => $posts->items(),
+                'current_page' => $posts->currentPage(),
+                'last_page' => $posts->lastPage(),
+                'next_page_url' => $posts->nextPageUrl(),
+                'total' => $posts->total(),
+                'per_page' => $posts->perPage()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Không thể tải bài viết',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy danh sách bài viết của người dùng với kiểm tra quyền truy cập
+     */
+    private function getUserPosts($user, $currentUser, $page = 1)
+    {
         $posts = Post::where('user_id', $user->id)
+            ->whereNull('group_id')
+            ->where(function($query) use ($user, $currentUser) {
+                // Người dùng luôn xem được bài viết của chính mình
+                if ($currentUser && $currentUser->id === $user->id) {
+                    return;
+                }
+
+                // Bài viết public
+                $query->where('privacy_setting', Post::PRIVACY_PUBLIC);
+
+                if ($currentUser) {
+                    // Bài viết của bạn bè
+                    $query->orWhere(function($q) use ($user, $currentUser) {
+                        $q->where('privacy_setting', Post::PRIVACY_FRIENDS)
+                            ->whereExists(function($subQuery) use ($user, $currentUser) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('friendships')
+                                    ->where(function($q) use ($user, $currentUser) {
+                                        $q->where(function($q) use ($user, $currentUser) {
+                                            $q->where('user_id_1', $currentUser->id)
+                                                ->where('user_id_2', $user->id);
+                                        })->orWhere(function($q) use ($user, $currentUser) {
+                                            $q->where('user_id_1', $user->id)
+                                                ->where('user_id_2', $currentUser->id);
+                                        });
+                                    })
+                                    ->where('status', 'accepted');
+                            });
+                    });
+                }
+            })
             ->with([
-                'user', // Thông tin người đăng
-                'media', // Media của bài đăng
-                'likes.user', // Người like và thông tin của họ
-                'comments.user', // Bình luận và người bình luận
-                'comments.replies.user', // Trả lời bình luận
-                'originalPost.user' // Bài đăng gốc (nếu là bài chia sẻ)
+                'user',
+                'media',
+                'likes.user',
+                'comments.user',
+                'comments.replies.user',
+                'originalPost.user'
             ])
             ->latest()
-            ->paginate(10);
+            ->paginate(2, ['*'], 'page', $page);
 
         // Chuyển đổi dữ liệu để Inertia có thể xử lý
         $posts->getCollection()->transform(function ($post) {
@@ -54,6 +131,7 @@ class ProfileController extends Controller
                 'id' => $post->id,
                 'content' => $post->content,
                 'created_at' => $post->created_at->format('Y-m-d H:i:s'),
+                'privacy_setting' => $post->privacy_setting,
                 'user' => $post->user,
                 'media' => $post->media,
                 'likes' => $post->likes->map(function ($like) {
@@ -82,45 +160,15 @@ class ProfileController extends Controller
                 'likes_count' => $post->likes->count(),
                 'comments_count' => $post->comments->count(),
                 'original_post' => $post->originalPost ? [
-                    'id' => $post->originalPost->post_id,
+                    'id' => $post->originalPost->id,
                     'content' => $post->originalPost->content,
                     'user' => $post->originalPost->user
                 ] : null
             ];
         });
 
-        return Inertia::render('Profile/ListPost', [
-            'user' => $user,
-            'activeTab' => 'listpost',
-            'posts' => $posts,
-        ]);
+        return $posts;
     }
-
-    public function loadMore($username, Request $request)
-    {
-        try {
-            // Tìm user theo username
-            $user = User::where('username', $username)->firstOrFail();
-
-            // Validate tham số page
-            $page = $request->input('page', 1);
-
-            // Lấy bài viết của user, phân trang
-            $posts = Post::where('user_id', $user->id)
-                ->latest()
-                ->paginate(2, ['*'], 'page', $page);
-
-            // Trả về JSON response
-            return response()->json($posts);
-        } catch (\Exception $e) {
-            // Xử lý lỗi nếu có
-            return response()->json([
-                'error' => 'Không thể tải bài viết',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
 
     public function friend(Request $request, $username)
     {
@@ -130,11 +178,26 @@ class ProfileController extends Controller
             abort(404, 'User not found');
         }
 
-        $userId = $user->id;
-        $currentUserId = auth()->id(); // ID của người dùng hiện tại đang đăng nhập
+        $currentUser = Auth::user();
+        $friends = $this->getUserFriends($user->id);
 
-        // Lấy danh sách bạn bè của người dùng được truyền vào
-        $friends = User::whereIn('id', function ($query) use ($userId) {
+        foreach ($friends as $friend) {
+            $friend->mutualFriendsCount = $this->countMutualFriends($currentUser->id, $friend->id);
+        }
+
+        return Inertia::render('Profile/Friend', [
+            'user' => $user,
+            'activeTab' => 'friend',
+            'friends' => $friends,
+        ]);
+    }
+
+    /**
+     * Lấy danh sách bạn bè của người dùng
+     */
+    private function getUserFriends($userId)
+    {
+        return User::whereIn('id', function ($query) use ($userId) {
             $query->select('user_id_2')
                 ->from('friendships')
                 ->where('user_id_1', $userId)
@@ -146,49 +209,33 @@ class ProfileController extends Controller
                         ->where('status', 'accepted')
                 );
         })->get();
-
-        foreach ($friends as $friend) {
-            $friend->mutualFriendsCount = $this->countMutualFriends($currentUserId, $friend->id);
-        }
-
-
-        return Inertia::render('Profile/Friend', [
-            'user' => $user,
-            'activeTab' => 'friend',
-            'friends' => $friends,
-
-        ]);
     }
 
-    public function countMutualFriends($userId1, $userId2)
+    /**
+     * Đếm số bạn chung giữa hai người dùng
+     */
+    private function countMutualFriends($userId1, $userId2)
     {
-        // Lấy danh sách bạn bè của người dùng thứ nhất
-        $friends1 = DB::table('friendships')
-            ->where(function ($query) use ($userId1) {
-                $query->where('user_id_1', $userId1)
-                    ->orWhere('user_id_2', $userId1);
+        $friends1 = $this->getFriendsIds($userId1);
+        $friends2 = $this->getFriendsIds($userId2);
+
+        return count(array_intersect($friends1, $friends2));
+    }
+
+    /**
+     * Lấy danh sách ID bạn bè của một người dùng
+     */
+    private function getFriendsIds($userId)
+    {
+        return DB::table('friendships')
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id_1', $userId)
+                    ->orWhere('user_id_2', $userId);
             })
             ->where('status', 'accepted')
-            ->select(DB::raw('IF(user_id_1 = ' . $userId1 . ', user_id_2, user_id_1) as friend_id'))
+            ->select(DB::raw('IF(user_id_1 = ' . $userId . ', user_id_2, user_id_1) as friend_id'))
             ->pluck('friend_id')
             ->toArray();
-
-        // Lấy danh sách bạn bè của người dùng thứ hai
-        $friends2 = DB::table('friendships')
-            ->where(function ($query) use ($userId2) {
-                $query->where('user_id_1', $userId2)
-                    ->orWhere('user_id_2', $userId2);
-            })
-            ->where('status', 'accepted')
-            ->select(DB::raw('IF(user_id_1 = ' . $userId2 . ', user_id_2, user_id_1) as friend_id'))
-            ->pluck('friend_id')
-            ->toArray();
-
-        // Tìm giao điểm (bạn chung)
-        $mutualFriends = array_intersect($friends1, $friends2);
-
-        // Trả về số lượng bạn chung
-        return count($mutualFriends);
     }
 
     public function group(Request $request, $user)
@@ -198,5 +245,4 @@ class ProfileController extends Controller
             'activeTab' => 'group'
         ]);
     }
-
 }
