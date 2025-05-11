@@ -63,6 +63,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
     Route::post('/groups/{group}/join', [GroupController::class, 'join'])->name('groups.join');
     Route::post('/groups/{group}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+    Route::put('/user/update', [UserController::class, 'update'])->name('user.update');
+    
+    Route::middleware(['auth'])->put('/user/update', [UserController::class, 'update'])->name('user.update');
+
 
     // Group join request routes
     Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');

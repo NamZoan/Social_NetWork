@@ -3,38 +3,84 @@
         <div class="content">
             <div class="settings-form p-4">
                 <h2>Your Account</h2>
-                <form action="" method="" class="mt-4 settings-form">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="settingsFirstName">First Name</label>
-                            <input type="text" class="form-control" id="settingsFirstName" placeholder="First Name" />
-                        </div>
+                <form @submit.prevent="updateAccount" class="mt-4 settings-form">
+                    <div class="form-group">
+                        <label for="settingsName">Họ Tên</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="settingsName"
+                            v-model="form.name"
+                            :disabled="!isEditing"
+                            placeholder="Họ Tên"
+                        />
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="settingsLastName">Last Name</label>
-                            <input type="text" class="form-control" id="settingsLastName" placeholder="Last Name" />
-                        </div>
+                    <div class="form-group">
+                        <label for="settingsUsername">Username</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="settingsUsername"
+                            v-model="form.username"
+                            :disabled="!isEditing"
+                            placeholder="Username"
+                        />
                     </div>
-                    <div class="col-md-12">
-                        <div class="form-row mb-3 align-items-center">
-                            <div class="col">
-                                <label for="settingsUsername">Username</label>
-                                <input type="email" class="form-control" id="settingsUsername"
-                                    aria-describedby="usernameHelp" value="arthur_minasyan_96" placeholder="Username" />
-                                <small id="usernameHelp" class="form-text text-muted">Your public username is the same
-                                    as your
-                                    timeline address.</small>
-                            </div>
-                            <div class="col check-username">
-                                <span><i class="bx bx-check success"></i>
-                                    Username is available</span>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="settingsEmail">Email</label>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="settingsEmail"
+                            v-model="form.email"
+                            :disabled="!isEditing"
+                            placeholder="Email"
+                        />
                     </div>
-                    <div class="col-md-6 text-right">
-                        <button type="submit" class="btn btn-primary btn-sm">
+                    <div class="form-group">
+                        <label for="settingsPhone">Phone</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="settingsPhone"
+                            v-model="form.phone"
+                            :disabled="!isEditing"
+                            placeholder="Phone"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="settingsBirthday">Birthday</label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="settingsBirthday"
+                            v-model="form.birthday"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                    <div class="text-right">
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            v-if="!isEditing"
+                            @click="isEditing = true"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-sm"
+                            v-if="isEditing"
+                        >
                             Save Changes
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-danger btn-sm"
+                            v-if="isEditing"
+                            @click="cancelEdit"
+                        >
+                            Cancel
                         </button>
                     </div>
                 </form>
@@ -44,11 +90,40 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
+import axios from "axios";
 import Index from "./Index.vue";
-</script>
-<style scoped>
 
+const form = ref({
+    name: "",
+    username: "",
+    email: "",
+    phone: "",
+    birthday: "",
+});
+
+const originalForm = ref({ ...form.value }); // Lưu bản sao dữ liệu gốc
+const isEditing = ref(false); // Trạng thái chỉnh sửa
+
+const updateAccount = async () => {
+    try {
+        const response = await axios.put("/api/user/update", form.value);
+        alert(response.data.message);
+        originalForm.value = { ...form.value }; // Cập nhật dữ liệu gốc sau khi lưu
+        isEditing.value = false; // Thoát chế độ chỉnh sửa
+    } catch (error) {
+        console.error(error);
+        alert("Đã xảy ra lỗi khi cập nhật thông tin tài khoản.");
+    }
+};
+
+const cancelEdit = () => {
+    form.value = { ...originalForm.value }; // Khôi phục dữ liệu gốc
+    isEditing.value = false; // Thoát chế độ chỉnh sửa
+};
+</script>
+
+<style scoped>
 @import '../../../css/forms.css';
 @import '../../../css/settings.css';
-
 </style>
