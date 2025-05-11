@@ -183,6 +183,9 @@
             </div>
         </div>
 
+        <!-- Slot cho admin actions -->
+        <slot name="actions"></slot>
+
         <!-- Modal bình luận -->
         <div class="modal fade bd-example-modal-lg" :id="'exampleModalScrollable-' + postData.id" tabindex="-1"
             role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">

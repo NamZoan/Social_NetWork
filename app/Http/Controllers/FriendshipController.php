@@ -43,7 +43,7 @@ class FriendshipController extends Controller
 
     }
 
-    public function checkFriendshipStatus(Request $request, $username)
+    public function checkFriendshipStatus($username)
     {
         $user = User::where('username', $username)->first();
         if (!$user) {
@@ -127,4 +127,28 @@ class FriendshipController extends Controller
         $friendship->delete();
 
     }
+
+    public function getFriends()
+    {
+        $userId = auth()->id();
+
+        // Lấy các dòng friendship có liên quan đến user hiện tại và đã được chấp nhận
+        $friendships = Friendship::where(function ($query) use ($userId) {
+            $query->where('user_id_1', $userId)
+                ->orWhere('user_id_2', $userId);
+        })->where('status', 'accepted')->get();
+
+        // Tìm ID của người bạn (người còn lại không phải là mình)
+        $friendIds = $friendships->map(function ($friendship) use ($userId) {
+            return $friendship->user_id_1 == $userId
+                ? $friendship->user_id_2
+                : $friendship->user_id_1;
+        })->toArray();
+
+        // Lấy thông tin user từ bảng users
+        return User::whereIn('id', $friendIds)->select('id', 'name', 'username','avatar')->get();
+    }
+
+
+
 }

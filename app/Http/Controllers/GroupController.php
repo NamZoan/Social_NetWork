@@ -16,18 +16,18 @@ class GroupController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         $createdGroups = Group::where('creator_id', $user->id)
             ->withCount('members')
             ->get();
-        
-        $joinedGroups = Group::whereHas('members', function($query) use ($user) {
+
+        $joinedGroups = Group::whereHas('members', function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                  ->where('membership_status', 'active');
+                ->where('membership_status', 'active');
         })
-        ->where('creator_id', '!=', $user->id)
-        ->withCount('members')
-        ->get();
+            ->where('creator_id', '!=', $user->id)
+            ->withCount('members')
+            ->get();
 
         return Inertia::render('Groups/Groups', [
             'createdGroups' => $createdGroups,
@@ -85,7 +85,7 @@ class GroupController extends Controller
 
         $group->posts = $posts;
         $group->loadCount(['members', 'posts']);
-        
+
         // Check if user is a member with active status
         $isMember = false;
         $isPending = false;
@@ -93,14 +93,14 @@ class GroupController extends Controller
             $membership = $group->members()
                 ->where('user_id', Auth::id())
                 ->first();
-            
+
             if ($membership) {
                 $isMember = $membership->pivot->membership_status === 'active';
                 $isPending = $membership->pivot->membership_status === 'pending';
             }
         }
 
-        return Inertia::render('Groups/GroupDetail', [
+        return Inertia::render('Groups/ListPost', [
             'group' => $group,
             'isMember' => $isMember,
             'isPending' => $isPending
@@ -144,60 +144,6 @@ class GroupController extends Controller
         }
     }
 
-    public function getPendingRequests($groupId)
-    {
-        $group = Group::findOrFail($groupId);
-        
-        // Check if user is the creator
-        if ($group->creator_id != Auth::id()) {
-            return back()->with('error', 'Bạn không có quyền xem yêu cầu tham gia nhóm.');
-        }
-
-        $pendingRequests = $group->members()
-            ->where('membership_status', 'pending')
-            ->with(['user' => function($query) {
-                $query->select('id', 'name', 'email', 'avatar');
-            }])
-            ->get();
-
-        return Inertia::render('Groups/PendingRequests', [
-            'group' => $group,
-            'pendingRequests' => $pendingRequests
-        ]);
-    }
-
-    public function approveJoinRequest($groupId, $userId)
-    {
-        $group = Group::findOrFail($groupId);
-        
-        // Check if user is the creator
-        if ($group->creator_id != Auth::id()) {
-            return back()->with('error', 'Bạn không có quyền phê duyệt yêu cầu tham gia nhóm.');
-        }
-
-        // Update membership status
-        $group->members()->updateExistingPivot($userId, [
-            'membership_status' => 'active',
-            'joined_at' => now()
-        ]);
-
-        return back()->with('success', 'Đã phê duyệt yêu cầu tham gia nhóm.');
-    }
-
-    public function rejectJoinRequest($groupId, $userId)
-    {
-        $group = Group::findOrFail($groupId);
-        
-        // Check if user is the creator
-        if ($group->creator_id != Auth::id()) {
-            return back()->with('error', 'Bạn không có quyền từ chối yêu cầu tham gia nhóm.');
-        }
-
-        // Remove the membership request
-        $group->members()->detach($userId);
-
-        return back()->with('success', 'Đã từ chối yêu cầu tham gia nhóm.');
-    }
 
     public function leave($groupId)
     {
@@ -228,7 +174,7 @@ class GroupController extends Controller
     public function loadMorePosts(Group $group, Request $request)
     {
         $page = $request->input('page', 1);
-        
+
         $posts = $group->posts()
             ->with(['user', 'media', 'likes', 'comments'])
             ->withCount('comments')
@@ -249,16 +195,34 @@ class GroupController extends Controller
         if ($group->creator_id !== Auth::id()) {
             abort(403);
         }
-        
-        $pendingMembers = GroupMember::with('user:id,name,avatar')
+
+        $isMember = false;
+        $isPending = false;
+        if (Auth::check()) {
+            $membership = $group->members()
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if ($membership) {
+                $isMember = $membership->pivot->membership_status === 'active';
+                $isPending = $membership->pivot->membership_status === 'pending';
+            }
+        }
+
+        $pendingRequests = GroupMember::with('user:id,name,avatar,username')
             ->where('group_id', $group->id)
             ->where('membership_status', 'pending')
             ->latest('joined_at')
-            ->paginate(10);
+            ->get();
+
+        $group->loadCount(['members', 'posts']);
 
         return Inertia::render('Groups/Admin/PendingRequests', [
             'group' => $group,
-            'pendingMembers' => $pendingMembers
+            'user_auth' => Auth::user(),
+            'isMember' => $isMember,
+            'isPending' => $isPending,
+            'pendingRequests' => $pendingRequests
         ]);
     }
 
@@ -270,12 +234,12 @@ class GroupController extends Controller
         if ($group->creator_id !== Auth::id()) {
             abort(403);
         }
-        
+
         $group->members()->updateExistingPivot($userId, [
             'membership_status' => 'active',
             'role' => 'member'
         ]);
-        
+
         return redirect()->back();
     }
 
@@ -287,9 +251,79 @@ class GroupController extends Controller
         if ($group->creator_id !== Auth::id()) {
             abort(403);
         }
-        
+
         $group->members()->detach($userId);
-        
+
         return redirect()->back();
     }
+
+    public function showPendingPosts(Group $group)
+    {
+        if ($group->creator_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $isMember = false;
+        $isPending = false;
+        if (Auth::check()) {
+            $membership = $group->members()
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if ($membership) {
+                $isMember = $membership->pivot->membership_status === 'active';
+                $isPending = $membership->pivot->membership_status === 'pending';
+            }
+        }
+
+        $pendingPosts = $group->posts()
+            ->with(['user', 'media', 'likes', 'comments'])
+            ->where('privacy_setting', 'pending')
+            ->latest()
+            ->get();
+
+        $group->loadCount(['members', 'posts']);
+
+        return Inertia::render('Groups/Admin/PendingPosts', [
+            'group' => $group,
+            'user_auth' => Auth::user(),
+            'isMember' => $isMember,
+            'isPending' => $isPending,
+            'pendingPosts' => $pendingPosts
+        ]);
+    }
+
+    public function approvePost(Group $group, $postId)
+    {
+        if ($group->creator_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $post = $group->posts()->findOrFail($postId);
+        
+        $post->update([
+            'privacy_setting' => 'public',
+            'approved_at' => now(),
+            'approved_by' => Auth::id()
+        ]);
+
+        return redirect()->back()->with('success', 'Bài viết đã được duyệt thành công!');
+    }
+
+    public function rejectPost(Group $group, $postId)
+    {
+        if ($group->creator_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $post = $group->posts()->findOrFail($postId);
+        
+        $post->update([
+            'privacy_setting' => 'rejected',
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Bài viết đã bị từ chối!');
+    }
+
 }

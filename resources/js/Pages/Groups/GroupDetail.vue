@@ -43,8 +43,8 @@
                     </div>
                     <!-- Main Content Area -->
                     <div class="col-lg-8">
-                        <slot v-if="isMember"></slot>
-                        <ListPost v-if="isMember" :group="group" :user_auth="user_auth" :is-member="isMember" />
+                        <slot v-if="isMember" ></slot>
+                        <!-- <ListPost v-if="isMember" :group="group" :user_auth="user_auth" :is-member="isMember" /> -->
                         <div v-else-if="isPending" class="card">
                             <div class="card-body">
                                 <p>Yêu cầu tham gia nhóm của bạn đang chờ phê duyệt.</p>
@@ -110,31 +110,31 @@
                             <div class="card-body">
                                 <ul class="list-inline p-0 m-0">
                                     <li class="mb-3 d-flex align-items-center">
-                                        <button @click="router.visit(`/groups/${group.id}/pending-posts`)"
+                                        <Link :href="`/groups/${group.id}/pending-posts`"
                                             class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
                                             <div class="avatar-40 rounded-circle bg-gray text-center me-3">
                                                 <i class='bx bx-list-check'></i>
                                             </div>
                                             <h6 class="mb-0">Duyệt Bài Viết</h6>
-                                        </button>
+                                        </Link>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
-                                        <button @click="router.visit(`/groups/${group.id}/pending-requests`)"
+                                        <Link :href="`/groups/${group.id}/pending-requests`"
                                             class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
                                             <div class="avatar-40 rounded-circle bg-gray text-center me-3">
                                                 <i class='bx bxs-user-detail'></i>
                                             </div>
                                             <h6 class="mb-0">Yêu Cầu Tham Gia</h6>
-                                        </button>
+                                        </Link>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
-                                        <button @click="router.visit(`/groups/${group.id}/edit`)"
+                                        <Link :href="`/groups/${group.id}/edit`"
                                             class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
                                             <div class="avatar-40 rounded-circle bg-gray text-center me-3">
                                                 <i class='bx bxs-edit'></i>
                                             </div>
                                             <h6 class="mb-0">Cập Nhật Thông Tin Nhóm</h6>
-                                        </button>
+                                        </Link>
                                     </li>
                                 </ul>
                             </div>
@@ -148,11 +148,7 @@
 
 <script setup>
 import App from '../../Layouts/App.vue';
-import ListPost from './ListPost.vue';
-import PendingPosts from './Admin/PendingPosts.vue';
-import PendingRequests from './Admin/PendingRequests.vue';
-import UpdateGroup from './Admin/UpdateGroup.vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { usePage, router, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps({

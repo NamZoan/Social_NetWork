@@ -424,6 +424,7 @@
 }
 
 #message-frame .message-sidepanel .message-contacts {
+    height: 532px;
     overflow-y: scroll;
     overflow-x: hidden
 }
@@ -486,7 +487,7 @@
 #message-frame .message-sidepanel .message-contacts ul li.contact .wrap span {
     position: absolute;
     left: 0;
-    margin: -2px 0 0 -2px;
+    margin: 0 0 0 -15px;
     width: 10px;
     height: 10px;
     border-radius: 50%;

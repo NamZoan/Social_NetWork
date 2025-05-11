@@ -170,7 +170,7 @@ class ProfileController extends Controller
         return $posts;
     }
 
-    public function friend(Request $request, $username)
+    public function friend($username)
     {
         $user = User::where('username', $username)->first();
 
@@ -238,7 +238,7 @@ class ProfileController extends Controller
             ->toArray();
     }
 
-    public function group(Request $request, $user)
+    public function group($user)
     {
         return Inertia::render('Profile/Group', [
             'user' => $user,

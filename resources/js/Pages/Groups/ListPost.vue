@@ -1,20 +1,23 @@
 <template>
-    <div v-if="isMember">
-        <Post :group_id="group.id" :user="user_auth" :group="group" />
-        <div v-for="post in initialPosts" :key="post.id">
-            <ItemPost :post="post" :user="post.user" @updated="handlePostUpdated" />
-        </div>
-        <div v-if="group.posts.next_page_url" class="text-center mt-3">
-            <div v-if="loading" class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+    <GroupDetail :group="group" :user_auth="user_auth" :is-member="isMember">
+        <div v-if="isMember">
+            <Post :group_id="group.id" :user="user_auth" :group="group" />
+            <div v-for="post in initialPosts" :key="post.id">
+                <ItemPost :post="post" :user="post.user" @updated="handlePostUpdated" />
+            </div>
+            <div v-if="group.posts.next_page_url" class="text-center mt-3">
+                <div v-if="loading" class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
-    </div>
+    </GroupDetail>
 </template>
 
 <script setup>
 import Post from '../../Components/Post.vue';
 import ItemPost from '../../Components/Item/ItemPost.vue';
+import GroupDetail from './GroupDetail.vue';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 

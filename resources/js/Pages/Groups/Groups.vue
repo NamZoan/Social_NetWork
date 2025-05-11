@@ -187,7 +187,7 @@
 </template>
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useForm, usePage, Link, router } from '@inertiajs/vue3'
+import { useForm, usePage, Link } from '@inertiajs/vue3'
 import Index from "./Index.vue";
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';

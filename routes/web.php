@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FriendshipController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\ConversationController;
+use App\Models\Friendship;
 
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
@@ -23,6 +25,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
     Route::get('/groups', [GroupController::class, 'index'])->name('group');
+
+
     Route::prefix('{username}')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('profile');
         Route::get('/friend', [ProfileController::class, 'friend'])->name('profile.friend');
@@ -61,8 +65,6 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/groups/{group}/leave', [GroupController::class, 'leave'])->name('groups.leave');
 
     // Group join request routes
-    Route::get('/groups/{group}/pending-requests', [GroupController::class, 'getPendingRequests'])->name('groups.pending-requests');
-    Route::post('/groups/{group}/approve-request/{user}', [GroupController::class, 'approveJoinRequest'])->name('groups.approve-request');
     Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
 
     Route::get('/groups/{group}/posts', [GroupController::class, 'getPosts'])->name('groups.posts');
@@ -71,11 +73,21 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
     // Group membership routes
     Route::get('/groups/{group}/pending-requests', [GroupController::class, 'showPendingRequests'])->name('groups.pending-requests');
-
     Route::post('/groups/{group}/members/{member}/approve', [GroupController::class, 'approveMember'])->name('groups.members.approve');
-
     Route::post('/groups/{group}/members/{member}/reject', [GroupController::class, 'rejectMember'])->name('groups.members.reject');
+
+    // Group join request routes
+    Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
+
+    // Group pending posts routes
+    Route::get('/groups/{group}/pending-posts', [GroupController::class, 'showPendingPosts'])->name('groups.pending-posts');
+    Route::post('/groups/{group}/posts/{post}/approve', [GroupController::class, 'approvePost'])->name('groups.posts.approve');
+    Route::post('/groups/{group}/posts/{post}/reject', [GroupController::class, 'rejectPost'])->name('groups.posts.reject');
+
+    Route::get('message/getFriends', [FriendshipController::class, 'getFriends']);
+    Route::post('/messages/send', [MessageController::class, 'sendMessage'])->name('messages.send');
+    Route::post('/messages/createGroup', [MessageController::class, 'createGroup'])->name('messages.createGroup');
+
+    // Message routes
+    Route::get('/messages/{conversationId}', [MessageController::class, 'getMessages'])->name('messages.get');
 });
-
-
-

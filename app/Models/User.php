@@ -86,10 +86,11 @@ class User extends Authenticatable
      */
     public function isFriendWith($user)
     {
-        if (!$user) return false;
-        
+        if (!$user)
+            return false;
+
         return $this->friends()
-            ->where(function($query) use ($user) {
+            ->where(function ($query) use ($user) {
                 $query->where('user_id_1', $user->id)
                     ->orWhere('user_id_2', $user->id);
             })

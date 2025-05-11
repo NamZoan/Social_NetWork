@@ -128,8 +128,7 @@
 <script setup>
 import Index from './Index.vue';
 
-import { defineProps, computed, ref, onMounted } from "vue";
-import axios from "axios";
+import { defineProps, computed } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 
 const props = defineProps({

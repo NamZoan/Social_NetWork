@@ -148,129 +148,7 @@
                         </a>
                     </div>
                 </li>
-                <li class="nav-item s-nav dropdown message-drop-li">
-                    <a href="#" class="nav-link nav-links message-drop drop-w-tooltip" data-toggle="dropdown"
-                        data-placement="bottom" data-title="Messages" role="button" aria-haspopup="true"
-                        aria-expanded="false">
-                        <img :src="'/images/web/icons/navbar/message.png'" class="message-dropdown" alt="navbar icon">
-                        <span class="badge badge-pill badge-primary">1</span>
-                    </a>
-                    <ul class="dropdown-menu notify-drop dropdown-menu-right nav-drop shadow-sm">
-                        <div class="notify-drop-title">
-                            <div class="row">
-                                <div class="col-md-6 col-sm-6 col-xs-6 fs-8">Messages | <a href="#">Requests</a></div>
-                                <div class="col-md-6 col-sm-6 col-xs-6 text-right">
-                                    <a href="#" class="notify-right-icon">
-                                        Mark All as Read
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- end notify title -->
-                        <!-- notify content -->
-                        <div class="drop-content">
-                            <li>
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-6.png'" alt="notification user image">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Susan P. Jarvis</a>
-                                    <a href="#" class="notify-right-icon">
-                                        <i class='bx bx-radio-circle-marked'></i>
-                                    </a>
-                                    <p class="time">
-                                        <i class='bx bx-check'></i> This party is going to have a DJ, food, and drinks.
-                                    </p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-5.png'" alt="notification user image">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Ruth D. Greene</a>
-                                    <a href="#" class="notify-right-icon">
-                                        <i class='bx bx-radio-circle-marked'></i>
-                                    </a>
-                                    <p class="time">
-                                        Great, I’ll see you tomorrow!.
-                                    </p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-7.png'" alt="notification user image">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Kimberly R. Hatfield</a>
-                                    <a href="#" class="notify-right-icon">
-                                        <i class='bx bx-radio-circle-marked'></i>
-                                    </a>
-                                    <p class="time">
-                                        yeah, I will be there.
-                                    </p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-8.png'" alt="notification user image">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Joe S. Feeney</a>
-                                    <a href="#" class="notify-right-icon">
-                                        <i class='bx bx-radio-circle-marked'></i>
-                                    </a>
-                                    <p class="time">
-                                        I would really like to bring my friend Jake, if...
-                                    </p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-9.png'" alt="notification user image">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">William S. Willmon</a>
-                                    <a href="#" class="notify-right-icon">
-                                        <i class='bx bx-radio-circle-marked'></i>
-                                    </a>
-                                    <p class="time">
-                                        Sure, what can I help you with?
-                                    </p>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-10.png'" alt="notification user image">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Sean S. Smith</a>
-                                    <a href="#" class="notify-right-icon">
-                                        <i class='bx bx-radio-circle-marked'></i>
-                                    </a>
-                                    <p class="time">
-                                        Which of those two is best?
-                                    </p>
-                                </div>
-                            </li>
-                        </div>
-                        <div class="notify-drop-footer text-center">
-                            <a href="#">See More</a>
-                        </div>
-                    </ul>
-                </li>
+                <MessageDropdown />
                 <li class="nav-item s-nav dropdown notification">
                     <a href="#" class="nav-link nav-links rm-drop-mobile drop-w-tooltip" data-toggle="dropdown"
                         data-placement="bottom" data-title="Notifications" role="button" aria-haspopup="true"
@@ -461,7 +339,7 @@
 import { Link } from '@inertiajs/vue3';
 import { usePage } from "@inertiajs/vue3";
 import { computed } from "vue";
-
+import MessageDropdown from '../components/Messages/MessageDropdown.vue'
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);

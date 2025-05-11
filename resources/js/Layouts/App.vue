@@ -14,5 +14,5 @@
 <script setup>
 import Navbar from "../Components/Navbar.vue";
 
-import ChatPopup from "../Components/ChatPopup.vue";
+import ChatPopup from "../Components/Messages/ChatPopup.vue";
 </script>
