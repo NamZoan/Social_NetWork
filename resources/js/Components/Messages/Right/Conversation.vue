@@ -37,6 +37,7 @@ const props = defineProps({
 const messages = ref([]);
 const isLoading = ref(false);
 const messageContainer = ref(null);
+const channels = ref([]);
 
 const emit = defineEmits(['message-sent']);
 
@@ -46,8 +47,11 @@ const loadMessages = async () => {
     isLoading.value = true;
     try {
         const response = await axios.get(`/messages/${props.conversationId}`);
-        messages.value = response.data;
+        messages.value = response.data.sort((a, b) => 
+            new Date(a.sent_at) - new Date(b.sent_at)
+        );
         scrollToBottom();
+        console.log('Messages loaded:', messages.value.length);
     } catch (error) {
         console.error('Error loading messages:', error);
     } finally {
@@ -62,60 +66,102 @@ const scrollToBottom = () => {
 };
 
 const handleNewMessage = (message) => {
-    console.log('New message received in handleNewMessage:', message); // Debug log
-    if (message && message.conversation_id === props.conversationId) {
-        messages.value.push(message); // Thêm tin nhắn vào cuối danh sách
-        scrollToBottom(); // Cuộn xuống cuối danh sách
-    } else {
-        console.error('Invalid message format or conversation ID mismatch:', message);
+    console.log('New message received in Conversation:', message);
+    
+    if (message.conversation_id === props.conversationId) {
+        const messageExists = messages.value.some(m => m.id === message.id);
+        if (!messageExists) {
+            console.log('Adding new message to conversation:', message);
+            messages.value.push(message);
+            scrollToBottom();
+        }
     }
 };
 
-let channel = null;
+const handleMessageSent = (message) => {
+    console.log('Message sent event received in Conversation:', message);
+    handleNewMessage(message);
+};
+
+const setupWebSocket = () => {
+    if (!window.Echo) {
+        console.error('Echo is not initialized');
+        return;
+    }
+
+    console.log('Setting up WebSocket listeners for conversation:', props.conversationId);
+    
+    try {
+        // Cleanup existing channels
+        cleanup();
+
+        // Setup conversation channel
+        const conversationChannel = window.Echo.private(`conversation.${props.conversationId}`);
+        conversationChannel.listen('.message.sent', (data) => {
+            console.log('Received message on conversation channel:', data);
+            if (data.message) {
+                handleNewMessage(data.message);
+            }
+        });
+
+        // Setup user channel
+        const userChannel = window.Echo.private(`user.${props.currentUser.id}`);
+        userChannel.listen('.message.sent', (data) => {
+            console.log('Received message on user channel:', data);
+            if (data.message) {
+                handleNewMessage(data.message);
+            }
+        });
+
+        // Store channels for cleanup
+        channels.value = [conversationChannel, userChannel];
+        console.log('WebSocket listeners setup completed');
+    } catch (error) {
+        console.error('Error setting up WebSocket listeners:', error);
+    }
+};
+
+const cleanup = () => {
+    try {
+        if (channels.value.length > 0) {
+            channels.value.forEach(channel => {
+                if (channel) {
+                    channel.stopListening('.message.sent');
+                }
+            });
+            channels.value = [];
+        }
+        console.log('WebSocket cleanup completed');
+    } catch (error) {
+        console.error('Error during WebSocket cleanup:', error);
+    }
+};
 
 onMounted(() => {
     loadMessages();
-
-    if (window.Echo) {
-        console.log('Setting up Echo listener for conversation:', props.conversationId); // Debug log
-        channel = window.Echo.private(`conversation.${props.conversationId}`)
-            .listen('.message.sent', (e) => {
-                console.log('Message event received via WebSocket:', e); // Debug log
-                if (e.message) {
-                    handleNewMessage(e.message);
-                }
-            });
-
-        // Lắng nghe kênh cá nhân của người gửi
-        window.Echo.private(`user.${props.currentUser.id}`)
-            .listen('.message.sent', (e) => {
-                console.log('Message event received for sender:', e); // Debug log
-                if (e.message) {
-                    handleNewMessage(e.message);
-                }
-            });
-    }
-
-    // Lắng nghe sự kiện 'message-sent' từ Footer.vue
-    emit('message-sent', (message) => {
-        console.log('Message sent event received:', message); // Debug log
-        handleNewMessage(message);
-    });
+    setupWebSocket();
 });
 
 onUnmounted(() => {
-    if (channel) {
-        channel.stopListening('.message.sent');
+    cleanup();
+});
+
+// Watch for conversation changes
+watch(() => props.conversationId, (newId, oldId) => {
+    if (newId !== oldId) {
+        console.log('Conversation changed from', oldId, 'to', newId);
+        cleanup();
+        loadMessages();
+        setupWebSocket();
     }
 });
 
-// Cuối file <script setup> trong Conversation.vue
+// Expose functions
 defineExpose({
-    handleNewMessage
+    loadMessages,
+    handleMessageSent,
+    cleanup
 });
-
-
-
 
 const getAvatarUrl = (sender) => {
     if (!sender) return '/images/web/users/avatar.jpg';

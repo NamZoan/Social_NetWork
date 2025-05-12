@@ -19,7 +19,10 @@ import { computed } from 'vue';
 const props = defineProps({
     conversation: {
         type: Object,
-        required: true
+        required: false,
+        default: () => ({
+            members: []
+        })
     }
 });
 

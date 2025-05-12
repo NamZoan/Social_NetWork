@@ -106,13 +106,11 @@ const searchFriends = () => {
 
     if (query === '') {
         filteredFriends.value = friends.value;
-        console.log(filteredFriends.value);
     } else {
         filteredFriends.value = friends.value.filter(friend => {
             const name = removeVietnameseTones(friend.name);
             return name.includes(query);
         });
-        console.log(filteredFriends.value);
 
     }
 
@@ -128,14 +126,12 @@ const selectFriend = (friend) => {
 };
 
 const handleClickOutside = (event) => {
-    console.log('Click outside event triggered');
     if (inputRef.value && !inputRef.value.contains(event.target)) {
         showFriendList.value = false;
     }
 };
 
 const handleFocus = () => {
-    console.log('Focus event triggered');
     if (friends.value.length > 0) {
         showFriendList.value = true;
         searchFriends();

@@ -14,7 +14,6 @@ import '../css/fontawesome/css/all.min.css';
 // JS
 import '../js/Custom/app.js';
 import './bootstrap';
-import './echo';
 
 createInertiaApp({
   resolve: name => {

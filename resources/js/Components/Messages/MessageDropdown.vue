@@ -21,7 +21,7 @@
                 <li>
                     <div class="col-md-2 col-sm-2 col-xs-2">
                         <div class="notify-img">
-                            <img src="assets/images/users/user-6.png" alt="notification user image">
+                            <img src="/images/web/users/avatar.jpg" alt="notification user image">
                         </div>
                     </div>
                     <div class="col-md-10 col-sm-10 col-xs-10">

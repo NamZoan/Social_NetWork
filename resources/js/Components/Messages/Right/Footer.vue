@@ -29,28 +29,31 @@ const sendMessage = async () => {
     if (!message.value.trim()) return;
 
     try {
-        console.log('Sending message:', message.value); // Debug log
+        console.log('Sending message:', message.value);
         const response = await axios.post('/messages/send', {
             conversation_id: props.conversationId,
-            content: message.value
+            content: message.value,
+            message_type: 'text'
         });
 
-        console.log('Message sent response:', response.data); // Debug log
-
+        console.log('Message sent successfully:', response.data);
+        
         if (response.data.success && response.data.message) {
-            // Emit event with the new message
-            emit('message-sent', response.data.message);
-            console.log('Message sent event emitted:', response.data.message);
-
-            // Clear input after successful send
+            // Store message temporarily
+            const sentMessage = response.data.message;
+            
+            // Clear input before emitting
             message.value = '';
+            
+            // Emit the message-sent event with the sent message
+            emit('message-sent', sentMessage);
+            console.log('Message sent event emitted:', sentMessage);
         } else {
             console.error('Invalid response format:', response.data);
-            alert('Lỗi: Không thể gửi tin nhắn.');
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        alert('Lỗi khi gửi tin nhắn. Vui lòng thử lại.');
+        message.value = '';
     }
 };
 </script>

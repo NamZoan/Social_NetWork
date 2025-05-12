@@ -136,7 +136,8 @@ class MessageController extends Controller
         if ($request->has('conversation_id')) {
             $request->validate([
                 'conversation_id' => 'required|exists:conversations,id',
-                'content' => 'required|string'
+                'content' => 'required|string',
+                'message_type' => 'required|string'
             ]);
 
             $conversation = Conversation::findOrFail($request->conversation_id);
@@ -149,13 +150,13 @@ class MessageController extends Controller
             $message = $conversation->messages()->create([
                 'sender_id' => $sender->id,
                 'content' => $request->content,
-                'message_type' => 'text',
+                'message_type' => $request->message_type,
                 'sent_at' => now(),
             ]);
 
             $message->load('sender');
 
-            // Broadcast tin nhắn mới
+            // Broadcast tin nhắn mới cho tất cả mọi người trong conversation
             broadcast(new \App\Events\SendMessage($message, $sender))->toOthers();
 
             return response()->json([
@@ -167,11 +168,13 @@ class MessageController extends Controller
         // Nếu không có conversation_id, đây là tin nhắn mới
         $request->validate([
             'recipient_id' => 'required|exists:users,id',
-            'content' => 'required|string'
+            'content' => 'required|string',
+            'message_type' => 'required|string'
         ]);
 
         $recipientId = $request->input('recipient_id');
         $content = $request->input('content');
+        $messageType = $request->input('message_type');
 
         // 1. Tìm cuộc trò chuyện giữa 2 người
         $conversation = Conversation::where('conversation_type', 'individual')
@@ -197,7 +200,7 @@ class MessageController extends Controller
         $message = $conversation->messages()->create([
             'sender_id' => $sender->id,
             'content' => $content,
-            'message_type' => 'text',
+            'message_type' => $messageType,
             'sent_at' => now(),
         ]);
 
@@ -205,7 +208,7 @@ class MessageController extends Controller
         $message->load('sender');
 
         // 5. Broadcast tin nhắn mới
-        broadcast(new \App\Events\SendMessage($message,$sender))->toOthers();
+        broadcast(new \App\Events\SendMessage($message, $sender));
 
         return response()->json([
             'success' => true,

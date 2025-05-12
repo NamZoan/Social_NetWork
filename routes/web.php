@@ -12,6 +12,8 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ConversationController;
 use App\Models\Friendship;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);

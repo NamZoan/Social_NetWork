@@ -59,20 +59,44 @@ const props = defineProps({
 });
 
 const selectedConversation = ref(null);
-
-const selectConversation = (conversation) => {
-    selectedConversation.value = conversation;
-};
 const conversationRef = ref(null);
 
 const handleMessageSent = (message) => {
     console.log('Message sent event received in Messages.vue:', message);
 
     if (selectedConversation.value && message.conversation_id === selectedConversation.value.id) {
-        if (conversationRef.value?.handleNewMessage) {
-            conversationRef.value.handleNewMessage(message);
+        // Update the conversation's last message
+        const conversationIndex = props.conversations.findIndex(c => c.id === message.conversation_id);
+        if (conversationIndex !== -1) {
+            props.conversations[conversationIndex].messages = [message, ...(props.conversations[conversationIndex].messages || [])];
+        }
+
+        // Forward the message to the conversation component
+        if (conversationRef.value?.handleMessageSent) {
+            conversationRef.value.handleMessageSent(message);
         }
     }
+};
+
+const selectConversation = (conversation) => {
+    // Reset conversation state before switching
+    if (selectedConversation.value) {
+        // Cleanup old conversation if needed
+        if (conversationRef.value?.cleanup) {
+            conversationRef.value.cleanup();
+        }
+    }
+    
+    // Set new conversation
+    selectedConversation.value = conversation;
+    
+    // Reset conversation ref to force re-mount
+    conversationRef.value = null;
+    
+    // Small delay to ensure proper cleanup and mount
+    setTimeout(() => {
+        conversationRef.value = null;
+    }, 0);
 };
 
 </script>

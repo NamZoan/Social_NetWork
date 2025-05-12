@@ -33,29 +33,28 @@ class SendMessage implements ShouldBroadcast
         ];
     }
 
-    
-
-    public function broadcastAs(): string
+    public function broadcastAs()
     {
         return 'message.sent';
     }
 
     public function broadcastWith()
-{
-    return [
-        'message' => [
-            'id' => $this->message->id,
-            'conversation_id' => $this->message->conversation_id,
-            'content' => $this->message->content,
-            'sender_id' => $this->sender->id,
-            'sender' => [
-                'id' => $this->sender->id,
-                'name' => $this->sender->name,
-                'avatar' => $this->sender->avatar,
+    {
+        return [
+            'message' => [
+                'id' => $this->message->id,
+                'conversation_id' => $this->message->conversation_id,
+                'content' => $this->message->content,
+                'message_type' => $this->message->message_type,
+                'sender_id' => $this->sender->id,
+                'sender' => [
+                    'id' => $this->sender->id,
+                    'name' => $this->sender->name,
+                    'avatar' => $this->sender->avatar,
+                ],
+                'sent_at' => $this->message->created_at->toIso8601String(),
+                'created_at' => $this->message->created_at->toDateTimeString(),
             ],
-            'created_at' => $this->message->created_at->toDateTimeString(),
-        ],
-    ];
-}
-
+        ];
+    }
 }
