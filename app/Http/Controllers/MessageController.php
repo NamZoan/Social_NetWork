@@ -10,22 +10,26 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-
+use App\Events\SendMessage;
 class MessageController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        $conversations = Conversation::whereHas('members', function($query) use ($user) {
+        $conversations = Conversation::whereHas('members', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })
-        ->with(['members' => function($query) use ($user) {
-            $query->where('user_id', '!=', $user->id);
-        }])
-        ->with(['messages' => function($query) {
-            $query->latest('sent_at')->take(20);
-        }])
-        ->get();
+            ->with([
+                'members' => function ($query) use ($user) {
+                    $query->where('user_id', '!=', $user->id);
+                }
+            ])
+            ->with([
+                'messages' => function ($query) {
+                    $query->latest('sent_at')->take(20);
+                }
+            ])
+            ->get();
 
         return Inertia::render('Messages/Messages', [
             'conversations' => $conversations,
@@ -36,18 +40,18 @@ class MessageController extends Controller
     public function getFriends()
     {
         $user = Auth::user();
-        
+
         // Lấy danh sách bạn bè của user
-        $friends = User::whereHas('friends', function($query) use ($user) {
+        $friends = User::whereHas('friends', function ($query) use ($user) {
             $query->where('friend_id', $user->id)
-                  ->where('status', 'accepted');
+                ->where('status', 'accepted');
         })
-        ->orWhereHas('friendOf', function($query) use ($user) {
-            $query->where('user_id', $user->id)
-                  ->where('status', 'accepted');
-        })
-        ->select('id', 'name', 'avatar')
-        ->get();
+            ->orWhereHas('friendOf', function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->where('status', 'accepted');
+            })
+            ->select('id', 'name', 'avatar')
+            ->get();
 
         return response()->json($friends);
     }
@@ -75,7 +79,7 @@ class MessageController extends Controller
 
             // Thêm tất cả thành viên vào cuộc trò chuyện
             $memberData = [];
-            
+
             // Thêm người tạo nhóm làm admin
             $memberData[$user->id] = [
                 'role' => 'admin',
@@ -91,16 +95,18 @@ class MessageController extends Controller
                     ];
                 }
             }
-            
+
             $conversation->members()->attach($memberData);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'conversation' => $conversation->load(['members' => function($query) use ($user) {
-                    $query->where('user_id', '!=', $user->id);
-                }])
+                'conversation' => $conversation->load([
+                    'members' => function ($query) use ($user) {
+                        $query->where('user_id', '!=', $user->id);
+                    }
+                ])
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -114,9 +120,9 @@ class MessageController extends Controller
     public function getMessages($conversationId)
     {
         $user = Auth::user();
-        
+
         // Kiểm tra user có trong cuộc trò chuyện không
-        $conversation = Conversation::whereHas('members', function($query) use ($user) {
+        $conversation = Conversation::whereHas('members', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })->findOrFail($conversationId);
 
@@ -131,91 +137,98 @@ class MessageController extends Controller
     public function sendMessage(Request $request)
     {
         $sender = Auth::user();
+        try {
+            // Nếu có conversation_id, đây là tin nhắn trong cuộc trò chuyện hiện có
+            if ($request->has('conversation_id')) {
+                $request->validate([
+                    'conversation_id' => 'required|exists:conversations,id',
+                    'content' => 'required|string',
+                    'message_type' => 'required|string'
+                ]);
 
-        // Nếu có conversation_id, đây là tin nhắn trong cuộc trò chuyện hiện có
-        if ($request->has('conversation_id')) {
-            $request->validate([
-                'conversation_id' => 'required|exists:conversations,id',
-                'content' => 'required|string',
-                'message_type' => 'required|string'
-            ]);
+                $conversation = Conversation::findOrFail($request->conversation_id);
 
-            $conversation = Conversation::findOrFail($request->conversation_id);
-            
-            // Kiểm tra người dùng có trong cuộc trò chuyện không
-            if (!$conversation->members()->where('user_id', $sender->id)->exists()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
+                // Kiểm tra người dùng có trong cuộc trò chuyện không
+                if (!$conversation->members()->where('user_id', $sender->id)->exists()) {
+                    return response()->json(['error' => 'Unauthorized'], 403);
+                }
+
+                $message = $conversation->messages()->create([
+                    'sender_id' => $sender->id,
+                    'content' => $request->content,
+                    'message_type' => "text",
+                    'sent_at' => now(),
+                ]);
+
+                $message->load('sender');
+
+                // Broadcast tin nhắn mới cho tất cả mọi người trong conversation
+                broadcast(new \App\Events\SendMessage($message, $sender));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'sender' => $sender
+                ]);
             }
 
+            // Nếu không có conversation_id, đây là tin nhắn mới
+            $request->validate([
+                'recipient_id' => 'required|exists:users,id',
+                'content' => 'required|string',
+            ]);
+
+            $recipientId = $request->input('recipient_id');
+            $content = $request->input('content');
+            $messageType = $request->input('message_type');
+
+            // 1. Tìm cuộc trò chuyện giữa 2 người
+            $conversation = Conversation::where('conversation_type', 'individual')
+                ->whereHas('members', fn($q) => $q->where('user_id', $sender->id))
+                ->whereHas('members', fn($q) => $q->where('user_id', $recipientId))
+                ->first();
+
+            // 2. Nếu chưa có, tạo mới
+            if (!$conversation) {
+                $conversation = Conversation::create([
+                    'conversation_type' => 'individual',
+                    'creator_id' => $sender->id,
+                ]);
+
+                // Thêm thành viên vào cuộc trò chuyện
+                $conversation->members()->attach([
+                    $sender->id => ['role' => 'member', 'joined_at' => now()],
+                    $recipientId => ['role' => 'member', 'joined_at' => now()]
+                ]);
+            }
+
+            // 3. Tạo tin nhắn
             $message = $conversation->messages()->create([
                 'sender_id' => $sender->id,
-                'content' => $request->content,
-                'message_type' => $request->message_type,
+                'content' => $content,
+                'message_type' => "text",
                 'sent_at' => now(),
             ]);
 
-            $message->load('sender');
 
-            // Broadcast tin nhắn mới cho tất cả mọi người trong conversation
             broadcast(new \App\Events\SendMessage($message, $sender))->toOthers();
+            $message->load('sender');
 
             return response()->json([
                 'success' => true,
-                'message' => $message
+                'message' => $message,
+                'conversation' => $conversation->load([
+                    'members' => function ($query) use ($sender) {
+                        $query->where('user_id', '!=', $sender->id);
+                    }
+                ])
             ]);
-        }
-        
-        // Nếu không có conversation_id, đây là tin nhắn mới
-        $request->validate([
-            'recipient_id' => 'required|exists:users,id',
-            'content' => 'required|string',
-            'message_type' => 'required|string'
-        ]);
-
-        $recipientId = $request->input('recipient_id');
-        $content = $request->input('content');
-        $messageType = $request->input('message_type');
-
-        // 1. Tìm cuộc trò chuyện giữa 2 người
-        $conversation = Conversation::where('conversation_type', 'individual')
-            ->whereHas('members', fn($q) => $q->where('user_id', $sender->id))
-            ->whereHas('members', fn($q) => $q->where('user_id', $recipientId))
-            ->first();
-
-        // 2. Nếu chưa có, tạo mới
-        if (!$conversation) {
-            $conversation = Conversation::create([
-                'conversation_type' => 'individual',
-                'creator_id' => $sender->id,
-            ]);
-
-            // Thêm thành viên vào cuộc trò chuyện
-            $conversation->members()->attach([
-                $sender->id => ['role' => 'member', 'joined_at' => now()],
-                $recipientId => ['role' => 'member', 'joined_at' => now()]
-            ]);
+        } catch (\Exception $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi gửi tin nhắn: ' . $th->getMessage()
+            ], 500);
         }
 
-        // 3. Tạo tin nhắn
-        $message = $conversation->messages()->create([
-            'sender_id' => $sender->id,
-            'content' => $content,
-            'message_type' => $messageType,
-            'sent_at' => now(),
-        ]);
-
-        // 4. Load thông tin người gửi
-        $message->load('sender');
-
-        // 5. Broadcast tin nhắn mới
-        broadcast(new \App\Events\SendMessage($message, $sender));
-
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'conversation' => $conversation->load(['members' => function($query) use ($sender) {
-                $query->where('user_id', '!=', $sender->id);
-            }])
-        ]);
     }
 }

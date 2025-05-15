@@ -10,10 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FriendshipController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
-use App\Http\Controllers\ConversationController;
-use App\Models\Friendship;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Broadcast;
+
 
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
@@ -21,7 +18,7 @@ Route::get('/dang-ky', [UserController::class, 'register'])->name('register');
 Route::post('/dang-ky', [UserController::class, 'store']);
 
 
-Route::middleware(['auth', 'auth.session'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/', [PageController::class, 'index'])->name('home');
     Route::get('/cai-dat', [SettingController::class, 'account'])->name('account');
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
@@ -92,4 +89,6 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
     // Message routes
     Route::get('/messages/{conversationId}', [MessageController::class, 'getMessages'])->name('messages.get');
+
+
 });

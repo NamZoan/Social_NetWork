@@ -96,4 +96,9 @@ class User extends Authenticatable
             })
             ->exists();
     }
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_members')
+            ->withPivot('role', 'joined_at');
+    }
 }

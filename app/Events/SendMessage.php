@@ -4,6 +4,7 @@ namespace App\Events;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Models\Conversation;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -27,10 +28,21 @@ class SendMessage implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        return [
-            new PrivateChannel('conversation.' . $this->message->conversation_id),
-            new PrivateChannel('user.' . $this->sender->id),
+        $channels = [
+            new PrivateChannel('conversation.' . $this->message->conversation_id)
         ];
+
+        // Get all members of the conversation
+        $conversation = Conversation::with('members')->find($this->message->conversation_id);
+        if ($conversation) {
+            foreach ($conversation->members as $member) {
+                if ($member->id !== $this->sender->id) {
+                    $channels[] = new PrivateChannel('user.' . $member->id);
+                }
+            }
+        }
+
+        return $channels;
     }
 
     public function broadcastAs()
@@ -52,8 +64,7 @@ class SendMessage implements ShouldBroadcast
                     'name' => $this->sender->name,
                     'avatar' => $this->sender->avatar,
                 ],
-                'sent_at' => $this->message->created_at->toIso8601String(),
-                'created_at' => $this->message->created_at->toDateTimeString(),
+                'sent_at' => $this->message->sent_at ? $this->message->sent_at->toIso8601String() : null, // Định dạng thời gian
             ],
         ];
     }

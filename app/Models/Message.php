@@ -12,13 +12,16 @@ class Message extends Model
     public $timestamps = false; // Tắt timestamps
 
     protected $fillable = [
-        'sender_id',
         'conversation_id',
+        'sender_id',
         'content',
-        'sent_at',
         'message_type',
-        'attachment_url',
-        'is_deleted'
+        'sent_at',
+    ];
+
+    // Đảm bảo Laravel xử lý `sent_at` như một đối tượng Carbon
+    protected $casts = [
+        'sent_at' => 'datetime',
     ];
 
     // Mối quan hệ: Một tin nhắn thuộc về một cuộc trò chuyện

@@ -29,25 +29,23 @@ const sendMessage = async () => {
     if (!message.value.trim()) return;
 
     try {
-        console.log('Sending message:', message.value);
         const response = await axios.post('/messages/send', {
             conversation_id: props.conversationId,
             content: message.value,
-            message_type: 'text'
+            message_type: 'text',
         });
 
-        console.log('Message sent successfully:', response.data);
-        
+        console.log('Response from server:', response.data);
+
         if (response.data.success && response.data.message) {
-            // Store message temporarily
             const sentMessage = response.data.message;
-            
-            // Clear input before emitting
             message.value = '';
-            
-            // Emit the message-sent event with the sent message
-            emit('message-sent', sentMessage);
-            console.log('Message sent event emitted:', sentMessage);
+
+            emit('message-sent', {
+                ...sentMessage,
+                conversation_id: props.conversationId,
+                sender: response.data.sender || response.data.message.sender
+            });
         } else {
             console.error('Invalid response format:', response.data);
         }

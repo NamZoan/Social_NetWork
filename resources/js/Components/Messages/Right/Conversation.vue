@@ -8,10 +8,13 @@
                     </div>
                 </div>
                 <template v-else>
-                    <li v-for="message in messages" :key="message.id" 
+                    <li v-for="message in messages" :key="message.id"
                         :class="['message', message.sender_id === currentUser.id ? 'message-reply' : 'message-receive']">
                         <img :src="getAvatarUrl(message.sender)" :alt="message.sender.name" />
-                        <p>{{ message.content }}</p>
+                        <div class="message-content">
+                            <p>{{ message.content }}</p>
+                            <small class="time">{{ formatDateTime(message.sent_at) }}</small>
+                        </div>
                     </li>
                 </template>
             </ul>
@@ -34,24 +37,37 @@ const props = defineProps({
     }
 });
 
+const emit = defineEmits(['message-sent']);
 const messages = ref([]);
 const isLoading = ref(false);
 const messageContainer = ref(null);
 const channels = ref([]);
 
-const emit = defineEmits(['message-sent']);
+// Hàm định dạng ngày giờ
+const formatDateTime = (time) => {
+    if (!time) return 'Unknown time';
+    return new Intl.DateTimeFormat('en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+    }).format(new Date(time));
+};
 
+// Hàm tải tin nhắn
 const loadMessages = async () => {
     if (!props.conversationId) return;
-    
+
     isLoading.value = true;
     try {
         const response = await axios.get(`/messages/${props.conversationId}`);
-        messages.value = response.data.sort((a, b) => 
+        messages.value = response.data.sort((a, b) =>
             new Date(a.sent_at) - new Date(b.sent_at)
         );
         scrollToBottom();
-        console.log('Messages loaded:', messages.value.length);
     } catch (error) {
         console.error('Error loading messages:', error);
     } finally {
@@ -59,84 +75,68 @@ const loadMessages = async () => {
     }
 };
 
+// Hàm cuộn xuống cuối danh sách tin nhắn
 const scrollToBottom = () => {
     if (messageContainer.value) {
-        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+        const lastMessage = messageContainer.value.querySelector('.message:last-child');
+        if (lastMessage) {
+            lastMessage.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 };
 
+// Hàm xử lý tin nhắn mới
 const handleNewMessage = (message) => {
-    console.log('New message received in Conversation:', message);
-    
     if (message.conversation_id === props.conversationId) {
         const messageExists = messages.value.some(m => m.id === message.id);
         if (!messageExists) {
-            console.log('Adding new message to conversation:', message);
-            messages.value.push(message);
+            messages.value.push({
+                ...message,
+                sender: message.sender || {
+                    id: message.sender_id,
+                    name: message.sender?.name || 'Unknown',
+                    avatar: message.sender?.avatar || null
+                }
+            });
             scrollToBottom();
         }
     }
 };
 
-const handleMessageSent = (message) => {
-    console.log('Message sent event received in Conversation:', message);
-    handleNewMessage(message);
-};
-
+// Thiết lập WebSocket
 const setupWebSocket = () => {
-    if (!window.Echo) {
-        console.error('Echo is not initialized');
-        return;
-    }
-
-    console.log('Setting up WebSocket listeners for conversation:', props.conversationId);
-    
+    cleanup();
     try {
-        // Cleanup existing channels
-        cleanup();
-
-        // Setup conversation channel
         const conversationChannel = window.Echo.private(`conversation.${props.conversationId}`);
-        conversationChannel.listen('.message.sent', (data) => {
-            console.log('Received message on conversation channel:', data);
-            if (data.message) {
-                handleNewMessage(data.message);
-            }
+        conversationChannel.listen('.message.sent', (e) => {
+            if (e.message) handleNewMessage(e.message);
         });
 
-        // Setup user channel
         const userChannel = window.Echo.private(`user.${props.currentUser.id}`);
-        userChannel.listen('.message.sent', (data) => {
-            console.log('Received message on user channel:', data);
-            if (data.message) {
-                handleNewMessage(data.message);
-            }
+        userChannel.listen('.message.sent', (e) => {
+            if (e.message) handleNewMessage(e.message);
         });
 
-        // Store channels for cleanup
         channels.value = [conversationChannel, userChannel];
-        console.log('WebSocket listeners setup completed');
     } catch (error) {
         console.error('Error setting up WebSocket listeners:', error);
     }
 };
 
+// Dọn dẹp WebSocket
 const cleanup = () => {
-    try {
-        if (channels.value.length > 0) {
-            channels.value.forEach(channel => {
-                if (channel) {
-                    channel.stopListening('.message.sent');
-                }
-            });
-            channels.value = [];
-        }
-        console.log('WebSocket cleanup completed');
-    } catch (error) {
-        console.error('Error during WebSocket cleanup:', error);
-    }
+    channels.value.forEach(channel => channel?.stopListening('.message.sent'));
+    channels.value = [];
 };
 
+// Lấy URL avatar
+const getAvatarUrl = (sender) => {
+    return sender?.avatar
+        ? `/images/client/avatar/${sender.avatar}`
+        : '/images/web/users/avatar.jpg';
+};
+
+// Lifecycle hooks
 onMounted(() => {
     loadMessages();
     setupWebSocket();
@@ -146,29 +146,14 @@ onUnmounted(() => {
     cleanup();
 });
 
-// Watch for conversation changes
+// Watchers
 watch(() => props.conversationId, (newId, oldId) => {
     if (newId !== oldId) {
-        console.log('Conversation changed from', oldId, 'to', newId);
         cleanup();
         loadMessages();
         setupWebSocket();
     }
 });
-
-// Expose functions
-defineExpose({
-    loadMessages,
-    handleMessageSent,
-    cleanup
-});
-
-const getAvatarUrl = (sender) => {
-    if (!sender) return '/images/web/users/avatar.jpg';
-    return sender.avatar 
-        ? `/images/client/avatar/${sender.avatar}` 
-        : '/images/web/users/avatar.jpg';
-};
 </script>
 
 <style scoped>
@@ -176,6 +161,9 @@ const getAvatarUrl = (sender) => {
     height: calc(100vh - 200px);
     overflow-y: auto;
     padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .messages-content {
@@ -197,12 +185,25 @@ const getAvatarUrl = (sender) => {
     margin-right: 10px;
 }
 
-.message p {
-    background: #f5f5f5;
-    padding: 10px 15px;
-    border-radius: 15px;
-    max-width: 70%;
+
+
+.message-content p {
+    background: #cacaca;
+    padding: 5px 10px;
+    border-radius: 20px;
     margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.message-content .time {
+    display: block;
+    margin-top: 5px;
+    font-size: 10px;
+    color: #888;
+    text-align: right;
 }
 
 .message-reply {
@@ -214,8 +215,9 @@ const getAvatarUrl = (sender) => {
     margin-left: 10px;
 }
 
-.message-reply p {
+.message-reply .message-content p {
     background: #007bff;
     color: white;
 }
+
 </style>

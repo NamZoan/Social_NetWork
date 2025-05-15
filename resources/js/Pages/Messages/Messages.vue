@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import ContactItem from "../../Components/Messages/Left/ContactItem.vue";
 import App from "../../Layouts/App.vue";
 import SearchBar from "../../Components/Messages/Left/SearchBar.vue";
@@ -62,19 +62,53 @@ const selectedConversation = ref(null);
 const conversationRef = ref(null);
 
 const handleMessageSent = (message) => {
-    console.log('Message sent event received in Messages.vue:', message);
-
+    console.log('Parent handling message:', message);
+    
     if (selectedConversation.value && message.conversation_id === selectedConversation.value.id) {
         // Update the conversation's last message
         const conversationIndex = props.conversations.findIndex(c => c.id === message.conversation_id);
         if (conversationIndex !== -1) {
-            props.conversations[conversationIndex].messages = [message, ...(props.conversations[conversationIndex].messages || [])];
+            if (!props.conversations[conversationIndex].messages) {
+                props.conversations[conversationIndex].messages = [];
+            }
+            // Kiểm tra tin nhắn đã tồn tại chưa
+            const messageExists = props.conversations[conversationIndex].messages.some(m => m.id === message.id);
+            if (!messageExists) {
+                props.conversations[conversationIndex].messages.unshift(message);
+                console.log('Updated conversation messages');
+            }
         }
 
         // Forward the message to the conversation component
-        if (conversationRef.value?.handleMessageSent) {
-            conversationRef.value.handleMessageSent(message);
-        }
+        nextTick(() => {
+            if (conversationRef.value?.handleMessageSent) {
+                console.log('Forwarding message to conversation component');
+                conversationRef.value.handleMessageSent(message);
+            } else {
+                console.log('Conversation ref not ready, retrying...');
+                // Retry up to 3 times with increasing delays
+                let retryCount = 0;
+                const maxRetries = 3;
+                const retry = () => {
+                    if (retryCount < maxRetries) {
+                        setTimeout(() => {
+                            if (conversationRef.value?.handleMessageSent) {
+                                console.log('Retry successful, forwarding message');
+                                conversationRef.value.handleMessageSent(message);
+                            } else {
+                                retryCount++;
+                                retry();
+                            }
+                        }, 100 * (retryCount + 1));
+                    } else {
+                        console.error('Failed to forward message after multiple retries');
+                    }
+                };
+                retry();
+            }
+        });
+    } else {
+        console.log('Message not for current conversation');
     }
 };
 
@@ -90,13 +124,15 @@ const selectConversation = (conversation) => {
     // Set new conversation
     selectedConversation.value = conversation;
     
-    // Reset conversation ref to force re-mount
+    // Reset conversation ref
     conversationRef.value = null;
     
-    // Small delay to ensure proper cleanup and mount
-    setTimeout(() => {
-        conversationRef.value = null;
-    }, 0);
+    // Đợi một chút để đảm bảo component được mount lại
+    nextTick(() => {
+        if (conversationRef.value?.loadMessages) {
+            conversationRef.value.loadMessages();
+        }
+    });
 };
 
 </script>
