@@ -100,10 +100,15 @@ class GroupController extends Controller
             }
         }
 
+        $isAdmin = $group->isAdmin(auth()->id());
+
+
+
         return Inertia::render('Groups/ListPost', [
             'group' => $group,
             'isMember' => $isMember,
-            'isPending' => $isPending
+            'isPending' => $isPending,
+            'isAdmin' => $isAdmin,
         ]);
     }
 
@@ -300,7 +305,7 @@ class GroupController extends Controller
         }
 
         $post = $group->posts()->findOrFail($postId);
-        
+
         $post->update([
             'privacy_setting' => 'public',
             'approved_at' => now(),
@@ -317,7 +322,7 @@ class GroupController extends Controller
         }
 
         $post = $group->posts()->findOrFail($postId);
-        
+
         $post->update([
             'privacy_setting' => 'rejected',
             'updated_at' => now(),

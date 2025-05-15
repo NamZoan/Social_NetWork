@@ -1,7 +1,7 @@
 <template>
     <div class="col-md-12">
-        <div class="message-header">
-            <div class="wrap">
+        <div class="message-header d-flex justify-content-between align-items-center">
+            <div class="wrap d-flex align-items-center">
                 <span class="contact-status online"></span>
                 <img :src="getOtherUserAvatar" alt="Conversation user" />
                 <div class="meta">
@@ -9,12 +9,26 @@
                     <p class="preview">Active now</p>
                 </div>
             </div>
+            <!-- Dấu ba chấm -->
+            <div class="dropdown">
+                <button class="btn btn-link p-0" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bx bx-dots-horizontal-rounded" style="font-size: 24px;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <button class="dropdown-item text-danger" @click="deleteConversation">
+                            <i class="bx bx-trash me-2"></i> Xóa cuộc trò chuyện
+                        </button>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     conversation: {
@@ -26,6 +40,8 @@ const props = defineProps({
     }
 });
 
+const emit = defineEmits(['conversation-deleted']);
+
 const getOtherUserAvatar = computed(() => {
     if (!props.conversation?.members?.[0]) return '/images/web/users/avatar.jpg';
     return props.conversation.members[0].avatar 
@@ -36,6 +52,23 @@ const getOtherUserAvatar = computed(() => {
 const getOtherUserName = computed(() => {
     return props.conversation?.members?.[0]?.name || 'Unknown User';
 });
+
+const deleteConversation = async () => {
+    if (!confirm('Bạn có chắc chắn muốn xóa cuộc trò chuyện này?')) return;
+
+    try {
+        const response = await axios.delete(`/conversations/${props.conversation.id}`);
+        if (response.data.success) {
+            alert(response.data.message);
+            emit('conversation-deleted'); // Phát sự kiện để thông báo cuộc trò chuyện đã bị xóa
+        } else {
+            alert('Không thể xóa cuộc trò chuyện: ' + response.data.message);
+        }
+    } catch (error) {
+        console.error('Error deleting conversation:', error);
+        alert('Có lỗi xảy ra khi xóa cuộc trò chuyện.');
+    }
+};
 </script>
 
 <style scoped>

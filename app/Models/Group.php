@@ -17,6 +17,7 @@ class Group extends Model
         'cover_photo_url',
         'group_type',
         'post_approval_required',
+        'image'
     ];
 
     // Nếu bạn có quan hệ với User:
@@ -44,5 +45,13 @@ class Group extends Model
     public function posts()
     {
         return $this->hasMany(Post::class, 'group_id');
+    }
+
+    public function isAdmin($userId)
+    {
+        return $this->members()
+            ->where('user_id', $userId)
+            ->where('role', 'admin')
+            ->exists();
     }
 }

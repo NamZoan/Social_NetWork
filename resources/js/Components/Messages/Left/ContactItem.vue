@@ -48,17 +48,16 @@ const getStatusClass = (conversation) => {
 
 const getConversationAvatar = (conversation) => {
     if (conversation.conversation_type === 'group') {
-        // Nếu là nhóm, lấy avatar của người đầu tiên trong nhóm
-        const firstMember = conversation.members[0];
-        return firstMember?.avatar 
-            ? `/images/client/avatar/${firstMember.avatar}` 
-            : '/images/web/users/avatar.jpg';
+        // Nếu là nhóm, hiển thị ảnh đại diện của nhóm
+        return conversation.cover_photo_url
+            ? `/images/client/group/conversation/${conversation.image}`
+            : '/images/web/groups/group.webp'; // Ảnh mặc định cho nhóm
     } else {
         // Nếu là chat riêng, lấy avatar của người còn lại
         const otherUser = conversation.members[0];
-        return otherUser?.avatar 
-            ? `/images/client/avatar/${otherUser.avatar}` 
-            : '/images/web/users/avatar.jpg';
+        return otherUser?.avatar
+            ? `/images/client/avatar/${otherUser.avatar}`
+            : '/images/web/users/avatar.jpg'; // Ảnh mặc định cho người dùng
     }
 };
 

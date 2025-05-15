@@ -15,8 +15,9 @@
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap">
                             <div class="group-info d-flex align-items-center">
                                 <div class="me-3">
-                                    <img class="rounded-circle img-fluid avatar-100"
-                                        :src="`/images/client/group/thumbnail/${group.cover_photo_url}`">
+                                    <img class="rounded-circle img-fluid avatar-100" :src="group.cover_photo_url
+                                        ? `/images/client/group/thumbnail/${group.cover_photo_url}`
+                                        : '/images/web/groups/group.webp'" alt="Group Cover" />
                                 </div>
                                 <div class="info">
                                     <h3>{{ group.name }}</h3>
@@ -43,7 +44,7 @@
                     </div>
                     <!-- Main Content Area -->
                     <div class="col-lg-8">
-                        <slot v-if="isMember" ></slot>
+                        <slot v-if="isMember"></slot>
                         <!-- <ListPost v-if="isMember" :group="group" :user_auth="user_auth" :is-member="isMember" /> -->
                         <div v-else-if="isPending" class="card">
                             <div class="card-body">
@@ -101,7 +102,7 @@
                         </div>
 
                         <!-- Admin Panel -->
-                        <div v-if="isCreator" class="card">
+                        <div v-if="isAdmin" class="card">
                             <div class="card-header d-flex justify-content-between">
                                 <div class="header-title">
                                     <h4 class="card-title">Dành Cho Admin</h4>
@@ -112,28 +113,28 @@
                                     <li class="mb-3 d-flex align-items-center">
                                         <Link :href="`/groups/${group.id}/pending-posts`"
                                             class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
-                                            <div class="avatar-40 rounded-circle bg-gray text-center me-3">
-                                                <i class='bx bx-list-check'></i>
-                                            </div>
-                                            <h6 class="mb-0">Duyệt Bài Viết</h6>
+                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3">
+                                            <i class='bx bx-list-check'></i>
+                                        </div>
+                                        <h6 class="mb-0">Duyệt Bài Viết</h6>
                                         </Link>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
                                         <Link :href="`/groups/${group.id}/pending-requests`"
                                             class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
-                                            <div class="avatar-40 rounded-circle bg-gray text-center me-3">
-                                                <i class='bx bxs-user-detail'></i>
-                                            </div>
-                                            <h6 class="mb-0">Yêu Cầu Tham Gia</h6>
+                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3">
+                                            <i class='bx bxs-user-detail'></i>
+                                        </div>
+                                        <h6 class="mb-0">Yêu Cầu Tham Gia</h6>
                                         </Link>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
                                         <Link :href="`/groups/${group.id}/edit`"
                                             class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
-                                            <div class="avatar-40 rounded-circle bg-gray text-center me-3">
-                                                <i class='bx bxs-edit'></i>
-                                            </div>
-                                            <h6 class="mb-0">Cập Nhật Thông Tin Nhóm</h6>
+                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3">
+                                            <i class='bx bxs-edit'></i>
+                                        </div>
+                                        <h6 class="mb-0">Cập Nhật Thông Tin Nhóm</h6>
                                         </Link>
                                     </li>
                                 </ul>
@@ -156,12 +157,11 @@ const props = defineProps({
     isMember: Boolean,
     isPending: Boolean,
     pendingPosts: Object,
-    pendingRequests: Object
+    pendingRequests: Object,
+    isAdmin: Boolean,
 });
 
-const page = usePage();
-const user_auth = computed(() => page.props.auth.user);
-const isCreator = computed(() => props.group.creator_id === user_auth.value.id);
+
 
 const joinGroup = () => {
     router.post(`/groups/${props.group.id}/join`, {}, {

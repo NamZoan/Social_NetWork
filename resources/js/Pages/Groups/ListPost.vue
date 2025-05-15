@@ -1,5 +1,5 @@
 <template>
-    <GroupDetail :group="group" :user_auth="user_auth" :is-member="isMember">
+    <GroupDetail :group="group" :user_auth="user_auth" :is-member="isMember" :isAdmin="isAdmin">
         <div v-if="isMember">
             <Post :group_id="group.id" :user="user_auth" :group="group" />
             <div v-for="post in initialPosts" :key="post.id">
@@ -31,6 +31,10 @@ const props = defineProps({
         required: true
     },
     isMember: {
+        type: Boolean,
+        required: true
+    },
+    isAdmin: {
         type: Boolean,
         required: true
     }

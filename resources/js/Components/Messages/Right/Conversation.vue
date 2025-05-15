@@ -10,7 +10,12 @@
                 <template v-else>
                     <li v-for="message in messages" :key="message.id"
                         :class="['message', message.sender_id === currentUser.id ? 'message-reply' : 'message-receive']">
-                        <img :src="getAvatarUrl(message.sender)" :alt="message.sender.name" />
+                        <!-- Hiển thị ảnh đại diện với tooltip -->
+                        <img 
+                            :src="getAvatarUrl(message.sender)" 
+                            :alt="message.sender.name" 
+                            :title="message.sender.name" 
+                        />
                         <div class="message-content">
                             <p>{{ message.content }}</p>
                             <small class="time">{{ formatDateTime(message.sent_at) }}</small>
