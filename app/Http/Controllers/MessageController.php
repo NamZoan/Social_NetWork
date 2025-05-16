@@ -22,7 +22,9 @@ class MessageController extends Controller
             ->with([
                 'members' => function ($query) use ($user) {
                     $query->where('user_id', '!=', $user->id);
-                }
+                },
+                'messages.sender'
+
             ])
             ->with([
                 'messages' => function ($query) {
@@ -30,6 +32,8 @@ class MessageController extends Controller
                 }
             ])
             ->get();
+
+
 
         return Inertia::render('Messages/Messages', [
             'conversations' => $conversations,

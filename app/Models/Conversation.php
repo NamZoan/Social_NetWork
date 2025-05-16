@@ -12,7 +12,8 @@ class Conversation extends Model
         'name', 
         'conversation_type', 
         'creator_id', 
-        'is_active'
+        'is_active',
+        'image',
     ];
 
     // Mối quan hệ: Một cuộc trò chuyện có nhiều tin nhắn

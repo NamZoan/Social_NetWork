@@ -43,14 +43,25 @@ const props = defineProps({
 const emit = defineEmits(['conversation-deleted']);
 
 const getOtherUserAvatar = computed(() => {
-    if (!props.conversation?.members?.[0]) return '/images/web/users/avatar.jpg';
-    return props.conversation.members[0].avatar 
-        ? `/images/client/avatar/${props.conversation.members[0].avatar}` 
+    if (!props.conversation) return '/images/web/users/avatar.jpg';
+    if (props.conversation.conversation_type === 'group') {
+        return props.conversation.image
+           ? `/images/client/group/conversation/${props.conversation.image}`
+            : '/images/web/groups/group.webp';
+    }
+    // Cá nhân
+    const otherUser = props.conversation.members[0];
+    return otherUser?.avatar
+        ? `/images/client/avatar/${otherUser.avatar}`
         : '/images/web/users/avatar.jpg';
 });
 
 const getOtherUserName = computed(() => {
-    return props.conversation?.members?.[0]?.name || 'Unknown User';
+    if (!props.conversation) return 'Unknown';
+    if (props.conversation.conversation_type === 'group') {
+        return props.conversation.name;
+    }
+    return props.conversation.members[0]?.name || 'Unknown User';
 });
 
 const deleteConversation = async () => {

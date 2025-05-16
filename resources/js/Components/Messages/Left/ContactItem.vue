@@ -46,10 +46,12 @@ const getStatusClass = (conversation) => {
     return 'online';
 };
 
+
 const getConversationAvatar = (conversation) => {
     if (conversation.conversation_type === 'group') {
         // Nếu là nhóm, hiển thị ảnh đại diện của nhóm
-        return conversation.cover_photo_url
+        console.log('Group cover photo URL:', conversation.image);
+        return conversation.image
             ? `/images/client/group/conversation/${conversation.image}`
             : '/images/web/groups/group.webp'; // Ảnh mặc định cho nhóm
     } else {
