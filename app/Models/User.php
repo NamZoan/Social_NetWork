@@ -9,9 +9,11 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use GetStream\StreamLaravel\Facades\FeedManager;
+use GetStream\StreamLaravel\Eloquent\ActivityTrait;
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, ActivityTrait;
 
     protected $fillable = [
         'name',

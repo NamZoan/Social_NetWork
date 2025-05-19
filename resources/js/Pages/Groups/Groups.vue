@@ -19,26 +19,26 @@
             </div>
             <div class="groups py-3 px-4">
                 <div class="card-head d-flex justify-content-between">
-                    <h5 class="mb-4">Nhóm của bạn</h5>
+                    <h5 class="mb-4">Nhóm bạn đã tạo</h5>
                 </div>
                 <div class="row">
-                    <template v-if="allGroups && allGroups.length > 0">
-                        <div v-for="group in allGroups" :key="group?.id" class="col-md-6 col-sm-6">
-                        <div class="card group-card bg-transparent group-card-inline mb-3">
+                    <template v-if="createdGroups && createdGroups.length > 0">
+                        <div v-for="group in createdGroups" :key="group.id" class="col-md-6 col-sm-6">
+                            <div class="card group-card bg-transparent group-card-inline mb-3">
                                 <div class="row no-gutters d-flex align-items-center">
                                     <div class="col-md-3">
-                                        <img :src="group?.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : 'images/web/groups/group-5.jpg'" 
+                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : 'images/web/groups/group-5.jpg'"
                                              class="card-img group-card-inline-img" alt="Group image">
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card-body">
-                                            <h4 class="card-title limit-2-lines">{{ group?.name || 'Nhóm không có tên' }}</h4>
-                                            <h5 class="card-text">{{ group?.members_count || 0 }} thành viên</h5>
-                                            <p class="card-text limit-2-lines">{{ group?.description || 'Không có mô tả' }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card-body">
+                                            <h4 class="card-title limit-2-lines">{{ group.name || 'Nhóm không có tên' }}</h4>
+                                            <h5 class="card-text">{{ group.members_count || 0 }} thành viên</h5>
+                                            <p class="card-text limit-2-lines">{{ group.description || 'Không có mô tả' }}</p>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <Link v-if="group?.id" :href="`/groups/${group.id}`" class="btn btn-quick-link bg-white">Xem</Link>
+                                        <Link v-if="group.id" :href="`/groups/${group.id}`" class="btn btn-quick-link bg-white">Xem</Link>
                                     </div>
                                 </div>
                             </div>
@@ -50,77 +50,36 @@
                 </div>
             </div>
             <hr class="my-5">
-            <!-- Groups -->
+            <!-- Nhóm bạn đã tham gia -->
             <div class="groups bg-white py-3 px-4 shadow-sm">
                 <div class="card-head d-flex justify-content-between">
                     <h5 class="mb-4">Nhóm bạn đã tham gia</h5>
                 </div>
                 <div class="row">
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card group-card shadow-sm">
-                            <img :src="'images/web/groups/group-1.png'" class="card-img-top group-card-image"
-                                alt="Group image">
-                            <div class="card-body">
-                                <h5 class="card-title">Argon </h5>
-                                <p class="card-text">10k Members 20+ post a week</p>
-                                <a href="#" class="btn btn-quick-link join-group-btn border w-100">Xem</a>
+                    <template v-if="joinedGroups && joinedGroups.length > 0">
+                        <div v-for="group in joinedGroups" :key="group.id" class="col-md-6 col-sm-6">
+                            <div class="card group-card bg-transparent group-card-inline mb-3">
+                                <div class="row no-gutters d-flex align-items-center">
+                                    <div class="col-md-3">
+                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : 'images/web/groups/group-5.jpg'"
+                                             class="card-img group-card-inline-img" alt="Group image">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card-body">
+                                            <h4 class="card-title limit-2-lines">{{ group.name || 'Nhóm không có tên' }}</h4>
+                                            <h5 class="card-text">{{ group.members_count || 0 }} thành viên</h5>
+                                            <p class="card-text limit-2-lines">{{ group.description || 'Không có mô tả' }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <Link v-if="group.id" :href="`/groups/${group.id}`" class="btn btn-quick-link text-white bg-primary">Xem</Link>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card group-card shadow-sm">
-                            <img :src="'images/web/groups/group-2.jpg'" class="card-img-top group-card-image"
-                                alt="Group image">
-                            <div class="card-body">
-                                <h5 class="card-title">Tourism</h5>
-                                <p class="card-text">2.5k Members 35+ post a week</p>
-                                <a href="#" class="btn btn-quick-link join-group-btn border w-100">Join</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card group-card shadow-sm">
-                            <img :src="'images/web/groups/group-3.jpg'" class="card-img-top group-card-image"
-                                alt="Group image">
-                            <div class="card-body">
-                                <h5 class="card-title">Reading Books</h5>
-                                <p class="card-text">1.3k Members 10+ post a day</p>
-                                <a href="#" class="btn btn-quick-link join-group-btn border w-100">Join</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card group-card shadow-sm">
-                            <img :src="'images/web/groups/group-4.jpg'" class="card-img-top group-card-image"
-                                alt="Group image">
-                            <div class="card-body">
-                                <h5 class="card-title">Capture The Best</h5>
-                                <p class="card-text">2.8k Members 8+ post a day</p>
-                                <a href="#" class="btn btn-quick-link join-group-btn border w-100">Join</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card group-card shadow-sm">
-                            <img :src="'images/web/groups/group-4.jpg'" class="card-img-top group-card-image"
-                                alt="Group image">
-                            <div class="card-body">
-                                <h5 class="card-title">Capture The Best</h5>
-                                <p class="card-text">2.8k Members 8+ post a day</p>
-                                <a href="#" class="btn btn-quick-link join-group-btn border w-100">Join</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card group-card shadow-sm">
-                            <img :src="'images/web/groups/group-4.jpg'" class="card-img-top group-card-image"
-                                alt="Group image">
-                            <div class="card-body">
-                                <h5 class="card-title">Capture The Best</h5>
-                                <p class="card-text">2.8k Members 8+ post a day</p>
-                                <a href="#" class="btn btn-quick-link join-group-btn border w-100">Join</a>
-                            </div>
-                        </div>
+                    </template>
+                    <div v-else class="col-12 text-center">
+                        <p>Bạn chưa tham gia nhóm nào.</p>
                     </div>
                 </div>
             </div>

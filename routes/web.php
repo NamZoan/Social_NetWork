@@ -24,6 +24,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
     Route::get('/groups', [GroupController::class, 'index'])->name('group');
+    Route::get('/friend-requests', [FriendshipController::class, 'index']);
 
 
     Route::prefix('{username}')->group(function () {
@@ -58,10 +59,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
 
     //group
+    Route::delete('/groups/{group}', [GroupController::class, 'destroy'])->name('groups.destroy');
     Route::get('/groups/{group}', [GroupController::class, 'show'])->name('groups.show');
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
     Route::post('/groups/{group}/join', [GroupController::class, 'join'])->name('groups.join');
     Route::post('/groups/{group}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+    Route::get('/groups/{group}/edit', [GroupController::class, 'edit'])->name('groups.edit');
+    Route::post('/groups/{group}/update', [GroupController::class, 'update'])->name('groups.update');
+    Route::get('/groups/{group}/my-posts', [GroupController::class, 'myPosts'])->name('groups.my-posts');
 
     // Group join request routes
     Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
@@ -74,7 +79,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/groups/{group}/pending-requests', [GroupController::class, 'showPendingRequests'])->name('groups.pending-requests');
     Route::post('/groups/{group}/members/{member}/approve', [GroupController::class, 'approveMember'])->name('groups.members.approve');
     Route::post('/groups/{group}/members/{member}/reject', [GroupController::class, 'rejectMember'])->name('groups.members.reject');
-
+    Route::get('/groups/{group}/members', [GroupController::class, 'members'])->name('groups.members');
+    // Xóa thành viên khỏi nhóm
+    Route::delete('/groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
     // Group join request routes
     Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
 
@@ -89,6 +96,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Message routes
     Route::get('/messages/{conversationId}', [MessageController::class, 'getMessages'])->name('messages.get');
-
-
+    Route::post('/conversations/{conversation}/delete', [MessageController::class, 'deleteConversation'])->name('conversations.delete');
+    Route::get('/conversations/{conversation}/members', [MessageController::class, 'getConversationMembers']);
+    Route::post('/conversations/{conversation}/add-members', [MessageController::class, 'addMembersToConversation']);
+    Route::post('/conversations/{conversation}/leave', [MessageController::class, 'leaveConversation']);
+    Route::delete('/conversations/{conversation}/members/{user}', [MessageController::class, 'removeMemberFromConversation']);
+    Route::post('/conversations/{conversation}/delete', [MessageController::class, 'deleteConversation'])->name('conversations.delete');
+    Route::post('/conversations/{conversation}/update', [MessageController::class, 'updateConversation']);
+    Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage']);
 });

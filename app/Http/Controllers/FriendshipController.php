@@ -149,6 +149,26 @@ class FriendshipController extends Controller
         return User::whereIn('id', $friendIds)->select('id', 'name', 'username','avatar')->get();
     }
 
+    public function index()
+    {
 
+        $auth_id = auth()->id();
+
+        // Lấy các lời mời kết bạn mà user hiện tại là người nhận và trạng thái là pending
+        $requests = Friendship::where('user_id_2', $auth_id)
+            ->where('status', 'pending')
+            ->with('sender:id,name,username,avatar')
+            ->get();
+
+        // Trả về danh sách user gửi lời mời
+        $senders = $requests->map(function ($request) {
+            return $request->sender;
+        });
+
+        
+        return Inertia::render('Friends/Request', [
+            'requests' => $senders,
+        ]);
+    }
 
 }

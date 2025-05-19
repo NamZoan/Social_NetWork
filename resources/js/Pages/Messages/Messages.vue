@@ -63,7 +63,7 @@ const conversationRef = ref(null);
 
 const handleMessageSent = (message) => {
     console.log('Parent handling message:', message);
-    
+
     if (selectedConversation.value && message.conversation_id === selectedConversation.value.id) {
         // Update the conversation's last message
         const conversationIndex = props.conversations.findIndex(c => c.id === message.conversation_id);
@@ -120,19 +120,26 @@ const selectConversation = (conversation) => {
             conversationRef.value.cleanup();
         }
     }
-    
+
     // Set new conversation
     selectedConversation.value = conversation;
-    
+
     // Reset conversation ref
     conversationRef.value = null;
-    
+
     // Đợi một chút để đảm bảo component được mount lại
     nextTick(() => {
         if (conversationRef.value?.loadMessages) {
             conversationRef.value.loadMessages();
         }
     });
+};
+
+const handleConversationDeleted = (conversationId) => {
+    conversations.value = conversations.value.filter(c => c.id !== conversationId);
+    if (selectedConversation.value && selectedConversation.value.id === conversationId) {
+        selectedConversation.value = null;
+    }
 };
 
 </script>

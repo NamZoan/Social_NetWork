@@ -518,7 +518,7 @@ const updateCommentsCount = async () => {
 // 🛠 Gửi comment bình luận bài post
 const submitComment = async () => {
     if (!content_comment.value.trim()) return;
-    
+
     try {
         const response = await axios.post("/comments", {
             post_id: postData.value.id,

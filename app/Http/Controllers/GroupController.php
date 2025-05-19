@@ -28,7 +28,6 @@ class GroupController extends Controller
             ->where('creator_id', '!=', $user->id)
             ->withCount('members')
             ->get();
-
         return Inertia::render('Groups/Groups', [
             'createdGroups' => $createdGroups,
             'joinedGroups' => $joinedGroups
@@ -331,4 +330,168 @@ class GroupController extends Controller
         return redirect()->back()->with('success', 'Bài viết đã bị từ chối!');
     }
 
+    public function edit(Group $group)
+    {
+        // Chỉ creator mới được sửa
+        if ($group->creator_id !== Auth::id()) {
+            abort(403, 'Bạn không có quyền sửa nhóm này!');
+        }
+        $isMember = false;
+        $isPending = false;
+        if (Auth::check()) {
+            $membership = $group->members()
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if ($membership) {
+                $isMember = $membership->pivot->membership_status === 'active';
+                $isPending = $membership->pivot->membership_status === 'pending';
+            }
+        }
+
+        $isAdmin = $group->isAdmin(auth()->id());
+        return Inertia::render('Groups/GroupUpdate', [
+            'group' => $group,
+            'isMember' => $isMember,
+            'isPending' => $isPending,
+            'isAdmin' => $isAdmin,
+        ]);
+    }
+
+    public function update(Request $request, Group $group)
+    {
+        if ($group->creator_id !== Auth::id()) {
+            abort(403, 'Bạn không có quyền sửa nhóm này!');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'privacy_setting' => 'required|boolean',
+            'post_approval_required' => 'required|boolean',
+            'cover_photo_url' => 'nullable|image|max:2048',
+        ]);
+
+        if ($request->hasFile('cover_photo_url')) {
+            // Xóa ảnh cũ nếu có
+            if ($group->cover_photo_url && file_exists(public_path('images/client/group/thumbnail/' . $group->cover_photo_url))) {
+                unlink(public_path('images/client/group/thumbnail/' . $group->cover_photo_url));
+            }
+            $file = $request->file('cover_photo_url');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images/client/group/thumbnail'), $filename);
+            $group->cover_photo_url = $filename;
+        }
+
+        $group->name = $request->name;
+        $group->description = $request->description;
+        $group->privacy_setting = $request->privacy_setting;
+        $group->post_approval_required = $request->post_approval_required;
+        $group->save();
+
+        return redirect()->route('groups.edit', $group->id)->with('success', 'Cập nhật nhóm thành công!');
+    }
+
+    public function myPosts(Group $group)
+    {
+        $user = Auth::user();
+
+        // Lấy các bài viết của user trong group
+        $myPosts = $group->posts()
+            ->where('user_id', $user->id)
+            ->with(['user', 'media', 'likes', 'comments'])
+            ->latest()
+            ->get();
+
+        // Kiểm tra trạng thái thành viên
+        $isMember = false;
+        if ($group->members()->where('user_id', $user->id)->exists()) {
+            $membership = $group->members()->where('user_id', $user->id)->first();
+            $isMember = $membership->pivot->membership_status === 'active';
+        }
+
+        $isAdmin = $group->isAdmin($user->id);
+
+        return Inertia::render('Groups/MyPostInGroup', [
+            'group' => $group,
+            'myPosts' => $myPosts,
+            'user_auth' => $user,
+            'isMember' => $isMember,
+            'isAdmin' => $isAdmin,
+        ]);
+    }
+
+    public function members(Group $group)
+    {
+        $user = Auth::user();
+
+        // Lấy danh sách thành viên với role
+        $members = $group->members()->withPivot('role')->get();
+
+        $isMember = false;
+        if ($group->members()->where('user_id', $user->id)->exists()) {
+            $membership = $group->members()->where('user_id', $user->id)->first();
+            $isMember = $membership->pivot->membership_status === 'active';
+        }
+
+        $isAdmin = $group->isAdmin($user->id);
+        return Inertia::render('Groups/Member', [
+            'group' => $group,
+            'members' => $members,
+            'isMember' => $isMember,
+            'isAdmin' => $isAdmin,
+            'user_auth' => $user,
+        ]);
+    }
+
+    public function removeMember(Group $group, $userId)
+    {
+        $user = Auth::user();
+
+        // Chỉ admin mới được xóa
+        $isAdmin = $group->members()
+            ->where('user_id', $user->id)
+            ->wherePivot('role', 'admin')
+            ->exists();
+
+        if (!$isAdmin) {
+            abort(403, 'Bạn không có quyền xóa thành viên!');
+        }
+
+        // Không cho phép admin tự xóa chính mình
+        if ($user->id == $userId) {
+            return back()->with('error', 'Không thể tự xóa mình!');
+        }
+
+        $group->members()->detach($userId);
+
+        return back()->with('success', 'Đã xóa thành viên khỏi nhóm!');
+    }
+    public function destroy(Group $group)
+    {
+        $user = Auth::user();
+
+        // Chỉ creator hoặc admin mới được xóa nhóm
+        $isAdmin = $group->members()
+            ->where('user_id', $user->id)
+            ->wherePivot('role', 'admin')
+            ->exists();
+
+        if ($group->creator_id !== $user->id && !$isAdmin) {
+            abort(403, 'Bạn không có quyền xóa nhóm này!');
+        }
+
+        // Xóa ảnh nếu có
+        if ($group->cover_photo_url && file_exists(public_path('images/client/group/thumbnail/' . $group->cover_photo_url))) {
+            unlink(public_path('images/client/group/thumbnail/' . $group->cover_photo_url));
+        }
+
+        // Xóa các liên kết thành viên
+        $group->members()->detach();
+
+        // Xóa nhóm
+        $group->delete();
+
+        return redirect()->route('group')->with('success', 'Đã xóa nhóm thành công!');
+    }
 }

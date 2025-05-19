@@ -24,7 +24,7 @@
                                     <p class="mb-0">
                                         <i
                                             :class="group.privacy_setting ? 'bx bx-lock-alt pe-2' : 'bx bx-lock-open pe-2'"></i>
-                                        {{ group.privacy_setting ? 'Private' : 'Public' }} Group · {{
+                                        {{ group.privacy_setting ?'Public': 'Private'  }} Group · {{
                                             group.members_count }} thành viên
                                     </p>
 
@@ -32,12 +32,20 @@
                             </div>
                             <div class="d-flex align-items-center">
                                 <div class="group-member d-flex align-items-center mt-md-0 mt-2" v-if="isMember">
-                                    <button @click="leaveGroup" type="button" class="btn btn-primary mb-2">Rời
-                                        nhóm</button>
+                                    <button @click="leaveGroup" type="button" class="btn btn-primary mb-2 me-2">
+                                        Rời nhóm
+                                    </button>
+                                    <button
+                                        v-if="isAdmin"
+                                        @click="deleteGroup"
+                                        type="button"
+                                        class="btn btn-danger mb-2"
+                                    >
+                                        Xóa nhóm
+                                    </button>
                                 </div>
                                 <div class="group-member d-flex align-items-center mt-md-0 mt-2" v-else>
-                                    <button @click="joinGroup" type="button" class="btn btn-primary mb-2">Tham gia
-                                        nhóm</button>
+                                    <button @click="joinGroup" type="button" class="btn btn-primary mb-2">Tham gia nhóm</button>
                                 </div>
                             </div>
                         </div>
@@ -60,7 +68,7 @@
                     </div>
 
                     <!-- Sidebar -->
-                    <div class="col-lg-4">
+                    <div v-if="isMember" class="col-lg-4">
                         <div class="card">
                             <div class="card-header d-flex justify-content-between">
                                 <div class="header-title">
@@ -83,19 +91,33 @@
                                                 class="ri-add-line pe-2"></i>Tìm Kiếm</button>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
-                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3"><i
-                                                class='bx bxs-news'></i></div>
-                                        <h6 class="mb-0">Bài Viết</h6>
+                                        <Link
+                                            :href="`/groups/${group.id}`"
+                                            class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent"
+                                        >
+                                            <div class="avatar-40 rounded-circle bg-gray text-center me-3">
+                                                <i class='bx bxs-news'></i>
+                                            </div>
+                                            <h6 class="mb-0">Bài Viết</h6>
+                                        </Link>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
-                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3"><i
-                                                class='bx bxs-user-detail'></i></div>
+                                        <Link :href="`/groups/${group.id}/members`"
+                                            class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
+                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3">
+                                            <i class='bx bxs-user-detail'></i>
+                                        </div>
                                         <h6 class="mb-0">Thành Viên</h6>
+                                        </Link>
                                     </li>
                                     <li class="mb-3 d-flex align-items-center">
-                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3"><i
-                                                class='bx bxs-edit-alt'></i></div>
+                                        <Link :href="`/groups/${group.id}/my-posts`"
+                                            class="d-flex align-items-center w-100 text-decoration-none text-dark border-0 bg-transparent">
+                                        <div class="avatar-40 rounded-circle bg-gray text-center me-3">
+                                            <i class='bx bxs-edit-alt'></i>
+                                        </div>
                                         <h6 class="mb-0">Bài Viết Của Tôi</h6>
+                                        </Link>
                                     </li>
                                 </ul>
                             </div>
@@ -149,8 +171,7 @@
 
 <script setup>
 import App from '../../Layouts/App.vue';
-import { usePage, router, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { router, Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     group: Object,
@@ -179,6 +200,16 @@ const leaveGroup = () => {
             router.reload();
         }
     });
+};
+
+const deleteGroup = () => {
+    if (confirm('Bạn có chắc muốn xóa nhóm này? Hành động này không thể hoàn tác!')) {
+        router.delete(`/groups/${props.group.id}`, {
+            onSuccess: () => {
+                router.visit('/groups');
+            }
+        });
+    }
 };
 </script>
 

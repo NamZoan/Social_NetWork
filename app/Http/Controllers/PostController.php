@@ -36,7 +36,7 @@ class PostController extends Controller
             // Only add group_id and check group membership if group_id is provided
             if ($request->has('group_id') && $request->group_id) {
                 $group = Group::find($request->group_id);
-                
+
                 if (!$group) {
                     return back()->withErrors(['error' => 'Nhóm không tồn tại.']);
                 }
@@ -48,7 +48,7 @@ class PostController extends Controller
 
                 // Set privacy_setting based on group's post_approval_required
                 $postData['privacy_setting'] = $group->post_approval_required ? 'public' : 'private';
-                
+
                 // Check if group requires post approval
                 if ($group->post_approval_required) {
                     $postData['status'] = 'approved';
@@ -224,7 +224,7 @@ class PostController extends Controller
         }]);
 
         $group->loadCount(['members', 'posts']);
-        
+
         // Check if user is a member with active status
         $isMember = false;
         $isPending = false;
@@ -232,7 +232,7 @@ class PostController extends Controller
             $membership = $group->members()
                 ->where('user_id', Auth::id())
                 ->first();
-            
+
             if ($membership) {
                 $isMember = $membership->pivot->membership_status === 'active';
                 $isPending = $membership->pivot->membership_status === 'pending';
@@ -253,7 +253,7 @@ class PostController extends Controller
         ]);
 
         $post = Post::findOrFail($postId);
-        
+
         // Kiểm tra quyền sở hữu
         if ($post->user_id !== Auth::id()) {
             return response()->json(['message' => 'Không có quyền thay đổi quyền riêng tư của bài viết này'], 403);
@@ -286,7 +286,7 @@ class PostController extends Controller
             // Xử lý ảnh hiện tại
             $currentImages = $request->input('current_images', []);
             $existingMedia = $post->media()->where('media_type', 'image')->get();
-            
+
             // Xóa các ảnh không còn trong danh sách hiện tại
             foreach ($existingMedia as $media) {
                 if (!in_array($media->media_url, $currentImages)) {
@@ -341,10 +341,10 @@ class PostController extends Controller
         try {
             // Lấy tổng số comment của bài viết
             $count = $post->comments()->count();
-            
+
             // Lấy tổng số reply của tất cả comments
             $repliesCount = $post->comments()->withCount('replies')->get()->sum('replies_count');
-            
+
             // Tổng số comment bao gồm cả replies
             $totalCount = $count + $repliesCount;
 

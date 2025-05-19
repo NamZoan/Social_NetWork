@@ -11,14 +11,21 @@
                     <li v-for="message in messages" :key="message.id"
                         :class="['message', message.sender_id === currentUser.id ? 'message-reply' : 'message-receive']">
                         <!-- Hiển thị ảnh đại diện với tooltip -->
-                        <img 
-                            :src="getAvatarUrl(message.sender)" 
-                            :alt="message.sender.name" 
-                            :title="message.sender.name" 
-                        />
+                        <img :src="getAvatarUrl(message.sender)" :alt="message.sender.name"
+                            :title="message.sender.name" />
                         <div class="message-content">
-                            <p>{{ message.content }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button v-if="message.sender_id === currentUser.id"
+                                    class="btn btn-link btn-sm text-danger p-0 ms-2" title="Xóa tin nhắn"
+                                    @click="deleteMessage(message.id)">
+                                    <i class="bx bx-trash"></i>
+                                </button>
+                                <p>{{ message.content }}</p>
+
+                            </div>
                             <small class="time">{{ formatDateTime(message.sent_at) }}</small>
+                            <!-- Nút xóa chỉ hiện với tin nhắn của mình -->
+
                         </div>
                     </li>
                 </template>
@@ -141,6 +148,19 @@ const getAvatarUrl = (sender) => {
         : '/images/web/users/avatar.jpg';
 };
 
+// Hàm xóa tin nhắn
+const deleteMessage = async (messageId) => {
+    if (!confirm('Bạn có chắc muốn xóa tin nhắn này?')) return;
+    try {
+        await axios.delete(`/messages/${messageId}`);
+        // Xóa tin nhắn khỏi danh sách trên giao diện
+        const idx = messages.value.findIndex(m => m.id === messageId);
+        if (idx !== -1) messages.value.splice(idx, 1);
+    } catch (e) {
+        alert('Xóa tin nhắn thất bại!');
+    }
+};
+
 // Lifecycle hooks
 onMounted(() => {
     loadMessages();
@@ -224,5 +244,4 @@ watch(() => props.conversationId, (newId, oldId) => {
     background: #007bff;
     color: white;
 }
-
 </style>

@@ -40,114 +40,9 @@
                             <button class="btn search-button" type="button"><i class='bx bx-search'></i></button>
                         </div>
                     </div>
-                    <ul class="dropdown-menu notify-drop nav-drop shadow-sm" aria-labelledby="searchDropdown">
-                        <div class="notify-drop-title">
-                            <div class="row">
-                                <div class="col-md-6 col-sm-6 col-xs-6 fs-8">Search Results <span
-                                        class="badge badge-pill badge-primary ml-2">29</span></div>
-                            </div>
-                        </div>
-                        <!-- end notify title -->
-                        <!-- notify content -->
-                        <div class="drop-content">
-                            <h6 class="dropdown-header">Peoples</h6>
-                            <li class="dropdown-item">
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-6.png'" alt="Search result">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Susan P. Jarvis</a>
-                                    <a href="#" class="btn btn-quick-link join-group-btn border text-right float-right">
-                                        Add Friend
-                                    </a>
-                                    <p class="time">6 Mutual friends</p>
-                                </div>
-                            </li>
-                            <li class="dropdown-item">
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/users/user-5.png'" alt="Search result">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Ruth D. Greene</a>
-                                    <a href="#" class="btn btn-quick-link join-group-btn border text-right float-right">
-                                        Add Friend
-                                    </a>
-                                </div>
-                            </li>
-                            <h6 class="dropdown-header">Groups</h6>
-                            <li class="dropdown-item">
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/groups/group-2.jpg'" alt="Search result">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Tourism</a>
-                                    <a href="#" class="btn btn-quick-link join-group-btn border text-right float-right">
-                                        Join
-                                    </a>
-                                    <p class="time">2.5k Members 35+ post a week</p>
-                                </div>
-                            </li>
-                            <li class="dropdown-item">
-                                <div class="col-md-2 col-sm-2 col-xs-2">
-                                    <div class="notify-img">
-                                        <img :src="'/images/web/groups/group-1.png'" alt="Search result">
-                                    </div>
-                                </div>
-                                <div class="col-md-10 col-sm-10 col-xs-10">
-                                    <a href="#" class="notification-user">Argon Social Network <img
-                                            :src="'/images/web/theme/verify.png'" width="10px" class="verify"
-                                            alt="Group verified"></a>
-                                    <a href="#" class="btn btn-quick-link join-group-btn border text-right float-right">
-                                        Join
-                                    </a>
-                                    <p class="time">10k Members 20+ post a week</p>
-                                </div>
-                            </li>
-                        </div>
-                        <div class="notify-drop-footer text-center">
-                            <a href="#">See More</a>
-                        </div>
-                    </ul>
+
                 </form>
-                <li class="nav-item s-nav dropdown d-mobile">
-                    <a href="#" class="nav-link nav-icon nav-links drop-w-tooltip" data-toggle="dropdown"
-                        data-placement="bottom" data-title="Create" role="button" aria-haspopup="true"
-                        aria-expanded="false">
-                        <img :src="'/images/web/icons/navbar/create.png'" alt="navbar icon">
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right nav-dropdown-menu">
-                        <a href="#" class="dropdown-item" aria-describedby="createGroup">
-                            <div class="row">
-                                <div class="col-md-2">
-                                    <i class='bx bx-group post-option-icon'></i>
-                                </div>
-                                <div class="col-md-10">
-                                    <span class="fs-9">Group</span>
-                                    <small id="createGroup" class="form-text text-muted">Find people with shared
-                                        interests</small>
-                                </div>
-                            </div>
-                        </a>
-                        <a href="#" class="dropdown-item" aria-describedby="createEvent">
-                            <div class="row">
-                                <div class="col-md-2">
-                                    <i class='bx bx-calendar post-option-icon'></i>
-                                </div>
-                                <div class="col-md-10">
-                                    <span class="fs-9">Event</span>
-                                    <small id="createEvent" class="form-text text-muted">bring people together with a
-                                        public or private event</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </li>
+
                 <MessageDropdown />
                 <li class="nav-item s-nav dropdown notification">
                     <a href="#" class="nav-link nav-links rm-drop-mobile drop-w-tooltip" data-toggle="dropdown"
@@ -288,24 +183,8 @@
                         </div>
                     </ul>
                 </li>
-                <li class="nav-item s-nav dropdown d-mobile">
-                    <a href="#" class="nav-link nav-links nav-icon drop-w-tooltip" data-toggle="dropdown"
-                        data-placement="bottom" data-title="Pages" role="button" aria-haspopup="true"
-                        aria-expanded="false">
-                        <img :src="'/images/web/icons/navbar/flag.png'" alt="navbar icon">
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right nav-drop">
-                        <a class="dropdown-item" href="newsfeed-2.html">Newsfeed 2</a>
-                        <a class="dropdown-item" href="sign-in.html">Sign in</a>
-                        <a class="dropdown-item" href="sign-up.html">Sign up</a>
-                    </div>
-                </li>
-                <li class="nav-item s-nav d-mobile">
-                    <a href="marketplace.html" class="nav-link nav-links nav-icon drop-w-tooltip"
-                        data-placement="bottom" data-title="Marketplace">
-                        <img :src="'/images/web/icons/navbar/market.png'" alt="navbar icon">
-                    </a>
-                </li>
+
+                
                 <li class="nav-item s-nav">
                     <Link :href="`/${user.username}`" class="nav-link nav-links">
                     <div class="menu-user-image">

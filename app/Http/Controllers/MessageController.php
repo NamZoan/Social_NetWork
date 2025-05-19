@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Events\SendMessage;
+
 class MessageController extends Controller
 {
     public function index()
@@ -233,6 +234,140 @@ class MessageController extends Controller
                 'message' => 'Có lỗi xảy ra khi gửi tin nhắn: ' . $th->getMessage()
             ], 500);
         }
+    }
+    public function getConversationMembers($conversationId)
+    {
+        $conversation = Conversation::with('members')->findOrFail($conversationId);
+        // Trả về danh sách thành viên (id, name, avatar)
+        $members = $conversation->members->map(function ($member) {
+            return [
+                'id' => $member->id,
+                'name' => $member->name,
+                'avatar' => $member->avatar,
+            ];
+        });
+        return response()->json($members);
+    }
+    public function addMembersToConversation(Request $request, $conversationId)
+    {
+        $request->validate([
+            'member_ids' => 'required|array|min:1',
+            'member_ids.*' => 'exists:users,id'
+        ]);
 
+        $conversation = Conversation::findOrFail($conversationId);
+
+        // Chỉ cho phép thêm vào nhóm
+        if ($conversation->conversation_type !== 'group') {
+            return response()->json(['success' => false, 'message' => 'Chỉ có thể thêm thành viên vào nhóm!'], 400);
+        }
+
+        $now = now();
+        $attachData = [];
+        foreach ($request->member_ids as $memberId) {
+            $attachData[$memberId] = [
+                'role' => 'member',
+                'joined_at' => $now
+            ];
+        }
+
+        // Thêm các thành viên mới, không ảnh hưởng thành viên cũ
+        $conversation->members()->syncWithoutDetaching($attachData);
+
+        return response()->json(['success' => true, 'message' => 'Đã thêm thành viên vào nhóm!']);
+    }
+    public function leaveConversation($conversationId)
+    {
+        $user = Auth::user();
+        $conversation = Conversation::findOrFail($conversationId);
+
+        // Chỉ cho phép rời nhóm, không phải chat cá nhân
+        if ($conversation->conversation_type !== 'group') {
+            return response()->json(['success' => false, 'message' => 'Chỉ có thể rời nhóm!'], 400);
+        }
+
+        // Không cho phép creator rời nhóm (nếu muốn)
+        if ($conversation->creator_id == $user->id) {
+            return response()->json(['success' => false, 'message' => 'Người tạo nhóm không thể rời nhóm!'], 400);
+        }
+
+        // Xóa user khỏi nhóm
+        $conversation->members()->detach($user->id);
+
+        return back()->withInput();
+    }
+    public function removeMemberFromConversation($conversationId, $userId)
+    {
+        $user = Auth::user();
+        $conversation = Conversation::findOrFail($conversationId);
+
+        // Chỉ creator mới được xóa thành viên
+        if ($conversation->creator_id != $user->id) {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa thành viên!'], 403);
+        }
+
+        // Không cho phép xóa chính mình (creator)
+        if ($user->id == $userId) {
+            return response()->json(['success' => false, 'message' => 'Không thể tự xóa mình!'], 400);
+        }
+
+        $conversation->members()->detach($userId);
+
+        return response()->json(['success' => true, 'message' => 'Đã xóa thành viên khỏi nhóm!']);
+    }
+    public function deleteConversation($conversationId)
+    {
+        $user = Auth::user();
+        $conversation = Conversation::findOrFail($conversationId);
+
+        // Chỉ creator mới được xóa nhóm
+        if ($conversation->conversation_type === 'group' && $conversation->creator_id != $user->id) {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa nhóm này!'], 403);
+        }
+
+        $conversation->delete();
+
+        return response()->json(['success' => true, 'message' => 'Đã xóa nhóm thành công!']);
+    }
+    public function updateConversation(Request $request, $conversationId)
+    {
+        $user = Auth::user();
+        $conversation = Conversation::findOrFail($conversationId);
+
+        if ($conversation->creator_id != $user->id) {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền cập nhật nhóm này!'], 403);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+        ]);
+
+        $conversation->name = $request->name;
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time().'_'.$file->getClientOriginalName();
+            $file->move(public_path('images/client/group/conversation'), $filename);
+            $conversation->image = $filename;
+        }
+
+        $conversation->save();
+
+        return response()->json(['success' => true, 'message' => 'Cập nhật nhóm thành công!', 'image' => $conversation->image]);
+    }
+    public function deleteMessage($messageId)
+    {
+        $user = Auth::user();
+        $message = Message::findOrFail($messageId);
+
+        // Chỉ cho phép xóa tin nhắn của chính mình
+        if ($message->sender_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể xóa tin nhắn của mình!'], 403);
+        }
+
+        $message->delete();
+
+        return response()->json(['success' => true]);
     }
 }
