@@ -8,9 +8,16 @@
             <div class="media-body pb-3 mb-0 small lh-125">
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <span class="post-type text-muted">
-                        <a href="#" class="text-gray-dark post-user-name mr-2">{{ userData.name }}</a>
-                        <span v-if="postData.group_id">đã đăng trong nhóm</span>
-                        <span v-else>đã đăng bài viết</span>
+                        <Link :href="`/${userData.username}`" class="text-gray-dark post-user-name">{{
+                            userData.name }}</Link>
+                        <!-- Hiển thị nhóm nếu có -->
+                        <template v-if="postData.group">
+                            <span class="group-name">
+
+                                <Link :href="`/groups/${postData.group.id}`" class="text-gray-dark post-user-name">
+                                {{ '> ' + postData.group.name }}</Link>
+                            </span>
+                        </template>
                     </span>
                     <div class="dropdown">
                         <a href="#" class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
@@ -342,6 +349,8 @@ import axios from "axios";
 import UpdatePost from './UpdatePost.vue';
 import { Teleport } from 'vue';
 import $ from 'jquery';
+import { Link } from '@inertiajs/vue3';
+
 
 const props = defineProps({
     post: {
@@ -409,7 +418,6 @@ const CheckReaction = async () => {
         const response = await axios.get(`/posts/check-reaction/${postData.value.id}`);
         if (response.data && response.data.reaction) {
             isReaction.value = response.data.reaction;
-            console.log('Current reaction:', isReaction.value);
         } else {
             isReaction.value = null;
         }
@@ -439,7 +447,6 @@ const toggleLike = async (reactionType) => {
             // Nếu server trả về reaction khác, cập nhật lại
             isReaction.value = response.data.reaction;
             totalReaction.value = response.data.likes_count ?? totalReaction.value;
-            console.log('Updated reaction:', isReaction.value);
         }
     } catch (error) {
         console.error("Error liking post:", error);
@@ -460,7 +467,6 @@ const removeReaction = async () => {
         const response = await axios.post(`/posts/remove-reaction/${postData.value.id}`);
         if (response.data && response.data.success) {
             totalReaction.value = response.data.likes_count ?? totalReaction.value;
-            console.log('Removed reaction');
         }
     } catch (error) {
         console.error("Error removing reaction:", error);
@@ -505,10 +511,8 @@ const isLoading = ref(false);
 const updateCommentsCount = async () => {
     try {
         const response = await axios.get(`/posts/${postData.value.id}/comments-count`);
-        console.log('Comments count response:', response.data);
         if (response.data && response.data.count !== undefined) {
             postData.value.comments_count = response.data.count;
-            console.log('Updated comments count:', postData.value.comments_count);
         }
     } catch (error) {
         console.error("Error updating comments count:", error);
@@ -560,7 +564,6 @@ const fetchComments = async () => {
     try {
         isLoading.value = true;
         const response = await axios.get(`/comments/${postData.value.id}?page=${page.value}`);
-        console.log('Comments response:', response.data);
 
         const paginatedData = response.data;
 
@@ -603,7 +606,6 @@ const setReply = (commentId) => {
         }
     }
 
-    console.log("replyTarget", replyTarget.user.name);
 
     if (replyTarget) {
         const mention = `@${replyTarget.user.name}`;
@@ -634,7 +636,6 @@ const deletePost = async (postId) => {
         const response = await axios.post(`/posts/${postId}`);
         if (response.status === 200) {
             emit('deleted', postId);
-            console.log("Post deleted successfully");
         }
     } catch (error) {
         console.error("Error deleting post:", error);
@@ -644,14 +645,12 @@ const deletePost = async (postId) => {
 // 🛠 Cập nhật quyền riêng tư của bài viết
 const updatePrivacy = async (privacy) => {
     try {
-        console.log('Updating privacy to:', privacy);
         const response = await axios.post(`/posts/${postData.value.id}/privacy`, {
             privacy_setting: privacy
         });
 
         // Cập nhật trạng thái quyền riêng tư trong component
         postData.value.privacy_setting = privacy;
-        console.log('Updated privacy setting:', postData.value.privacy_setting);
 
         // Hiển thị thông báo thành công
         // Bạn có thể thêm toast notification ở đây
@@ -663,7 +662,6 @@ const updatePrivacy = async (privacy) => {
 
 // 🛠 Xác định icon quyền riêng tư
 const privacyIcon = computed(() => {
-    console.log('Current privacy setting:', postData.value.privacy_setting);
     switch (postData.value.privacy_setting) {
         case 'public':
             return 'bx bx-globe';
@@ -672,7 +670,6 @@ const privacyIcon = computed(() => {
         case 'private':
             return 'bx bx-lock-alt';
         default:
-            console.log('Using default icon for privacy setting:', postData.value.privacy_setting);
             return 'bx bx-globe';
     }
 });
@@ -845,5 +842,28 @@ onMounted(() => {
 .comment-see-more .btn-link:disabled {
     color: #65676b;
     cursor: not-allowed;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-name {
+    font-weight: bold;
+}
+
+.group-name {
+    color: #007bff;
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 </style>

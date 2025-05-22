@@ -1,46 +1,28 @@
 <template>
     <nav id="navbar-main" class="navbar navbar-expand-lg shadow-sm sticky-top">
         <div class="w-100 justify-content-md-center">
-            <ul class="nav navbar-nav enable-mobile px-2">
-                <li class="nav-item">
-                    <button type="button" class="btn nav-link p-0"><img :src="'/images/web/icons/theme/post-image.png'"
-                            class="f-nav-icon" alt="Quick make post"></button>
-                </li>
-                <li class="nav-item w-100 py-2">
-                    <form class="d-inline form-inline w-100 px-4">
-                        <div class="input-group">
-                            <input type="text" class="form-control search-input"
-                                placeholder="Search for people, companies, events and more..." aria-label="Search"
-                                aria-describedby="search-addon">
-                            <div class="input-group-append">
-                                <button class="btn search-button" type="button"><i class='bx bx-search'></i></button>
-                            </div>
-                        </div>
-                    </form>
-                </li>
-                <li class="nav-item">
-                    <a href="messages.html" class="nav-link nav-icon nav-links message-drop drop-w-tooltip"
-                        data-placement="bottom" data-title="Messages">
-                        <img :src="'/images/web/icons/navbar/message.png'" class="message-dropdown f-nav-icon"
-                            alt="navbar icon">
-                    </a>
-                </li>
-            </ul>
+
             <ul class="navbar-nav mr-5 flex-row" id="main_menu">
                 <Link class="navbar-brand nav-item mr-lg-5" href="/"><img :src="'/images/web/logo-64x64.png'" width="40"
                     height="40" class="mr-3" alt="Logo"></Link>
                 <!-- Collect the nav links, forms, and other content for toggling -->
-                <form class="w-30 mx-2 my-auto d-inline form-inline mr-5 dropdown search-form">
-                    <div class="input-group" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                        id="searchDropdown">
-                        <input type="text" class="form-control search-input w-75"
-                            placeholder="Search for people, companies, events and more..." aria-label="Search"
-                            aria-describedby="search-addon">
+                <form class="w-30 mx-2 my-auto d-inline form-inline mr-5 dropdown search-form" @submit.prevent="submitSearch">
+                    <div class="input-group" id="searchDropdown">
+                        <input
+                            v-model="keyword"
+                            @keydown.enter="submitSearch"
+                            type="text"
+                            class="form-control search-input w-75"
+                            placeholder="Tìm kiếm bài viết, nhóm, bạn bè, ..."
+                            aria-label="Search"
+                            aria-describedby="search-addon"
+                        >
                         <div class="input-group-append">
-                            <button class="btn search-button" type="button"><i class='bx bx-search'></i></button>
+                            <button class="btn search-button" type="button" @click="submitSearch">
+                                <i class='bx bx-search'></i>
+                            </button>
                         </div>
                     </div>
-
                 </form>
 
                 <MessageDropdown />
@@ -184,7 +166,7 @@
                     </ul>
                 </li>
 
-                
+
                 <li class="nav-item s-nav">
                     <Link :href="`/${user.username}`" class="nav-link nav-links">
                     <div class="menu-user-image">
@@ -215,6 +197,8 @@
 
 </template>
 <script setup>
+import { ref, onMounted, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import { usePage } from "@inertiajs/vue3";
 import { computed } from "vue";
@@ -222,4 +206,28 @@ import MessageDropdown from '../components/Messages/MessageDropdown.vue'
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+const keyword = ref('');
+const searchType = ref('people'); // mặc định là tìm mọi người
+
+const submitSearch = () => {
+    if (keyword.value.trim()) {
+        router.get('/search', { q: keyword.value, type: searchType.value });
+    }
+};
+
+// Watch user changes to update window.userId
+watch(user, (newUser) => {
+    if (newUser) {
+        window.userId = newUser.id;
+        console.log('User ID set to:', window.userId);
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    if (user.value) {
+        window.userId = user.value.id;
+        console.log('User ID set on mount:', window.userId);
+    }
+});
 </script>

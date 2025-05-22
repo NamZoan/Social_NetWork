@@ -21,6 +21,14 @@
                         <small class="text-muted">{{ member.email }}</small>
                     </div>
                     <button
+                        v-if="isAdmin && member.pivot.role !== 'admin'"
+                        class="btn btn-outline-primary btn-sm ms-2"
+                        title="Cấp quyền admin"
+                        @click="makeAdmin(member.id)"
+                    >
+                        <i class="bx bx-user-plus"></i> Cấp quyền admin
+                    </button>
+                    <button
                         v-if="isAdmin && member.id !== user_auth.id"
                         class="btn btn-outline-danger btn-sm ms-3"
                         title="Xóa thành viên"
@@ -50,10 +58,20 @@ const props = defineProps({
 const removeMember = async (memberId) => {
     if (!confirm('Bạn có chắc muốn xóa thành viên này?')) return;
     try {
-        await axios.delete(`/groups/${props.group.id}/members/${memberId}`);
+        await axios.post(`/groups/${props.group.id}/members/${memberId}`);
         window.location.reload();
     } catch (e) {
-        alert('Xóa thành viên thất bại!');
+        console.error('Xóa thành viên thất bại:', e);
+    }
+};
+
+const makeAdmin = async (memberId) => {
+    if (!confirm('Bạn có chắc muốn cấp quyền admin cho thành viên này?')) return;
+    try {
+        await axios.post(`/groups/${props.group.id}/members/${memberId}/make-admin`);
+        window.location.reload();
+    } catch (e) {
+        alert('Cấp quyền admin thất bại!');
     }
 };
 </script>

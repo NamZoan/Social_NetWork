@@ -5,37 +5,30 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
-use App\Models\Conversation;
-use App\Models\Message;
 use App\Models\User;
+use App\Models\Message;
+use App\Models\Conversation;
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Events\SendMessage;
+use App\Models\Notification;
+use Carbon\Carbon;
+use App\Repositories\ConversationRepositoryInterface;
 
 class MessageController extends Controller
 {
+    protected $conversationRepo;
+
+    public function __construct(ConversationRepositoryInterface $conversationRepo)
+    {
+        $this->conversationRepo = $conversationRepo;
+    }
+
     public function index()
     {
         $user = Auth::user();
-        $conversations = Conversation::whereHas('members', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-            ->with([
-                'members' => function ($query) use ($user) {
-                    $query->where('user_id', '!=', $user->id);
-                },
-                'messages.sender'
-
-            ])
-            ->with([
-                'messages' => function ($query) {
-                    $query->latest('sent_at')->take(20);
-                }
-            ])
-            ->get();
-
-
-
+        $conversations = $this->conversationRepo->getUserConversations($user->id);
         return Inertia::render('Messages/Messages', [
             'conversations' => $conversations,
             'user' => $user
@@ -45,8 +38,6 @@ class MessageController extends Controller
     public function getFriends()
     {
         $user = Auth::user();
-
-        // Lấy danh sách bạn bè của user
         $friends = User::whereHas('friends', function ($query) use ($user) {
             $query->where('friend_id', $user->id)
                 ->where('status', 'accepted');
@@ -75,32 +66,25 @@ class MessageController extends Controller
         try {
             DB::beginTransaction();
 
-            // Tạo cuộc trò chuyện nhóm mới
-            $conversation = Conversation::create([
+            $conversation = $this->conversationRepo->createConversation([
                 'conversation_type' => 'group',
                 'name' => $request->name,
                 'creator_id' => $user->id
             ]);
 
-            // Thêm tất cả thành viên vào cuộc trò chuyện
             $memberData = [];
-
-            // Thêm người tạo nhóm làm admin
             $memberData[$user->id] = [
                 'role' => 'admin',
                 'joined_at' => now()
             ];
-
-            // Thêm các thành viên khác
             foreach ($members as $memberId) {
-                if ($memberId != $user->id) { // Không thêm lại người tạo nhóm
+                if ($memberId != $user->id) {
                     $memberData[$memberId] = [
                         'role' => 'member',
                         'joined_at' => now()
                     ];
                 }
             }
-
             $conversation->members()->attach($memberData);
 
             DB::commit();
@@ -125,16 +109,13 @@ class MessageController extends Controller
     public function getMessages($conversationId)
     {
         $user = Auth::user();
+        $conversation = $this->conversationRepo->getConversationById($conversationId);
 
-        // Kiểm tra user có trong cuộc trò chuyện không
-        $conversation = Conversation::whereHas('members', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })->findOrFail($conversationId);
+        if (!$conversation || !$this->conversationRepo->isMember($conversationId, $user->id)) {
+            abort(403, 'Unauthorized');
+        }
 
-        $messages = Message::where('conversation_id', $conversationId)
-            ->with('sender')
-            ->orderBy('sent_at', 'asc')
-            ->get();
+        $messages = $this->conversationRepo->getMessages($conversationId);
 
         return response()->json($messages);
     }
@@ -143,7 +124,6 @@ class MessageController extends Controller
     {
         $sender = Auth::user();
         try {
-            // Nếu có conversation_id, đây là tin nhắn trong cuộc trò chuyện hiện có
             if ($request->has('conversation_id')) {
                 $request->validate([
                     'conversation_id' => 'required|exists:conversations,id',
@@ -151,24 +131,60 @@ class MessageController extends Controller
                     'message_type' => 'required|string'
                 ]);
 
-                $conversation = Conversation::findOrFail($request->conversation_id);
-
-                // Kiểm tra người dùng có trong cuộc trò chuyện không
-                if (!$conversation->members()->where('user_id', $sender->id)->exists()) {
+                $conversationId = $request->conversation_id;
+                if (!$this->conversationRepo->isMember($conversationId, $sender->id)) {
                     return response()->json(['error' => 'Unauthorized'], 403);
                 }
 
-                $message = $conversation->messages()->create([
+                $message = $this->conversationRepo->addMessage($conversationId, [
                     'sender_id' => $sender->id,
                     'content' => $request->content,
-                    'message_type' => "text",
+                    'message_type' => $request->message_type ?? "text",
                     'sent_at' => now(),
                 ]);
-
                 $message->load('sender');
 
-                // Broadcast tin nhắn mới cho tất cả mọi người trong conversation
-                broadcast(new \App\Events\SendMessage($message, $sender));
+                $conversation = $this->conversationRepo->getConversationById($conversationId);
+                $receivers = $conversation->members()->where('users.id', '!=', $sender->id)->get();
+
+                // Tạo thông báo cho người nhận đầu tiên
+                $notification = Notification::create([
+                    'user_id' => $receivers->first()->id,
+                    'type' => 'message',
+                    'reference_id' => $message->id,
+                    'reference_type' => 'message',
+                    'sender_id' => $sender->id,
+                    'message' => $request->content,
+                    'created_at' => Carbon::now(),
+                    'is_read' => false,
+                    'action_url' => '/messages/' . $conversationId,
+                    'data' => json_encode([
+                        'message' =>$request->content,
+                        'action_url' => '/messages/' . $conversationId
+                    ])
+                ]);
+
+                // Broadcast sự kiện với thông báo
+                broadcast(new SendMessage($message, $sender, $notification, $conversation))->toOthers();
+
+                // Tạo thông báo cho các người nhận còn lại
+                foreach ($receivers->skip(1) as $receiver) {
+                    Notification::create([
+                        'user_id' => $receiver->id,
+                        'type' => 'message',
+                        'reference_id' => $message->id,
+                        'reference_type' => 'message',
+                        'sender_id' => $sender->id,
+                        'message' => $request->content,
+                        'created_at' => Carbon::now(),
+                        'is_read' => false,
+                        'action_url' => '/messages/' . $conversationId,
+                        'data' => json_encode([
+                            'message' => $request->content,
+                            'action_url' => '/messages/' . $conversationId
+                        ])
+                    ]);
+                }
 
                 return response()->json([
                     'success' => true,
@@ -185,39 +201,37 @@ class MessageController extends Controller
 
             $recipientId = $request->input('recipient_id');
             $content = $request->input('content');
-            $messageType = $request->input('message_type');
+            $messageType = $request->input('message_type') ?? "text";
 
-            // 1. Tìm cuộc trò chuyện giữa 2 người
-            $conversation = Conversation::where('conversation_type', 'individual')
-                ->whereHas('members', fn($q) => $q->where('user_id', $sender->id))
-                ->whereHas('members', fn($q) => $q->where('user_id', $recipientId))
-                ->first();
+            // Tìm hoặc tạo cuộc trò chuyện cá nhân
+            $conversation = $this->conversationRepo->findOrCreateIndividualConversation($sender->id, $recipientId);
 
-            // 2. Nếu chưa có, tạo mới
-            if (!$conversation) {
-                $conversation = Conversation::create([
-                    'conversation_type' => 'individual',
-                    'creator_id' => $sender->id,
-                ]);
-
-                // Thêm thành viên vào cuộc trò chuyện
-                $conversation->members()->attach([
-                    $sender->id => ['role' => 'member', 'joined_at' => now()],
-                    $recipientId => ['role' => 'member', 'joined_at' => now()]
-                ]);
-            }
-
-            // 3. Tạo tin nhắn
-            $message = $conversation->messages()->create([
+            $message = $this->conversationRepo->addMessage($conversation->id, [
                 'sender_id' => $sender->id,
                 'content' => $content,
-                'message_type' => "text",
+                'message_type' => $messageType,
                 'sent_at' => now(),
             ]);
-
-
-            broadcast(new \App\Events\SendMessage($message, $sender))->toOthers();
             $message->load('sender');
+
+            // Tạo thông báo cho người nhận
+            $notification = Notification::create([
+                'user_id' => $recipientId,
+                'type' => 'message',
+                'reference_id' => $message->id,
+                'reference_type' => 'message',
+                'sender_id' => $sender->id,
+                'message' => 'Bạn có tin nhắn mới từ ' . $request->content,
+                'created_at' => Carbon::now(),
+                'is_read' => false,
+                'action_url' => '/messages/' . $conversation->id,
+                'data' => json_encode([
+                    'message' => 'Bạn có tin nhắn mới từ ' . $sender->name,
+                    'action_url' => '/messages/' . $conversation->id
+                ])
+            ]);
+
+            broadcast(new SendMessage($message, $sender, $notification, $conversation))->toOthers();
 
             return response()->json([
                 'success' => true,
@@ -235,6 +249,7 @@ class MessageController extends Controller
             ], 500);
         }
     }
+
     public function getConversationMembers($conversationId)
     {
         $conversation = Conversation::with('members')->findOrFail($conversationId);
@@ -318,16 +333,9 @@ class MessageController extends Controller
     public function deleteConversation($conversationId)
     {
         $user = Auth::user();
-        $conversation = Conversation::findOrFail($conversationId);
+        $this->conversationRepo->deleteConversation($conversationId, $user->id);
 
-        // Chỉ creator mới được xóa nhóm
-        if ($conversation->conversation_type === 'group' && $conversation->creator_id != $user->id) {
-            return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa nhóm này!'], 403);
-        }
-
-        $conversation->delete();
-
-        return response()->json(['success' => true, 'message' => 'Đã xóa nhóm thành công!']);
+        return response()->json(['success' => true, 'message' => 'Đã xóa hội thoại khỏi danh sách của bạn!']);
     }
     public function updateConversation(Request $request, $conversationId)
     {
@@ -347,7 +355,7 @@ class MessageController extends Controller
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $filename = time().'_'.$file->getClientOriginalName();
+            $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('images/client/group/conversation'), $filename);
             $conversation->image = $filename;
         }

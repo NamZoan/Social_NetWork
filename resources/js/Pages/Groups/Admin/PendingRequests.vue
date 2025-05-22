@@ -1,5 +1,5 @@
 <template>
-    <GroupDetail :group="group" :user_auth="user_auth" :is-member="isMember">
+    <GroupDetail :group="group" :user_auth="user_auth" :is-member="isMember" :isAdmin="isAdmin">
         <div v-if="isMember" class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="card-title mb-0">
@@ -74,7 +74,12 @@ const props = defineProps({
     pendingRequests: {
         type: Array,
         required: true
+    },
+    isAdmin: {
+        type: Boolean,
+        required: true
     }
+
 });
 
 const loading = ref(false);

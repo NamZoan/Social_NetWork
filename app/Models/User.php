@@ -13,7 +13,7 @@ use GetStream\StreamLaravel\Facades\FeedManager;
 use GetStream\StreamLaravel\Eloquent\ActivityTrait;
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, ActivityTrait;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
@@ -75,7 +75,18 @@ class User extends Authenticatable
     public function groups()
     {
         return $this->belongsToMany(Group::class, 'group_members', 'user_id', 'group_id')
-            ->withPivot('role', 'joined_at', 'membership_status');
+            ->withPivot('role', 'joined_at', 'membership_status', 'active');
+    }
+
+    public function friendIds()
+    {
+        $ids1 = Friendship::where('user_id_1', $this->id)
+            ->where('status', 'accepted')
+            ->pluck('user_id_2')->toArray();
+        $ids2 = Friendship::where('user_id_2', $this->id)
+            ->where('status', 'accepted')
+            ->pluck('user_id_1')->toArray();
+        return array_unique(array_merge($ids1, $ids2));
     }
 
     public function groupMembers()

@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FriendshipController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
-
-
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\NotificationController;
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
 Route::get('/dang-ky', [UserController::class, 'register'])->name('register');
@@ -20,12 +20,22 @@ Route::post('/dang-ky', [UserController::class, 'store']);
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [PageController::class, 'index'])->name('home');
+    Route::get('/posts/load-more', [PageController::class, 'loadMore'])->name('posts.load-more');
     Route::get('/cai-dat', [SettingController::class, 'account'])->name('account');
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
     Route::get('/groups', [GroupController::class, 'index'])->name('group');
     Route::get('/friend-requests', [FriendshipController::class, 'index']);
 
+    //search
+    Route::get('/search', [SearchController::class, 'index'])->name('search');
+    //notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    //update user
+    Route::post('/user/update', [UserController::class, 'update'])->name('user.update');
+    Route::post('/user/update-password', [UserController::class, 'updatePassword'])->name('user.update-password');
+    Route::get('doi-mat-khau', [SettingController::class, 'changePassword'])->name('user.change-password');
+    Route::post('/user/update-avatar', [UserController::class, 'updateAvatar'])->name('user.update-avatar');
 
     Route::prefix('{username}')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('profile');
@@ -34,6 +44,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/media', [ProfileController::class, 'media'])->name('profile.media');
         Route::get('/load-more-posts', [ProfileController::class, 'loadMore'])->name('profile.load-more-posts');
     });
+
+
     //post
     Route::post('/posts', [PostController::class, 'store']);
     Route::post('/posts/{id}', [PostController::class, 'destroy']);
@@ -81,10 +93,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/groups/{group}/members/{member}/reject', [GroupController::class, 'rejectMember'])->name('groups.members.reject');
     Route::get('/groups/{group}/members', [GroupController::class, 'members'])->name('groups.members');
     // Xóa thành viên khỏi nhóm
-    Route::delete('/groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
+    Route::post('/groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
     // Group join request routes
     Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
-
+    Route::post('/groups/{group}/members/{user}/make-admin', [GroupController::class, 'makeAdmin'])->name('groups.members.makeAdmin');
     // Group pending posts routes
     Route::get('/groups/{group}/pending-posts', [GroupController::class, 'showPendingPosts'])->name('groups.pending-posts');
     Route::post('/groups/{group}/posts/{post}/approve', [GroupController::class, 'approvePost'])->name('groups.posts.approve');
@@ -104,4 +116,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/conversations/{conversation}/delete', [MessageController::class, 'deleteConversation'])->name('conversations.delete');
     Route::post('/conversations/{conversation}/update', [MessageController::class, 'updateConversation']);
     Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage']);
+    //search
+
 });
+
+
+
+

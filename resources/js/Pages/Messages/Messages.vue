@@ -6,8 +6,8 @@
                     <div class="message-sidepanel">
                         <div class="message-profile">
                             <div class="wrap">
-                                <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'"
-                                    loading="lazy" class="online conv-img" alt="Conversation user" />
+                                <img
+                                    :src="user.avatar && user.avatar !== 'undefined' ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'" />
                                 <p>{{ user.name }}</p>
                             </div>
                         </div>
@@ -71,7 +71,7 @@ const handleMessageSent = (message) => {
             if (!props.conversations[conversationIndex].messages) {
                 props.conversations[conversationIndex].messages = [];
             }
-            // Kiểm tra tin nhắn đã tồn tại chưa
+            // Check if message already exists
             const messageExists = props.conversations[conversationIndex].messages.some(m => m.id === message.id);
             if (!messageExists) {
                 props.conversations[conversationIndex].messages.unshift(message);
@@ -79,34 +79,42 @@ const handleMessageSent = (message) => {
             }
         }
 
-        // Forward the message to the conversation component
-        nextTick(() => {
-            if (conversationRef.value?.handleMessageSent) {
+        // Forward the message to the conversation component with improved retry mechanism
+        const forwardMessage = () => {
+            if (conversationRef.value?.handleNewMessage) {
                 console.log('Forwarding message to conversation component');
-                conversationRef.value.handleMessageSent(message);
-            } else {
-                console.log('Conversation ref not ready, retrying...');
-                // Retry up to 3 times with increasing delays
-                let retryCount = 0;
-                const maxRetries = 3;
-                const retry = () => {
-                    if (retryCount < maxRetries) {
-                        setTimeout(() => {
-                            if (conversationRef.value?.handleMessageSent) {
-                                console.log('Retry successful, forwarding message');
-                                conversationRef.value.handleMessageSent(message);
+                conversationRef.value.handleNewMessage(message);
+                return true;
+            }
+            return false;
+        };
+
+        // Try immediately first
+        if (!forwardMessage()) {
+            console.log('Conversation ref not ready, retrying...');
+            let retryCount = 0;
+            const maxRetries = 5;
+            const retryInterval = 200;
+
+            const retry = () => {
+                if (retryCount < maxRetries) {
+                    setTimeout(() => {
+                        nextTick(() => {
+                            if (forwardMessage()) {
+                                console.log('Retry successful, message forwarded');
                             } else {
                                 retryCount++;
                                 retry();
                             }
-                        }, 100 * (retryCount + 1));
-                    } else {
-                        console.error('Failed to forward message after multiple retries');
-                    }
-                };
-                retry();
-            }
-        });
+                        });
+                    }, retryInterval * (retryCount + 1));
+                } else {
+                    console.error('Failed to forward message after maximum retries');
+                }
+            };
+            retry();
+        }
+
     } else {
         console.log('Message not for current conversation');
     }
@@ -132,6 +140,7 @@ const selectConversation = (conversation) => {
         if (conversationRef.value?.loadMessages) {
             conversationRef.value.loadMessages();
         }
+        console.log('conversationRef after nextTick:', conversationRef.value);
     });
 };
 

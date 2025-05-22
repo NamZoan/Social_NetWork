@@ -126,7 +126,7 @@ import { ref, computed,watch } from 'vue';
 import axios from 'axios';
 import AddMember from '../Right/AddMember.vue'; // Đường dẫn đúng tới AddMember.vue
 import { usePage } from "@inertiajs/vue3";
-
+import { Inertia } from '@inertiajs/inertia';
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const props = defineProps({
@@ -146,7 +146,8 @@ const showMembers = ref(false);
 const showEditGroup = ref(false);
 
 const editGroupName = ref('');
-const previewImage = ref(null);
+const previewImage = ref(null); // Dùng cho preview
+const previewImageFile = ref(null); // Dùng để gửi lên server
 
 const getOtherUserAvatar = computed(() => {
     if (!props.conversation) return '/images/web/users/avatar.jpg';
@@ -198,6 +199,7 @@ const leaveGroup = async () => {
     try {
         await axios.post(`/conversations/${props.conversation.id}/leave`);
         emit('left-group', props.conversation.id);
+        Inertia.reload();
     } catch (e) {
         alert('Rời nhóm thất bại!');
     }
@@ -222,7 +224,7 @@ const deleteGroup = async () => {
     try {
         await axios.post(`/conversations/${props.conversation.id}/delete`);
         emit('conversation-deleted', props.conversation.id); // Xóa khỏi giao diện
-        // window.location.reload(); // Nếu muốn reload toàn trang thì bỏ comment dòng này
+        Inertia.reload();
     } catch (e) {
         alert('Xóa nhóm thất bại!');
     }
@@ -248,26 +250,30 @@ const updateGroup = async () => {
     try {
         const formData = new FormData();
         formData.append('name', editGroupName.value);
-        if (previewImage.value) {
-            formData.append('image', previewImage.value);
+        if (previewImageFile.value) {
+            formData.append('image', previewImageFile.value);
         }
-        await axios.post(`/conversations/${props.conversation.id}/update`, formData);
+        await axios.post(`/conversations/${props.conversation.id}/update`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         emit('conversation-updated', { id: props.conversation.id, name: editGroupName.value });
         showEditGroup.value = false;
-        // Cập nhật lại tên nhóm trên giao diện
         props.conversation.name = editGroupName.value;
     } catch (e) {
         alert('Cập nhật nhóm thất bại!');
     }
 };
 
-// Xử lý thay đổi ảnh nhóm
+// Khi chọn file:
 const onImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-        previewImage.value = URL.createObjectURL(file);
+        previewImage.value = URL.createObjectURL(file); // Hiển thị preview
+        // Lưu file thực tế để gửi lên server
+        previewImageFile.value = file;
     } else {
         previewImage.value = null;
+        previewImageFile.value = null;
     }
 };
 

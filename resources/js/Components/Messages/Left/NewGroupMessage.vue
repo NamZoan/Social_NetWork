@@ -52,7 +52,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
-
+import { Inertia } from '@inertiajs/inertia';
 const groupName = ref('');
 const searchQuery = ref('');
 const showResults = ref(false);
@@ -117,6 +117,7 @@ const createGroup = async () => {
 
             // Emit event to parent
             emit('group-created', response.data.conversation);
+            Inertia.reload();
         } else {
             alert(response.data.message || 'Có lỗi xảy ra khi tạo nhóm');
         }

@@ -81,6 +81,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import axios from 'axios';
+import { Inertia } from '@inertiajs/inertia';
 
 const searchQuery = ref('');
 const friends = ref([]);
@@ -166,7 +167,7 @@ const sendMessage = async () => {
             recipient_id: selectedFriend.value.id,
             content: messageText.value,
         });
-
+        
         // Emit event to parent to update conversation list
         window.dispatchEvent(new CustomEvent('new-conversation', {
             detail: response.data.conversation
@@ -177,6 +178,7 @@ const sendMessage = async () => {
         messageText.value = '';
         searchQuery.value = '';
         selectedFriend.value = null;
+        Inertia.reload();
     } catch (error) {
         console.error('Error sending message:', error);
         alert('Lỗi khi gửi tin nhắn. Vui lòng thử lại.');

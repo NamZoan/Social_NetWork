@@ -21,6 +21,7 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue';
+import { usePage } from "@inertiajs/vue3";
 
 const props = defineProps({
     conversations: {
@@ -34,6 +35,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['select-conversation']);
+const page = usePage();
+const currentUserId = page.props.user?.id || page.props.auth?.user?.id;
 
 const selectConversation = (conversation) => {
     emit('select-conversation', conversation);
@@ -49,27 +52,24 @@ const getStatusClass = (conversation) => {
 
 const getConversationAvatar = (conversation) => {
     if (conversation.conversation_type === 'group') {
-        // Nếu là nhóm, hiển thị ảnh đại diện của nhóm
-        console.log('Group cover photo URL:', conversation.image);
         return conversation.image
             ? `/images/client/group/conversation/${conversation.image}`
-            : '/images/web/groups/group.webp'; // Ảnh mặc định cho nhóm
+            : '/images/web/groups/group.webp';
     } else {
-        // Nếu là chat riêng, lấy avatar của người còn lại
-        const otherUser = conversation.members[0];
+        // Lấy đúng user còn lại
+        const otherUser = conversation.members.find(m => m.id !== currentUserId);
         return otherUser?.avatar
             ? `/images/client/avatar/${otherUser.avatar}`
-            : '/images/web/users/avatar.jpg'; // Ảnh mặc định cho người dùng
+            : '/images/web/users/avatar.jpg';
     }
 };
 
 const getConversationName = (conversation) => {
     if (conversation.conversation_type === 'group') {
-        // Nếu là nhóm, hiển thị tên nhóm
         return conversation.name;
     } else {
-        // Nếu là chat riêng, hiển thị tên người dùng
-        return conversation.members[0]?.name || 'Unknown User';
+        const otherUser = conversation.members.find(m => m.id !== currentUserId);
+        return otherUser?.name || 'Unknown User';
     }
 };
 
@@ -77,14 +77,19 @@ const getLastMessage = (conversation) => {
     if (!conversation.messages || conversation.messages.length === 0) {
         return 'Chưa có tin nhắn nào';
     }
+
+    // Lấy tin nhắn cuối cùng
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
     
-    const lastMessage = conversation.messages[0];
-    const sender = lastMessage.sender?.name || 'Someone';
+    // Tìm người gửi trong danh sách thành viên
+    const sender = conversation.members.find(m => m.id === lastMessage.sender_id);
     
+    // Nếu là nhóm, hiển thị tên người gửi + nội dung
     if (conversation.conversation_type === 'group') {
-        return `${sender}: ${lastMessage.content}`;
+        return `${sender?.name || 'Ai đó'}: ${lastMessage.content}`;
     }
-    
+
+    // Nếu là chat cá nhân, chỉ hiển thị nội dung
     return lastMessage.content;
 };
 </script>

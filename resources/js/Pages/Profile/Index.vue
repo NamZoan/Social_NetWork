@@ -24,11 +24,15 @@
                                             " alt="Avatar" class="avatar img-circle" />
 
                                         <div v-if="isOwner" class="profile-img-caption">
-                                            <label for="updateProfilePic" class="upload">
+                                            <label for="updateProfilePicInput" class="upload">
                                                 <i class="bx bxs-camera"></i>
                                                 Update
                                                 <input type="file" id="updateProfilePicInput"
-                                                    class="text-center upload" />
+                                                    class="text-center upload"
+                                                    @change="onAvatarChange"
+                                                    accept="image/*"
+                                                    style="display: none;"
+                                                />
                                             </label>
                                         </div>
                                     </div>
@@ -219,6 +223,7 @@ import App from "../../Layouts/App.vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { defineProps, computed, ref, onMounted } from "vue";
 import axios from "axios";
+import { useForm } from "@inertiajs/vue3";
 const props = defineProps({
     user: Object,
     activeTab: String,
@@ -275,6 +280,24 @@ const unfriend = async () => {
     } catch (error) {
         console.error("Lỗi khi hủy kết bạn:", error);
     }
+};
+
+// Avatar
+const avatarForm = useForm({
+    avatar: null,
+});
+
+const onAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    avatarForm.avatar = file;
+    avatarForm.post('/user/update-avatar', {
+        preserveScroll: true,
+        onSuccess: () => {
+            // Reload lại trang hoặc fetch lại user nếu cần
+            window.location.reload();
+        }
+    });
 };
 
 onMounted(() => {

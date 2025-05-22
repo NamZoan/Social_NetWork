@@ -3,8 +3,23 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+
 use App\Repositories\ConversationRepositoryInterface;
 use App\Repositories\ConversationRepository;
+use App\Repositories\FriendshipRepositoryInterface;
+use App\Repositories\FriendshipRepository;
+
+use App\Repositories\GroupRepositoryInterface;
+use App\Repositories\GroupRepository;
+
+use App\Repositories\GroupMemberRepositoryInterface;
+use App\Repositories\GroupMemberRepository;
+
+use App\Repositories\ProfileRepositoryInterface;
+use App\Repositories\ProfileRepository;
+
+use App\Repositories\PostRepositoryInterface;
+use App\Repositories\PostRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ConversationRepositoryInterface::class, ConversationRepository::class);
+        $this->app->bind(FriendshipRepositoryInterface::class, FriendshipRepository::class);
+        $this->app->bind(ProfileRepositoryInterface::class, ProfileRepository::class);
+        $this->app->bind(PostRepositoryInterface::class, PostRepository::class);
+        $this->app->bind(GroupRepositoryInterface::class, GroupRepository::class);
     }
 
     /**

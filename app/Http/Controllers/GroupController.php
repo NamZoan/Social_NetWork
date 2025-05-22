@@ -5,34 +5,31 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Requests;
-use App\Http\Controllers\Controller;
+use App\Repositories\GroupRepositoryInterface;
 use App\Models\Group;
 use App\Models\GroupMember;
-use Illuminate\Support\Facades\Storage;
 
 class GroupController extends Controller
 {
+    protected $groupRepo;
+
+    public function __construct(GroupRepositoryInterface $groupRepo)
+    {
+        $this->groupRepo = $groupRepo;
+    }
+
     public function index()
     {
         $user = Auth::user();
+        $createdGroups = $this->groupRepo->getCreatedGroups($user->id);
+        $joinedGroups = $this->groupRepo->getJoinedGroups($user->id);
 
-        $createdGroups = Group::where('creator_id', $user->id)
-            ->withCount('members')
-            ->get();
-
-        $joinedGroups = Group::whereHas('members', function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->where('membership_status', 'active');
-        })
-            ->where('creator_id', '!=', $user->id)
-            ->withCount('members')
-            ->get();
         return Inertia::render('Groups/Groups', [
             'createdGroups' => $createdGroups,
             'joinedGroups' => $joinedGroups
         ]);
     }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -43,33 +40,12 @@ class GroupController extends Controller
             'cover_photo_url' => 'nullable|image|max:2048',
         ]);
 
-        if ($request->hasFile('cover_photo_url')) {
-            $file = $request->file('cover_photo_url');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-            $destinationPath = public_path('images/client/group/thumbnail');
-
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $file->move($destinationPath, $filename);
-        }
-
-        $group = Group::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'privacy_setting' => $request->privacy_setting,
-            'post_approval_required' => $request->post_approval_required,
-            'cover_photo_url' => $filename ?? null,
-            'creator_id' => Auth::id(),
-        ]);
+        $group = $this->groupRepo->createGroup($request->only([
+            'name', 'description', 'privacy_setting', 'post_approval_required'
+        ]), $request->file('cover_photo_url'));
 
         // Add creator as admin member
-        $group->members()->attach(Auth::id(), [
-            'role' => 'admin',
-            'joined_at' => now(),
-            'membership_status' => 'active'
-        ]);
+        $this->groupRepo->addMember($group, Auth::id(), 'admin', 'active');
 
         return back()->with('success', 'Tạo nhóm thành công!');
     }
@@ -85,23 +61,9 @@ class GroupController extends Controller
         $group->posts = $posts;
         $group->loadCount(['members', 'posts']);
 
-        // Check if user is a member with active status
-        $isMember = false;
-        $isPending = false;
-        if (Auth::check()) {
-            $membership = $group->members()
-                ->where('user_id', Auth::id())
-                ->first();
-
-            if ($membership) {
-                $isMember = $membership->pivot->membership_status === 'active';
-                $isPending = $membership->pivot->membership_status === 'pending';
-            }
-        }
-
-        $isAdmin = $group->isAdmin(auth()->id());
-
-
+        $isMember = $this->groupRepo->isMember($group, Auth::id());
+        $isPending = $this->groupRepo->isPending($group, Auth::id());
+        $isAdmin = $group->isAdmin(Auth::id());
 
         return Inertia::render('Groups/ListPost', [
             'group' => $group,
@@ -113,54 +75,35 @@ class GroupController extends Controller
 
     public function join($groupId)
     {
-        $group = Group::findOrFail($groupId);
+        $group = $this->groupRepo->find($groupId);
         $user = Auth::user();
 
-        // Check if user is already a member
-        if ($group->members()->where('user_id', $user->id)->exists()) {
+        if ($this->groupRepo->isMember($group, $user->id)) {
             return back()->with('error', 'Bạn đã là thành viên của nhóm này.');
         }
-
-        // Check if there's already a pending request
-        if ($group->members()->where('user_id', $user->id)->where('membership_status', 'pending')->exists()) {
+        if ($this->groupRepo->isPending($group, $user->id)) {
             return back()->with('error', 'Bạn đã gửi yêu cầu tham gia nhóm. Vui lòng đợi phê duyệt.');
         }
 
-        // Handle based on privacy setting
         if ($group->privacy_setting == 0) { // Private group - need admin approval
-            // Create pending membership
-            $group->members()->attach($user->id, [
-                'role' => 'member',
-                'joined_at' => now(),
-                'membership_status' => 'pending'
-            ]);
-
+            $this->groupRepo->addMember($group, $user->id, 'member', 'pending');
             return back()->with('success', 'Yêu cầu tham gia nhóm đã được gửi. Vui lòng đợi phê duyệt.');
         } else { // Public group - join directly
-            // Directly add as member
-            $group->members()->attach($user->id, [
-                'role' => 'member',
-                'joined_at' => now(),
-                'membership_status' => 'active'
-            ]);
-
+            $this->groupRepo->addMember($group, $user->id, 'member', 'active');
             return back()->with('success', 'Bạn đã tham gia nhóm thành công!');
         }
     }
 
-
     public function leave($groupId)
     {
-        $group = Group::findOrFail($groupId);
+        $group = $this->groupRepo->find($groupId);
         $user = Auth::user();
 
-        // Check if user is a member
-        if (!$group->members()->where('user_id', $user->id)->exists()) {
+        if (!$this->groupRepo->isMember($group, $user->id)) {
             return back()->with('error', 'Bạn không phải là thành viên của nhóm này.');
         }
 
-        // Remove user from group
-        $group->members()->detach($user->id);
+        $this->groupRepo->removeMember($group, $user->id);
 
         return back()->with('success', 'Bạn đã rời nhóm thành công!');
     }
@@ -191,27 +134,11 @@ class GroupController extends Controller
         ]);
     }
 
-    /**
-     * Show pending membership requests for a group
-     */
     public function showPendingRequests(Group $group)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $isMember = false;
-        $isPending = false;
-        if (Auth::check()) {
-            $membership = $group->members()
-                ->where('user_id', Auth::id())
-                ->first();
-
-            if ($membership) {
-                $isMember = $membership->pivot->membership_status === 'active';
-                $isPending = $membership->pivot->membership_status === 'pending';
-            }
-        }
+        $isMember = $this->groupRepo->isMember($group, Auth::id());
+        $isPending = $this->groupRepo->isPending($group, Auth::id());
+        $isAdmin = $group->isAdmin(Auth::id());
 
         $pendingRequests = GroupMember::with('user:id,name,avatar,username')
             ->where('group_id', $group->id)
@@ -226,59 +153,31 @@ class GroupController extends Controller
             'user_auth' => Auth::user(),
             'isMember' => $isMember,
             'isPending' => $isPending,
-            'pendingRequests' => $pendingRequests
+            'pendingRequests' => $pendingRequests,
+            'isAdmin' => $isAdmin,
         ]);
     }
 
-    /**
-     * Approve a pending membership request
-     */
     public function approveMember(Group $group, $userId)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403);
-        }
-
         $group->members()->updateExistingPivot($userId, [
             'membership_status' => 'active',
             'role' => 'member'
         ]);
-
         return redirect()->back();
     }
 
-    /**
-     * Reject a pending membership request
-     */
     public function rejectMember(Group $group, $userId)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403);
-        }
-
         $group->members()->detach($userId);
-
         return redirect()->back();
     }
 
     public function showPendingPosts(Group $group)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $isMember = false;
-        $isPending = false;
-        if (Auth::check()) {
-            $membership = $group->members()
-                ->where('user_id', Auth::id())
-                ->first();
-
-            if ($membership) {
-                $isMember = $membership->pivot->membership_status === 'active';
-                $isPending = $membership->pivot->membership_status === 'pending';
-            }
-        }
+        $isMember = $this->groupRepo->isMember($group, Auth::id());
+        $isPending = $this->groupRepo->isPending($group, Auth::id());
+        $isAdmin = $group->isAdmin(Auth::id());
 
         $pendingPosts = $group->posts()
             ->with(['user', 'media', 'likes', 'comments'])
@@ -286,71 +185,49 @@ class GroupController extends Controller
             ->latest()
             ->get();
 
+
         $group->loadCount(['members', 'posts']);
+
+        
 
         return Inertia::render('Groups/Admin/PendingPosts', [
             'group' => $group,
             'user_auth' => Auth::user(),
             'isMember' => $isMember,
             'isPending' => $isPending,
-            'pendingPosts' => $pendingPosts
+            'pendingPosts' => $pendingPosts,
+            'isAdmin' => $isAdmin,
         ]);
     }
 
     public function approvePost(Group $group, $postId)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403);
-        }
-
         $post = $group->posts()->findOrFail($postId);
-
         $post->update([
             'privacy_setting' => 'public',
             'approved_at' => now(),
             'approved_by' => Auth::id()
         ]);
-
         return redirect()->back()->with('success', 'Bài viết đã được duyệt thành công!');
     }
 
     public function rejectPost(Group $group, $postId)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403);
-        }
-
         $post = $group->posts()->findOrFail($postId);
-
         $post->update([
             'privacy_setting' => 'rejected',
             'updated_at' => now(),
         ]);
-
         return redirect()->back()->with('success', 'Bài viết đã bị từ chối!');
     }
 
     public function edit(Group $group)
     {
-        // Chỉ creator mới được sửa
-        if ($group->creator_id !== Auth::id()) {
-            abort(403, 'Bạn không có quyền sửa nhóm này!');
-        }
-        $isMember = false;
-        $isPending = false;
-        if (Auth::check()) {
-            $membership = $group->members()
-                ->where('user_id', Auth::id())
-                ->first();
+        $isMember = $this->groupRepo->isMember($group, Auth::id());
+        $isPending = $this->groupRepo->isPending($group, Auth::id());
+        $isAdmin = $group->isAdmin(Auth::id());
 
-            if ($membership) {
-                $isMember = $membership->pivot->membership_status === 'active';
-                $isPending = $membership->pivot->membership_status === 'pending';
-            }
-        }
-
-        $isAdmin = $group->isAdmin(auth()->id());
-        return Inertia::render('Groups/GroupUpdate', [
+        return Inertia::render('Groups/Admin/GroupUpdate', [
             'group' => $group,
             'isMember' => $isMember,
             'isPending' => $isPending,
@@ -360,10 +237,6 @@ class GroupController extends Controller
 
     public function update(Request $request, Group $group)
     {
-        if ($group->creator_id !== Auth::id()) {
-            abort(403, 'Bạn không có quyền sửa nhóm này!');
-        }
-
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -372,22 +245,9 @@ class GroupController extends Controller
             'cover_photo_url' => 'nullable|image|max:2048',
         ]);
 
-        if ($request->hasFile('cover_photo_url')) {
-            // Xóa ảnh cũ nếu có
-            if ($group->cover_photo_url && file_exists(public_path('images/client/group/thumbnail/' . $group->cover_photo_url))) {
-                unlink(public_path('images/client/group/thumbnail/' . $group->cover_photo_url));
-            }
-            $file = $request->file('cover_photo_url');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('images/client/group/thumbnail'), $filename);
-            $group->cover_photo_url = $filename;
-        }
-
-        $group->name = $request->name;
-        $group->description = $request->description;
-        $group->privacy_setting = $request->privacy_setting;
-        $group->post_approval_required = $request->post_approval_required;
-        $group->save();
+        $this->groupRepo->updateGroup($group, $request->only([
+            'name', 'description', 'privacy_setting', 'post_approval_required'
+        ]), $request->file('cover_photo_url'));
 
         return redirect()->route('groups.edit', $group->id)->with('success', 'Cập nhật nhóm thành công!');
     }
@@ -396,20 +256,13 @@ class GroupController extends Controller
     {
         $user = Auth::user();
 
-        // Lấy các bài viết của user trong group
         $myPosts = $group->posts()
             ->where('user_id', $user->id)
             ->with(['user', 'media', 'likes', 'comments'])
             ->latest()
             ->get();
 
-        // Kiểm tra trạng thái thành viên
-        $isMember = false;
-        if ($group->members()->where('user_id', $user->id)->exists()) {
-            $membership = $group->members()->where('user_id', $user->id)->first();
-            $isMember = $membership->pivot->membership_status === 'active';
-        }
-
+        $isMember = $this->groupRepo->isMember($group, $user->id);
         $isAdmin = $group->isAdmin($user->id);
 
         return Inertia::render('Groups/MyPostInGroup', [
@@ -424,17 +277,10 @@ class GroupController extends Controller
     public function members(Group $group)
     {
         $user = Auth::user();
-
-        // Lấy danh sách thành viên với role
-        $members = $group->members()->withPivot('role')->get();
-
-        $isMember = false;
-        if ($group->members()->where('user_id', $user->id)->exists()) {
-            $membership = $group->members()->where('user_id', $user->id)->first();
-            $isMember = $membership->pivot->membership_status === 'active';
-        }
-
+        $members = $this->groupRepo->getMembers($group);
+        $isMember = $this->groupRepo->isMember($group, $user->id);
         $isAdmin = $group->isAdmin($user->id);
+
         return Inertia::render('Groups/Member', [
             'group' => $group,
             'members' => $members,
@@ -447,51 +293,52 @@ class GroupController extends Controller
     public function removeMember(Group $group, $userId)
     {
         $user = Auth::user();
-
-        // Chỉ admin mới được xóa
-        $isAdmin = $group->members()
-            ->where('user_id', $user->id)
-            ->wherePivot('role', 'admin')
-            ->exists();
-
-        if (!$isAdmin) {
-            abort(403, 'Bạn không có quyền xóa thành viên!');
-        }
-
-        // Không cho phép admin tự xóa chính mình
         if ($user->id == $userId) {
             return back()->with('error', 'Không thể tự xóa mình!');
         }
-
-        $group->members()->detach($userId);
-
+        $this->groupRepo->removeMember($group, $userId);
         return back()->with('success', 'Đã xóa thành viên khỏi nhóm!');
     }
+
     public function destroy(Group $group)
     {
         $user = Auth::user();
-
-        // Chỉ creator hoặc admin mới được xóa nhóm
         $isAdmin = $group->members()
             ->where('user_id', $user->id)
             ->wherePivot('role', 'admin')
             ->exists();
 
-        if ($group->creator_id !== $user->id && !$isAdmin) {
-            abort(403, 'Bạn không có quyền xóa nhóm này!');
+        if (!$isAdmin && $group->creator_id != $user->id) {
+            return back()->with('error', 'Bạn không có quyền xóa nhóm này!');
         }
 
-        // Xóa ảnh nếu có
-        if ($group->cover_photo_url && file_exists(public_path('images/client/group/thumbnail/' . $group->cover_photo_url))) {
-            unlink(public_path('images/client/group/thumbnail/' . $group->cover_photo_url));
-        }
-
-        // Xóa các liên kết thành viên
-        $group->members()->detach();
-
-        // Xóa nhóm
-        $group->delete();
+        $this->groupRepo->deleteGroup($group);
 
         return redirect()->route('group')->with('success', 'Đã xóa nhóm thành công!');
+    }
+
+    public function makeAdmin(Group $group, $userId)
+    {
+        $currentUser = Auth::user();
+        $isAdmin = $group->members()
+            ->where('user_id', $currentUser->id)
+            ->wherePivot('role', 'admin')
+            ->wherePivot('membership_status', 'active')
+            ->exists();
+
+        if (!$isAdmin) {
+            return back()->with('error', 'Bạn không có quyền thực hiện thao tác này!');
+        }
+
+        $member = $group->members()->where('user_id', $userId)->first();
+        if (!$member) {
+            return back()->with('error', 'Thành viên không tồn tại trong nhóm!');
+        }
+
+        $group->members()->updateExistingPivot($userId, [
+            'role' => 'admin'
+        ]);
+
+        return back()->with('success', 'Đã cấp quyền admin thành công!');
     }
 }

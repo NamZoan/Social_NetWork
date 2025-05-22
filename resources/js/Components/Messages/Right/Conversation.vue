@@ -102,15 +102,22 @@ const handleNewMessage = (message) => {
     if (message.conversation_id === props.conversationId) {
         const messageExists = messages.value.some(m => m.id === message.id);
         if (!messageExists) {
-            messages.value.push({
+            // Ensure message has proper structure
+            const formattedMessage = {
                 ...message,
-                sender: message.sender || {
+                sender: {
                     id: message.sender_id,
                     name: message.sender?.name || 'Unknown',
                     avatar: message.sender?.avatar || null
-                }
-            });
+                },
+                sent_at: message.sent_at || new Date().toISOString()
+            };
+            
+            messages.value.push(formattedMessage);
             scrollToBottom();
+            
+            // Emit message sent event to parent
+            emit('message-sent', formattedMessage);
         }
     }
 };

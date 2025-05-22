@@ -51,7 +51,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import GroupDetail from './GroupDetail.vue';
+import GroupDetail from './../GroupDetail.vue';
 const props = defineProps({
     group: {
         type: Object,

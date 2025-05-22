@@ -44,14 +44,12 @@ const loading = ref(false);
 
 // Đảm bảo các bài viết ban đầu có comments_count
 const initialPosts = computed(() => {
-    console.log('Initial posts data:', props.group.posts.data);
-    return props.group.posts.data.map(post => {
-        console.log('Post comments count:', post.id, post.comments_count);
-        return {
+    return props.group.posts.data
+        .filter(post => post.privacy_setting === 'public') // chỉ lấy bài public
+        .map(post => ({
             ...post,
             comments_count: post.comments_count || 0
-        };
-    });
+        }));
 });
 
 const loadMorePosts = async () => {

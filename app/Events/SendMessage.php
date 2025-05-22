@@ -12,7 +12,8 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-
+use App\Models\Notification;
+use Carbon\Carbon;
 class SendMessage implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
@@ -20,10 +21,16 @@ class SendMessage implements ShouldBroadcast
     public $message;
     public $sender;
 
-    public function __construct(Message $message, User $sender)
+    public $notification;
+
+    public $conversation;
+
+    public function __construct(Message $message, User $sender, Notification $notification, Conversation $conversation)
     {
         $this->message = $message;
         $this->sender = $sender;
+        $this->notification = $notification;
+        $this->conversation = $conversation;
     }
 
     public function broadcastOn()
@@ -41,6 +48,8 @@ class SendMessage implements ShouldBroadcast
                 }
             }
         }
+
+
 
         return $channels;
     }
@@ -64,8 +73,27 @@ class SendMessage implements ShouldBroadcast
                     'name' => $this->sender->name,
                     'avatar' => $this->sender->avatar,
                 ],
-                'sent_at' => $this->message->sent_at ? $this->message->sent_at->toIso8601String() : null, // Định dạng thời gian
+                'sent_at' => $this->message->sent_at ? $this->message->sent_at->toIso8601String() : null,
             ],
+            'notification' => [
+                'id' => $this->notification->id,
+                'type' => $this->notification->type,
+                'data' => [
+                    'message' => $this->notification->message,
+                    'action_url' => $this->notification->action_url
+                ],
+                'read_at' => $this->notification->read_at,
+                'message' => $this->notification->message,
+                'action_url' => $this->notification->action_url,
+                'created_at' => Carbon::parse($this->notification->created_at)->toIso8601String(),
+            ],
+            'conversation' => [
+                'id' => $this->conversation->id,
+                'conversation_type' => $this->conversation->conversation_type,
+                'name' => $this->conversation->name,
+                'image' => $this->conversation->image,
+            ]
+            
         ];
     }
 }
