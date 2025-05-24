@@ -65,6 +65,28 @@ class Post extends Model
         return $this->hasMany(Comment::class, 'post_id');
     }
 
+    // Lấy comments gốc của bài post
+    public function getRootComments()
+    {
+        return $this->comments()
+            ->rootComments()
+            ->with(['user', 'replies.user'])
+            ->latest()
+            ->get();
+    }
+
+    // Lấy số lượng comments của bài post (bao gồm cả replies)
+    public function getTotalCommentsCount(): int
+    {
+        return $this->comments()->count() + $this->comments()->withCount('replies')->get()->sum('replies_count');
+    }
+
+    // Lấy số lượng comments gốc của bài post
+    public function getRootCommentsCount(): int
+    {
+        return $this->comments()->rootComments()->count();
+    }
+
     /**
      * Quan hệ với Post (bài viết gốc nếu đây là bài chia sẻ lại).
      */
@@ -112,14 +134,22 @@ class Post extends Model
         }
     }
 
-    /**
-     * Kiểm tra xem người dùng có quyền bình luận không
-     */
-    public function canComment($user)
+    // Kiểm tra xem user có thể comment không
+    public function canComment($user): bool
     {
         if (!$this->allow_comments) {
             return false;
         }
         return $this->canView($user);
+    }
+
+    // Lấy comments mới nhất của bài post
+    public function getLatestComments($limit = 5)
+    {
+        return $this->comments()
+            ->with(['user', 'replies.user'])
+            ->latest()
+            ->limit($limit)
+            ->get();
     }
 }

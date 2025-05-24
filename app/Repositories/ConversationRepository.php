@@ -19,7 +19,18 @@ class ConversationRepository implements ConversationRepositoryInterface
     {
         return Conversation::whereHas('members', function ($query) use ($userId) {
             $query->where('user_id', $userId);
-        })->with('members', 'messages')->get();
+        })
+        ->with(['members', 'messages' => function ($query) {
+            $query->orderBy('sent_at', 'desc')->limit(1);
+        }])
+        ->orderByDesc(function ($query) {
+            $query->select('sent_at')
+                ->from('messages')
+                ->whereColumn('conversation_id', 'conversations.id')
+                ->orderBy('sent_at', 'desc')
+                ->limit(1);
+        })
+        ->get();
     }
 
     /**

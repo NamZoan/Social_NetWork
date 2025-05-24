@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+
 class Conversation extends Model
 {
     use HasFactory;
@@ -39,6 +40,42 @@ class Conversation extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    // Lấy cuộc trò chuyện với tin nhắn mới nhất
+    public function scopeWithLatestMessage($query)
+    {
+        return $query->with(['messages' => function ($query) {
+            $query->latest()->limit(1);
+        }]);
+    }
+
+    // Lấy các cuộc trò chuyện của user với tin nhắn mới nhất
+    public static function getConversationsWithLatestMessages($userId)
+    {
+        return self::whereHas('members', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })
+        ->with(['members', 'messages' => function ($query) {
+            $query->latest()->limit(1);
+        }])
+        ->orderByDesc(function ($query) {
+            $query->select('sent_at')
+                ->from('messages')
+                ->whereColumn('conversation_id', 'conversations.id')
+                ->latest()
+                ->limit(1);
+        })
+        ->get();
+    }
+
+    // Lấy tin nhắn mới nhất của cuộc trò chuyện
+    public function getLatestMessage()
+    {
+        return $this->messages()
+            ->with('sender')
+            ->latest()
+            ->first();
     }
 }
 

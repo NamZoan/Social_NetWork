@@ -27,6 +27,12 @@ import { Link } from '@inertiajs/vue3';
                             alt="group"> Bạn Bè</Link>
                 </li>
 
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <Link href="/thong-bao" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/event.png'"
+                            alt="group"> Thông Báo</Link>
+                </li>
+
+
             </ul>
         </div>
     </div>

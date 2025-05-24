@@ -1,7 +1,7 @@
 <template>
     <div class="message-search">
         <div class="wrap">
-            <input type="text" placeholder="Tìm kiếm cuộc trò chuyện ..." v-model="searchQuery" @input="search" />
+            <input type="text" placeholder="Tìm kiếm cuộc trò chuyện ..." v-model="searchQuery" @input="handleSearch" />
             <button type="button" class="btn btn-create-conversation" data-toggle="modal"
                 data-target="#newConversation">
                 <i class='bx bx-pencil'></i>
@@ -20,10 +20,10 @@ import { ref } from 'vue';
 import NewMessage from './NewMessage.vue';
 
 const searchQuery = ref('');
+const emit = defineEmits(['search']);
 
-const search = () => {
-    // Implement search functionality here
-    console.log('Searching for:', searchQuery.value);
+const handleSearch = () => {
+    emit('search', searchQuery.value);
 };
 </script>
 

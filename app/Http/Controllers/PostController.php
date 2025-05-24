@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Repositories\PostRepositoryInterface;
+use App\Events\NewReaction;
+use App\Models\Notification;
 
 class PostController extends Controller
 {
@@ -71,7 +73,26 @@ class PostController extends Controller
     {
         $user = Auth::user();
         $reactionType = $request->reaction;
-        $this->postRepo->likePost($user->id, $postId, $reactionType);
+        $post = $this->postRepo->find($postId);
+        $like = $this->postRepo->likePost($user->id, $postId, $reactionType);
+
+        // Tạo thông báo cho chủ bài viết
+        if ($post->user_id !== $user->id) {
+            Notification::create([
+                'user_id' => $post->user_id,
+                'type' => 'reaction',
+                'reference_id' => $post->id,
+                'reference_type' => 'post',
+                'sender_id' => $user->id,
+                'message' => $reactionType,
+                'created_at' => now(),
+                'is_read' => false,
+                'action_url' => "/posts/{$post->id}"
+            ]);
+        }
+
+        // Broadcast event
+        broadcast(new NewReaction($like, $post, $user))->toOthers();
 
         return response()->json([
             'message' => 'Liked',

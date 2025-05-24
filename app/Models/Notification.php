@@ -43,6 +43,10 @@ class Notification extends Model
         'read_at',
     ];
 
+    protected $casts = [
+        'is_read' => 'boolean',
+    ];
+
     // Định nghĩa quan hệ tới user nhận notification
     public function user(): BelongsTo
     {
@@ -53,5 +57,13 @@ class Notification extends Model
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    /**
+     * Get the message that owns the notification.
+     */
+    public function message(): BelongsTo
+    {
+        return $this->belongsTo(Message::class);
     }
 }

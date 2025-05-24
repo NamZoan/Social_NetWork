@@ -31,6 +31,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search');
     //notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+    Route::get('/message-notifications', [NotificationController::class, 'messageNotifications'])->name('message.notifications');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
+    Route::get('/thong-bao', [NotificationController::class, 'indexNotification'])->name('notifications.index');
     //update user
     Route::post('/user/update', [UserController::class, 'update'])->name('user.update');
     Route::post('/user/update-password', [UserController::class, 'updatePassword'])->name('user.update-password');
@@ -62,7 +66,11 @@ Route::middleware(['auth'])->group(function () {
     //comment
     Route::get('/comments/{post}', [CommentController::class, 'index'])->name('comments.index');
     Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::get('/comments/{comment}/replies', [CommentController::class, 'getReplies'])->name('comments.replies');
     Route::get('/posts/{post}/comments-count', [PostController::class, 'getCommentsCount'])->name('posts.comments-count');
+    Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+    Route::put('/comments/{comment}/toggle-visibility', [CommentController::class, 'toggleVisibility'])->name('comments.toggle-visibility');
 
     //friendship
     Route::get('/friendship-status/{username}', [FriendshipController::class, 'checkFriendshipStatus']);
@@ -116,7 +124,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/conversations/{conversation}/delete', [MessageController::class, 'deleteConversation'])->name('conversations.delete');
     Route::post('/conversations/{conversation}/update', [MessageController::class, 'updateConversation']);
     Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage']);
-    //search
+
+    //notifications
 
 });
 

@@ -92,7 +92,13 @@ class SendMessage implements ShouldBroadcast
                 'conversation_type' => $this->conversation->conversation_type,
                 'name' => $this->conversation->name,
                 'image' => $this->conversation->image,
+            ],
+            'sender' => [
+                'id' => $this->sender->id,
+                'name' => $this->sender->name,
+                'avatar' => $this->sender->avatar,
             ]
+            
             
         ];
     }

@@ -1,7 +1,7 @@
 <template>
     <div class="message-contacts">
         <ul class="conversations">
-            <li v-for="conversation in conversations" 
+            <li v-for="conversation in filteredConversations" 
                 :key="conversation.id" 
                 class="contact"
                 :class="{ 'messenger-user-active': selectedConversationId === conversation.id }"
@@ -15,12 +15,15 @@
                     </div>
                 </div>
             </li>
+            <li v-if="filteredConversations.length === 0" class="no-results">
+                Không tìm thấy cuộc trò chuyện nào
+            </li>
         </ul>
     </div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, computed } from 'vue';
 import { usePage } from "@inertiajs/vue3";
 
 const props = defineProps({
@@ -31,12 +34,30 @@ const props = defineProps({
     selectedConversationId: {
         type: Number,
         default: null
+    },
+    searchQuery: {
+        type: String,
+        default: ''
     }
 });
 
 const emit = defineEmits(['select-conversation']);
 const page = usePage();
 const currentUserId = page.props.user?.id || page.props.auth?.user?.id;
+
+const filteredConversations = computed(() => {
+    if (!props.searchQuery) {
+        return props.conversations;
+    }
+
+    const query = props.searchQuery.toLowerCase();
+    return props.conversations.filter(conversation => {
+        const name = getConversationName(conversation).toLowerCase();
+        const lastMessage = getLastMessage(conversation).toLowerCase();
+        
+        return name.includes(query) || lastMessage.includes(query);
+    });
+});
 
 const selectConversation = (conversation) => {
     emit('select-conversation', conversation);
@@ -46,9 +67,8 @@ const getStatusClass = (conversation) => {
     if (conversation.conversation_type === 'group') {
         return 'group';
     }
-    return 'online';
+    return isUserOnline(conversation) ? 'online' : 'offline';
 };
-
 
 const getConversationAvatar = (conversation) => {
     if (conversation.conversation_type === 'group') {
@@ -56,7 +76,6 @@ const getConversationAvatar = (conversation) => {
             ? `/images/client/group/conversation/${conversation.image}`
             : '/images/web/groups/group.webp';
     } else {
-        // Lấy đúng user còn lại
         const otherUser = conversation.members.find(m => m.id !== currentUserId);
         return otherUser?.avatar
             ? `/images/client/avatar/${otherUser.avatar}`
@@ -78,19 +97,23 @@ const getLastMessage = (conversation) => {
         return 'Chưa có tin nhắn nào';
     }
 
-    // Lấy tin nhắn cuối cùng
     const lastMessage = conversation.messages[conversation.messages.length - 1];
     
-    // Tìm người gửi trong danh sách thành viên
-    const sender = conversation.members.find(m => m.id === lastMessage.sender_id);
-    
-    // Nếu là nhóm, hiển thị tên người gửi + nội dung
     if (conversation.conversation_type === 'group') {
-        return `${sender?.name || 'Ai đó'}: ${lastMessage.content}`;
+        const sender = conversation.members.find(m => m.id === lastMessage.sender_id);
+        const senderName = sender?.id === currentUserId ? 'Bạn' : sender?.name || 'Ai đó';
+        return `${senderName}: ${lastMessage.content}`;
+    } else {
+        return lastMessage.content;
     }
+};
 
-    // Nếu là chat cá nhân, chỉ hiển thị nội dung
-    return lastMessage.content;
+const isUserOnline = (conversation) => {
+    if (conversation.conversation_type === 'group') {
+        return false;
+    }
+    const otherUser = conversation.members.find(m => m.id !== currentUserId);
+    return otherUser?.is_online || false;
 };
 </script>
 
@@ -129,6 +152,10 @@ const getLastMessage = (conversation) => {
     background-color: #28a745;
 }
 
+.contact-status.offline {
+    background-color: #dc3545;
+}
+
 .contact-status.group {
     background-color: #007bff;
 }
@@ -160,5 +187,12 @@ img {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.no-results {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
 }
 </style>

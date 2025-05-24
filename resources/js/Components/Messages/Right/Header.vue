@@ -151,13 +151,15 @@ const previewImageFile = ref(null); // Dùng để gửi lên server
 
 const getOtherUserAvatar = computed(() => {
     if (!props.conversation) return '/images/web/users/avatar.jpg';
+    
     if (props.conversation.conversation_type === 'group') {
         return props.conversation.image
             ? `/images/client/group/conversation/${props.conversation.image}`
             : '/images/web/groups/group.webp';
     }
-    // Cá nhân
-    const otherUser = props.conversation.members[0];
+    
+    // Cá nhân - lấy người còn lại trong cuộc trò chuyện
+    const otherUser = props.conversation.members.find(member => member.id !== user.value.id);
     return otherUser?.avatar
         ? `/images/client/avatar/${otherUser.avatar}`
         : '/images/web/users/avatar.jpg';
@@ -165,10 +167,14 @@ const getOtherUserAvatar = computed(() => {
 
 const getOtherUserName = computed(() => {
     if (!props.conversation) return 'Unknown';
+    
     if (props.conversation.conversation_type === 'group') {
         return props.conversation.name;
     }
-    return props.conversation.members[0]?.name || 'Unknown User';
+    
+    // Cá nhân - lấy người còn lại trong cuộc trò chuyện
+    const otherUser = props.conversation.members.find(member => member.id !== user.value.id);
+    return otherUser?.name || 'Unknown User';
 });
 
 

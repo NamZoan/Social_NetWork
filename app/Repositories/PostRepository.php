@@ -169,8 +169,7 @@ class PostRepository implements PostRepositoryInterface
     public function getCommentsCount($post)
     {
         $count = $post->comments()->count();
-        $repliesCount = $post->comments()->withCount('replies')->get()->sum('replies_count');
-        return $count + $repliesCount;
+        return $count;
     }
 
     public function find($postId)
