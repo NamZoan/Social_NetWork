@@ -248,7 +248,6 @@
                                                                     <div class="dropdown-menu dropdown-menu-right">
                                                                         <a class="dropdown-item" href="#" @click.prevent="toggleReplies(comment.id)">
                                                                             {{ showReplies[comment.id] ? 'Ẩn phản hồi' : 'Xem phản hồi' }}
-                                                                            ({{ comment.replies_count || 0 }})
                                                                         </a>
                                                                         <a class="dropdown-item" href="#" @click.prevent="startEdit(comment)" v-if="comment.user_id === user.id">
                                                                             Chỉnh sửa
