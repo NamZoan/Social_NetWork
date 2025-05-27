@@ -70,12 +70,12 @@ const echoInstance = ref(null);
 const fetchNotifications = async () => {
     try {
         const response = await axios.get('/notifications');
-        notifications.value = response.data.notifications;
+        notifications.value = response.data.notifications || [];
     } catch (error) {
         console.error('Error fetching notifications:', error);
+        notifications.value = [];
     }
 };
-
 
 const markAllAsRead = async () => {
     try {
