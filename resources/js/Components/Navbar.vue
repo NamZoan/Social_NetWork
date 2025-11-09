@@ -64,7 +64,7 @@ import { router } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import { usePage } from "@inertiajs/vue3";
 import { computed } from "vue";
-import MessageDropdown from '../components/Messages/MessageDropdown.vue'
+import MessageDropdown from '../components/Messages/MessageDropdown.vue';
 import Notification from './Notification/Notification.vue';
 
 const page = usePage();
