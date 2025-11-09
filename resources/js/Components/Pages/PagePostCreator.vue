@@ -1,24 +1,35 @@
 <template>
     <div class="post-creator-card">
         <div class="post-creator-header">
-            <img
-                :src="page.profile_picture_url
-                    ? `/storage/${page.profile_picture_url}`
-                    : '/images/web/users/avatar.jpg'"
-                :alt="page.name"
-                class="creator-avatar"
-            />
-            <input
-                v-model="postContent"
-                type="text"
-                class="post-input"
-                :placeholder="`Bạn đang nghĩ gì, ${page.name}?`"
-                @focus="showOptions = true"
-            />
+            <div class="avatar-ring">
+                <img
+                    :src="page.profile_picture_url
+                        ? `/storage/${page.profile_picture_url}`
+                        : '/images/web/users/avatar.jpg'"
+                    :alt="page.name"
+                    class="creator-avatar"
+                />
+            </div>
+            <div class="header-meta">
+                <p class="header-title">{{ page.name }}</p>
+                <button class="privacy-pill" type="button">
+                    <i class="bx bx-globe"></i>
+                    <span>Công khai</span>
+                    <i class="bx bx-chevron-down"></i>
+                </button>
+            </div>
         </div>
 
-        <div v-if="showOptions || selectedImages.length" class="post-creator-options">
-            <!-- Image Preview -->
+        <div class="post-input-wrapper">
+            <textarea
+                v-model="postContent"
+                class="post-input"
+                rows="3"
+                :placeholder="placeholderText"
+            ></textarea>
+        </div>
+
+        <transition name="fade">
             <div v-if="selectedImages.length" class="image-preview-container">
                 <div
                     v-for="(img, index) in selectedImages"
@@ -26,14 +37,29 @@
                     class="image-preview-item"
                 >
                     <img :src="img.preview" :alt="`Preview ${index + 1}`" />
-                    <button @click="removeImage(index)" class="remove-image-btn">
+                    <button @click="removeImage(index)" class="remove-image-btn" type="button">
                         <i class="bx bx-x"></i>
                     </button>
                 </div>
             </div>
+        </transition>
 
-            <!-- Action Buttons -->
+        <div class="composer-divider"></div>
+
+        <div class="add-to-post">
+            <span class="add-to-post-label">Thêm vào bài viết của bạn</span>
             <div class="action-buttons-row">
+                <button
+                    @click="startLive"
+                    class="action-button action-live"
+                    type="button"
+                >
+                    <span class="action-icon">
+                        <i class="bx bx-video"></i>
+                    </span>
+                    <span>Video trực tiếp</span>
+                </button>
+
                 <label class="action-button action-photo">
                     <input
                         type="file"
@@ -43,41 +69,35 @@
                         multiple
                         style="display: none;"
                     />
-                    <i class="bx bx-image"></i>
+                    <span class="action-icon">
+                        <i class="bx bx-image"></i>
+                    </span>
                     <span>Ảnh/Video</span>
                 </label>
-
-                <button
-                    @click="startLive"
-                    class="action-button action-live"
-                    type="button"
-                >
-                    <i class="bx bx-video"></i>
-                    <span>Phát trực tiếp</span>
-                </button>
 
                 <button
                     @click="createEvent"
                     class="action-button action-event"
                     type="button"
                 >
-                    <i class="bx bx-calendar"></i>
-                    <span>Sự kiện</span>
+                    <span class="action-icon">
+                        <i class="bx bx-smile"></i>
+                    </span>
+                    <span>Cảm xúc/Hoạt động</span>
                 </button>
             </div>
+        </div>
 
-            <!-- Post Button -->
-            <div class="post-actions">
-                <button
-                    @click="publishPost"
-                    :disabled="!canPost || isPosting"
-                    :class="['btn-post', { 'btn-post-disabled': !canPost || isPosting }]"
-                    type="button"
-                >
-                    <i v-if="isPosting" class="bx bx-loader-alt bx-spin"></i>
-                    <span v-else>Đăng</span>
-                </button>
-            </div>
+        <div class="post-actions">
+            <button
+                @click="publishPost"
+                :disabled="!canPost || isPosting"
+                :class="['btn-post', { 'btn-post-disabled': !canPost || isPosting }]"
+                type="button"
+            >
+                <i v-if="isPosting" class="bx bx-loader-alt bx-spin"></i>
+                <span v-else>Đăng</span>
+            </button>
         </div>
     </div>
 </template>
@@ -96,7 +116,6 @@ const props = defineProps({
 const emit = defineEmits(['post-created']);
 
 const postContent = ref('');
-const showOptions = ref(false);
 const selectedImages = ref([]);
 const imageInput = ref(null);
 const isPosting = ref(false);
@@ -105,15 +124,19 @@ const canPost = computed(() => {
     return postContent.value.trim().length > 0 || selectedImages.value.length > 0;
 });
 
+const placeholderText = computed(() => {
+    return `Bạn đang nghĩ gì, ${props.page?.name ?? 'bạn'}?`;
+});
+
 const handleImageSelect = (event) => {
     const files = Array.from(event.target.files || []);
 
-    files.forEach(file => {
+    files.forEach((file) => {
         if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 selectedImages.value.push({
-                    file: file,
+                    file,
                     preview: e.target.result
                 });
             };
@@ -126,6 +149,15 @@ const handleImageSelect = (event) => {
 
 const removeImage = (index) => {
     selectedImages.value.splice(index, 1);
+};
+
+const resetComposer = () => {
+    postContent.value = '';
+    selectedImages.value = [];
+
+    if (imageInput.value) {
+        imageInput.value.value = '';
+    }
 };
 
 const publishPost = async () => {
@@ -148,18 +180,7 @@ const publishPost = async () => {
         });
 
         if (response.data.success && response.data.post) {
-            // Reset form
-            postContent.value = '';
-            selectedImages.value.forEach((_, idx) => {
-                if (previewUrls.value[idx]) {
-                    URL.revokeObjectURL(previewUrls.value[idx]);
-                }
-            });
-            selectedImages.value = [];
-            previewUrls.value = [];
-            captions.value = [];
-            showOptions.value = false;
-
+            resetComposer();
             emit('post-created', response.data.post);
         } else {
             throw new Error('Không thể tạo bài đăng');
@@ -172,90 +193,126 @@ const publishPost = async () => {
 };
 
 const startLive = () => {
-    // TODO: Implement live streaming
-    console.log('Start live');
+    console.log('Start live stream');
 };
 
 const createEvent = () => {
-    // TODO: Open event creation modal
-    console.log('Create event');
+    console.log('Open feelings/activity picker');
 };
 </script>
 
 <style scoped>
 .post-creator-card {
     background: #fff;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 12px 30px rgba(15, 34, 58, 0.08);
+    border: 1px solid #e4e6eb;
+    margin-bottom: 24px;
 }
 
 .post-creator-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+}
+
+.avatar-ring {
+    padding: 2px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0f8af5, #7c5dfa);
+    display: inline-flex;
 }
 
 .creator-avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    flex-shrink: 0;
+    border: 3px solid #fff;
+    background: #f0f2f5;
+}
+
+.header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.header-title {
+    font-weight: 600;
+    color: #050505;
+    margin: 0;
+    font-size: 16px;
+}
+
+.privacy-pill {
+    border: 1px solid #ced0d4;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f0f2f5;
+    color: #050505;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.post-input-wrapper {
+    margin-top: 16px;
+    background: #f0f2f5;
+    border-radius: 16px;
+    padding: 12px 16px;
 }
 
 .post-input {
-    flex: 1;
-    padding: 12px 16px;
-    border: 1px solid #e4e6eb;
-    border-radius: 20px;
-    font-size: 15px;
-    background: #f0f2f5;
+    width: 100%;
+    border: none;
+    background: transparent;
+    resize: none;
+    font-size: 17px;
+    line-height: 1.4;
+    color: #050505;
     outline: none;
-    transition: background 0.2s;
 }
 
-.post-input:focus {
-    background: #fff;
-    border-color: #1877f2;
-}
-
-.post-creator-options {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e4e6eb;
+.composer-divider {
+    height: 1px;
+    background: #e4e6eb;
+    margin: 20px 0;
 }
 
 .image-preview-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
-    margin-bottom: 16px;
+    margin-top: 16px;
 }
 
 .image-preview-item {
     position: relative;
-    aspect-ratio: 1;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
 .image-preview-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
 }
 
 .remove-image-btn {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.65);
     border: none;
     color: #fff;
     cursor: pointer;
@@ -267,71 +324,93 @@ const createEvent = () => {
 }
 
 .remove-image-btn:hover {
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.add-to-post {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9fb;
+    border: 1px solid #e4e6eb;
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+
+.add-to-post-label {
+    font-weight: 600;
+    color: #65676b;
 }
 
 .action-buttons-row {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     flex-wrap: wrap;
-    margin-bottom: 16px;
 }
 
 .action-button {
-    display: flex;
+    border: none;
+    background: transparent;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 15px;
     font-weight: 600;
-    transition: background 0.2s;
-    background: transparent;
+    color: #65676b;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 12px;
+    transition: background 0.2s, transform 0.2s;
 }
 
-.action-photo {
-    color: #41b35d;
+.action-button:hover {
+    background: #e4e6eb;
+    transform: translateY(-1px);
 }
 
-.action-photo:hover {
-    background: #f0f2f5;
+.action-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
 }
 
-.action-live {
-    color: #f02849;
+.action-live .action-icon {
+    background: linear-gradient(45deg, #f02849, #f5533d);
 }
 
-.action-live:hover {
-    background: #f0f2f5;
+.action-photo .action-icon {
+    background: linear-gradient(45deg, #45bd62, #40c057);
 }
 
-.action-event {
-    color: #f7b928;
-}
-
-.action-event:hover {
-    background: #f0f2f5;
+.action-event .action-icon {
+    background: linear-gradient(45deg, #f7b928, #f9c23c);
+    color: #8a6116;
 }
 
 .post-actions {
-    display: flex;
-    justify-content: flex-end;
+    margin-top: 16px;
 }
 
 .btn-post {
-    padding: 8px 24px;
+    width: 100%;
+    padding: 12px 24px;
     background: #1877f2;
     color: #fff;
     border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 15px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 16px;
     cursor: pointer;
     transition: background 0.2s;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 
@@ -345,19 +424,28 @@ const createEvent = () => {
     cursor: not-allowed;
 }
 
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
 @media (max-width: 768px) {
     .post-creator-card {
-        padding: 12px;
+        padding: 16px;
     }
 
-    .action-button span {
+    .add-to-post {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .action-button span:last-child {
         display: none;
-    }
-
-    .action-button {
-        padding: 8px;
-        border-radius: 50%;
     }
 }
 </style>
-
