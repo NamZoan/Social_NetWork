@@ -1,6 +1,8 @@
 <template>
     <div class="col-md-12">
-        <div class="message-header d-flex justify-content-between align-items-center">
+        <div
+            class="message-header d-flex justify-content-between align-items-center"
+        >
             <div class="wrap d-flex align-items-center">
                 <span class="contact-status online"></span>
                 <img :src="getOtherUserAvatar" alt="Conversation user" />
@@ -11,27 +13,80 @@
             </div>
             <div>
                 <!-- Nếu là cá nhân: hiện nút xóa -->
-                <button v-if="props.conversation && props.conversation.conversation_type === 'individual'"
-                    class="btn btn-link p-0" @click="deleteConversation" title="Xóa cuộc trò chuyện">
-                    <i class="bx bx-trash-alt" style="font-size: 24px;"></i>
+                <button
+                    v-if="
+                        props.conversation &&
+                        props.conversation.conversation_type === 'individual'
+                    "
+                    class="btn btn-link"
+                    @click="deleteConversation"
+                    title="Xóa cuộc trò chuyện"
+                >
+                    <i class="bx bx-trash-alt" style="font-size: 24px"></i>
                 </button>
+
+                <button
+                    class="btn btn-link"
+                    title="Gọi thoại"
+                    @click="startVideoCall"
+                >
+                    <i class="bx bx-phone" style="font-size: 24px"></i>
+                </button>
+                <button
+                    class="btn btn-link"
+                    title="Gọi video"
+                    @click="startVideoCall"
+                >
+                    <i class="bx bx-video" style="font-size: 24px"></i>
+                </button>
+
                 <!-- Nếu là nhóm: hiện nút thêm thành viên và rời nhóm -->
-                <template v-if="props.conversation && props.conversation.conversation_type === 'group'">
-                    <button class="btn btn-link p-0 ms-2" @click="showMembers = true" title="Xem danh sách thành viên">
-                        <i class="bx bx-group" style="font-size: 22px;"></i>
+                <template
+                    v-if="
+                        props.conversation &&
+                        props.conversation.conversation_type === 'group'
+                    "
+                >
+                    <button
+                        class="btn btn-link p-0 ms-2"
+                        @click="showMembers = true"
+                        title="Xem danh sách thành viên"
+                    >
+                        <i class="bx bx-group" style="font-size: 22px"></i>
                     </button>
-                    <button class="btn btn-link p-0" @click="showAddMember = true" title="Thêm thành viên">
-                        <i class="bx bx-plus-circle" style="font-size: 24px;"></i>
+                    <button
+                        class="btn btn-link p-0"
+                        @click="showAddMember = true"
+                        title="Thêm thành viên"
+                    >
+                        <i
+                            class="bx bx-plus-circle"
+                            style="font-size: 24px"
+                        ></i>
                     </button>
-                    <button class="btn btn-link p-0" @click="leaveGroup" title="Rời nhóm">
-                        <i class="bx bx-log-out" style="font-size: 24px;"></i>
+                    <button
+                        class="btn btn-link p-0"
+                        @click="leaveGroup"
+                        title="Rời nhóm"
+                    >
+                        <i class="bx bx-log-out" style="font-size: 24px"></i>
                     </button>
-                    <button v-if="isCreator" class="btn btn-link p-0" title="Xóa nhóm" @click="deleteGroup">
-                        <i class="bx bx-trash" style="font-size: 22px;"></i>
+                    <button
+                        v-if="isCreator"
+                        class="btn btn-link p-0"
+                        title="Xóa nhóm"
+                        @click="deleteGroup"
+                    >
+                        <i class="bx bx-trash" style="font-size: 22px"></i>
                     </button>
                     <!-- Thêm vào phần nút, chỉ hiện với creator -->
-                    <button v-if="isCreator" class="btn btn-link p-0" title="Cập nhật nhóm" @click="showEditGroup = true">
-                        <i class="bx bx-edit" style="font-size: 22px;"></i>
+                    <button
+                        v-if="isCreator"
+                        class="btn btn-link p-0"
+                        title="Cập nhật nhóm"
+                        @click="showEditGroup = true"
+                    >
+                        <i class="bx bx-edit" style="font-size: 22px"></i>
                     </button>
                 </template>
             </div>
@@ -44,12 +99,19 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Thêm thành viên</h5>
-                            <button type="button" class="close" @click="showAddMember = false">
+                            <button
+                                type="button"
+                                class="close"
+                                @click="showAddMember = false"
+                            >
                                 <span>&times;</span>
                             </button>
                         </div>
                         <div class="modal-body">
-                            <AddMember :conversationId="props.conversation.id" @close="showAddMember = false" />
+                            <AddMember
+                                :conversationId="props.conversation.id"
+                                @close="showAddMember = false"
+                            />
                         </div>
                     </div>
                 </div>
@@ -63,22 +125,50 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Danh sách thành viên</h5>
-                            <button type="button" class="close" @click="showMembers = false">
+                            <button
+                                type="button"
+                                class="close"
+                                @click="showMembers = false"
+                            >
                                 <span>&times;</span>
                             </button>
                         </div>
                         <div class="modal-body">
                             <ul class="list-group">
-                                <li v-for="member in props.conversation.members" :key="member.id"
-                                    class="list-group-item d-flex align-items-center">
-                                    <img :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/web/users/avatar.jpg'"
+                                <li
+                                    v-for="member in props.conversation.members"
+                                    :key="member.id"
+                                    class="list-group-item d-flex align-items-center"
+                                >
+                                    <img
+                                        :src="
+                                            member.avatar
+                                                ? `/images/client/avatar/${member.avatar}`
+                                                : '/images/web/users/avatar.jpg'
+                                        "
                                         alt="avatar"
-                                        style="width:32px;height:32px;border-radius:50%;margin-right:10px;">
+                                        style="
+                                            width: 32px;
+                                            height: 32px;
+                                            border-radius: 50%;
+                                            margin-right: 10px;
+                                        "
+                                    />
                                     <span>{{ member.name }}</span>
                                     <!-- Nút xóa thành viên, chỉ hiển thị với người tạo nhóm -->
-                                    <button v-if="isCreator" class="btn btn-link p-0 ms-auto"
-                                        @click="removeMember(member.id)" title="Xóa thành viên khỏi nhóm">
-                                        <i class="bx bx-trash" style="font-size: 18px;color:#dc3545;"></i>
+                                    <button
+                                        v-if="isCreator"
+                                        class="btn btn-link p-0 ms-auto"
+                                        @click="removeMember(member.id)"
+                                        title="Xóa thành viên khỏi nhóm"
+                                    >
+                                        <i
+                                            class="bx bx-trash"
+                                            style="
+                                                font-size: 18px;
+                                                color: #dc3545;
+                                            "
+                                        ></i>
                                     </button>
                                 </li>
                             </ul>
@@ -95,7 +185,11 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Cập nhật nhóm</h5>
-                            <button type="button" class="close" @click="showEditGroup = false">
+                            <button
+                                type="button"
+                                class="close"
+                                @click="showEditGroup = false"
+                            >
                                 <span>&times;</span>
                             </button>
                         </div>
@@ -103,30 +197,63 @@
                             <form @submit.prevent="updateGroup">
                                 <div class="form-group mb-2">
                                     <label>Tên nhóm</label>
-                                    <input v-model="editGroupName" class="form-control" />
+                                    <input
+                                        v-model="editGroupName"
+                                        class="form-control"
+                                    />
                                 </div>
                                 <div class="form-group mb-2">
                                     <label>Ảnh nhóm</label>
-                                    <input type="file" @change="onImageChange" class="form-control" />
-                                    <img v-if="previewImage" :src="previewImage" alt="preview"
-                                        style="max-width:100px;margin-top:10px;" />
+                                    <input
+                                        type="file"
+                                        @change="onImageChange"
+                                        class="form-control"
+                                    />
+                                    <img
+                                        v-if="previewImage"
+                                        :src="previewImage"
+                                        alt="preview"
+                                        style="
+                                            max-width: 100px;
+                                            margin-top: 10px;
+                                        "
+                                    />
                                 </div>
-                                <button class="btn btn-primary btn-sm" type="submit">Lưu thay đổi</button>
+                                <button
+                                    class="btn btn-primary btn-sm"
+                                    type="submit"
+                                >
+                                    Lưu thay đổi
+                                </button>
                             </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Video Call Component -->
+
+        <VideoCall
+            v-if="showVideoCall"
+            :call-id="currentCallId"
+            :me-id="user.id"
+            :peer-id="getOtherUser?.id"
+            :user="getOtherUser || {}"
+            :is-caller="true"
+            @end-call="endVideoCall"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, computed,watch } from 'vue';
-import axios from 'axios';
-import AddMember from '../Right/AddMember.vue'; // Đường dẫn đúng tới AddMember.vue
+import { ref, computed, watch } from "vue";
+import axios from "axios";
+import AddMember from "../Right/AddMember.vue"; // Đường dẫn đúng tới AddMember.vue
+import VideoCall from "../VideoCall.vue"; // Import VideoCall component
 import { usePage } from "@inertiajs/vue3";
-import { Inertia } from '@inertiajs/inertia';
+import { Inertia } from "@inertiajs/inertia";
+
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const props = defineProps({
@@ -134,105 +261,152 @@ const props = defineProps({
         type: Object,
         required: false,
         default: () => ({
-            members: []
-        })
-    }
+            members: [],
+        }),
+    },
 });
 
-const emit = defineEmits(['conversation-deleted', 'left-group', 'add-member', 'member-removed']);
+
+
+const showVideoCall = ref(false)
+const currentCallId = ref(null)
+
+const startVideoCall = async () => {
+  // conversation cá nhân: invite 1 người
+  const { data } = await axios.post('/calls/invite', {
+    user_id: getOtherUser.value.id
+  })
+  currentCallId.value = data.id
+  showVideoCall.value = true
+}
+const endVideoCall = async () => {
+  if (currentCallId.value) await axios.post('/calls/end', { id: currentCallId.value })
+  showVideoCall.value = false
+  currentCallId.value = null
+}
+
+const emit = defineEmits([
+    "conversation-deleted",
+    "left-group",
+    "add-member",
+    "member-removed",
+]);
 
 const showAddMember = ref(false);
 const showMembers = ref(false);
 const showEditGroup = ref(false);
 
-const editGroupName = ref('');
+const editGroupName = ref("");
 const previewImage = ref(null); // Dùng cho preview
 const previewImageFile = ref(null); // Dùng để gửi lên server
 
+const getOtherUser = computed(() => {
+    if (
+        !props.conversation ||
+        props.conversation.conversation_type === "group"
+    ) {
+        // For groups, you might want to handle this differently,
+        // for now, returning a placeholder.
+        return { name: props.conversation?.name || "Group Call" };
+    }
+    return (
+        props.conversation.members.find(
+            (member) => member.id !== user.value.id
+        ) || {}
+    );
+});
+
 const getOtherUserAvatar = computed(() => {
-    if (!props.conversation) return '/images/web/users/avatar.jpg';
-    
-    if (props.conversation.conversation_type === 'group') {
+    if (!props.conversation) return "/images/web/users/avatar.jpg";
+
+    if (props.conversation.conversation_type === "group") {
         return props.conversation.image
             ? `/images/client/group/conversation/${props.conversation.image}`
-            : '/images/web/groups/group.webp';
+            : "/images/web/groups/group.webp";
     }
-    
+
     // Cá nhân - lấy người còn lại trong cuộc trò chuyện
-    const otherUser = props.conversation.members.find(member => member.id !== user.value.id);
+    const otherUser = props.conversation.members.find(
+        (member) => member.id !== user.value.id
+    );
     return otherUser?.avatar
         ? `/images/client/avatar/${otherUser.avatar}`
-        : '/images/web/users/avatar.jpg';
+        : "/images/web/users/avatar.jpg";
 });
 
 const getOtherUserName = computed(() => {
-    if (!props.conversation) return 'Unknown';
-    
-    if (props.conversation.conversation_type === 'group') {
+    if (!props.conversation) return "Unknown";
+
+    if (props.conversation.conversation_type === "group") {
         return props.conversation.name;
     }
-    
-    // Cá nhân - lấy người còn lại trong cuộc trò chuyện
-    const otherUser = props.conversation.members.find(member => member.id !== user.value.id);
-    return otherUser?.name || 'Unknown User';
-});
 
+    // Cá nhân - lấy người còn lại trong cuộc trò chuyện
+    const otherUser = props.conversation.members.find(
+        (member) => member.id !== user.value.id
+    );
+    return otherUser?.name || "Unknown User";
+});
 
 // Kiểm tra xem người dùng có phải là người tạo nhóm không
 const isCreator = computed(() => {
-    return props.conversation && props.conversation.creator_id === user.value.id;
+    return (
+        props.conversation && props.conversation.creator_id === user.value.id
+    );
 });
-
-console.log('isCreator:', isCreator.value);
 
 // Xóa cuộc trò chuyện cá nhân
 const deleteConversation = async () => {
     if (!props.conversation) return;
-    if (!confirm('Bạn có chắc muốn xóa cuộc trò chuyện này?')) return;
+    if (!confirm("Bạn có chắc muốn xóa cuộc trò chuyện này?")) return;
     try {
         await axios.post(`/conversations/${props.conversation.id}/delete`);
-        emit('conversation-deleted', props.conversation.id);
+        emit("conversation-deleted", props.conversation.id);
         window.location.reload(); // Thêm dòng này để reload lại trang
     } catch (e) {
-        alert('Xóa cuộc trò chuyện thất bại!');
+        alert("Xóa cuộc trò chuyện thất bại!");
     }
 };
 
 // Rời nhóm
 const leaveGroup = async () => {
     if (!props.conversation) return;
-    if (!confirm('Bạn có chắc muốn rời nhóm này?')) return;
+    if (!confirm("Bạn có chắc muốn rời nhóm này?")) return;
     try {
         await axios.post(`/conversations/${props.conversation.id}/leave`);
-        emit('left-group', props.conversation.id);
+        emit("left-group", props.conversation.id);
         Inertia.reload();
     } catch (e) {
-        alert('Rời nhóm thất bại!');
+        alert("Rời nhóm thất bại!");
     }
 };
 
 // Xóa thành viên khỏi nhóm
 const removeMember = async (memberId) => {
-    if (!confirm('Bạn có chắc muốn xóa thành viên này khỏi nhóm?')) return;
+    if (!confirm("Bạn có chắc muốn xóa thành viên này khỏi nhóm?")) return;
     try {
-        await axios.delete(`/conversations/${props.conversation.id}/members/${memberId}`);
+        await axios.delete(
+            `/conversations/${props.conversation.id}/members/${memberId}`
+        );
         // Xóa thành viên khỏi danh sách trên giao diện
-        const idx = props.conversation.members.findIndex(m => m.id === memberId);
+        const idx = props.conversation.members.findIndex(
+            (m) => m.id === memberId
+        );
         if (idx !== -1) props.conversation.members.splice(idx, 1);
-        emit('member-removed', memberId);
+        emit("member-removed", memberId);
     } catch (e) {
-        alert('Xóa thành viên thất bại!');
+        alert("Xóa thành viên thất bại!");
     }
 };
 const deleteGroup = async () => {
     if (!props.conversation) return;
-    if (!confirm('Bạn có chắc muốn xóa nhóm này?')) return;
+    if (!confirm("Bạn có chắc muốn xóa nhóm này?")) return;
     try {
         await axios.post(`/conversations/${props.conversation.id}/delete`);
-        emit('conversation-deleted', props.conversation.id); // Xóa khỏi giao diện
+        emit("conversation-deleted", props.conversation.id); // Xóa khỏi giao diện
         Inertia.reload();
     } catch (e) {
-        alert('Xóa nhóm thất bại!');
+        alert("Xóa nhóm thất bại!");
     }
 };
 
@@ -243,7 +417,7 @@ const fetchGroupMembers = async () => {
         await axios.get(`/conversations/${props.conversation.id}/members`);
         // Xử lý dữ liệu thành viên nếu cần
     } catch (e) {
-        console.error('Lỗi khi lấy danh sách thành viên nhóm:', e);
+        console.error("Lỗi khi lấy danh sách thành viên nhóm:", e);
     }
 };
 
@@ -255,18 +429,25 @@ const updateGroup = async () => {
     if (!props.conversation) return;
     try {
         const formData = new FormData();
-        formData.append('name', editGroupName.value);
+        formData.append("name", editGroupName.value);
         if (previewImageFile.value) {
-            formData.append('image', previewImageFile.value);
+            formData.append("image", previewImageFile.value);
         }
-        await axios.post(`/conversations/${props.conversation.id}/update`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+        await axios.post(
+            `/conversations/${props.conversation.id}/update`,
+            formData,
+            {
+                headers: { "Content-Type": "multipart/form-data" },
+            }
+        );
+        emit("conversation-updated", {
+            id: props.conversation.id,
+            name: editGroupName.value,
         });
-        emit('conversation-updated', { id: props.conversation.id, name: editGroupName.value });
         showEditGroup.value = false;
         props.conversation.name = editGroupName.value;
     } catch (e) {
-        alert('Cập nhật nhóm thất bại!');
+        alert("Cập nhật nhóm thất bại!");
     }
 };
 

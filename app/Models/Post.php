@@ -22,7 +22,8 @@ class Post extends Model
         'privacy_setting',
         'allow_comments',
         'original_post_id',
-        'group_id'
+        'group_id',
+        'page_id'
     ];
 
     /**
@@ -101,6 +102,14 @@ class Post extends Model
     public function group()
     {
         return $this->belongsTo(Group::class);
+    }
+
+    /**
+     * Quan hệ với Page (nếu bài viết thuộc về một trang).
+     */
+    public function page()
+    {
+        return $this->belongsTo(Page::class);
     }
     public function shares(): HasMany
     {

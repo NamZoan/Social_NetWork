@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Group;
+use App\Models\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -27,7 +28,9 @@ class PostController extends Controller
             'privacy_setting' => 'required|in:public,friends,private,pending,rejected',
             'content' => 'required|string',
             'files.*' => 'nullable|file|mimes:jpg,png,gif,mp4,mp3,pdf|max:2048',
-            'group_id' => 'nullable|exists:groups,id'
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'group_id' => 'nullable|exists:groups,id',
+            'page_id' => 'nullable|exists:pages,id'
         ]);
 
         DB::beginTransaction();
@@ -35,10 +38,22 @@ class PostController extends Controller
             $postData = [
                 'user_id' => Auth::id(),
                 'content' => $request->content,
-                'status' => 'approved'
             ];
 
-            if ($request->has('group_id') && $request->group_id) {
+            // Xử lý page_id
+            if ($request->has('page_id') && $request->page_id) {
+                $page = Page::find($request->page_id);
+                if (!$page) {
+                    return back()->withErrors(['error' => 'Trang không tồn tại.']);
+                }
+                if (!$page->isAdmin(Auth::id())) {
+                    return back()->withErrors(['error' => 'Bạn không có quyền đăng bài trên trang này.']);
+                }
+                $postData['page_id'] = $request->page_id;
+                $postData['privacy_setting'] = 'public'; // Posts on pages are always public
+            }
+            // Xử lý group_id
+            elseif ($request->has('group_id') && $request->group_id) {
                 $group = Group::find($request->group_id);
                 if (!$group) {
                     return back()->withErrors(['error' => 'Nhóm không tồn tại.']);
@@ -47,16 +62,30 @@ class PostController extends Controller
                     return back()->withErrors(['error' => 'Bạn không phải là thành viên của nhóm này.']);
                 }
                 $postData['privacy_setting'] = $group->post_approval_required ? 'public' : 'pending';
-                $postData['status'] = $group->post_approval_required ? 'approved' : 'pending';
                 $postData['group_id'] = $request->group_id;
             } else {
                 $postData['privacy_setting'] = $request->privacy_setting;
             }
 
             $post = $this->postRepo->createPost($postData);
-            $this->postRepo->attachMedia($post, $request->file('files'), Auth::id());
+
+            // Xử lý files (hỗ trợ cả files và images)
+            $files = $request->hasFile('files') ? $request->file('files') : [];
+            $images = $request->hasFile('images') ? $request->file('images') : [];
+            $allFiles = array_merge($files, $images);
+
+            $this->postRepo->attachMedia($post, $allFiles, Auth::id());
 
             DB::commit();
+
+            // Trả về JSON nếu là request từ PagePostCreator
+            if ($request->expectsJson() || $request->has('page_id')) {
+                $post->load(['user', 'media']);
+                return response()->json([
+                    'success' => true,
+                    'post' => $post
+                ]);
+            }
 
             if ($request->has('group_id') && $request->group_id) {
                 return redirect()->route('groups.show', ['group' => $request->group_id]);
@@ -65,6 +94,9 @@ class PostController extends Controller
             }
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
             return back()->withErrors(['error' => $e->getMessage()]);
         }
     }

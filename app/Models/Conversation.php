@@ -10,9 +10,9 @@ class Conversation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 
-        'conversation_type', 
-        'creator_id', 
+        'name',
+        'conversation_type',
+        'creator_id',
         'is_active',
         'image',
     ];
@@ -77,5 +77,20 @@ class Conversation extends Model
             ->latest()
             ->first();
     }
+    public function participants()
+    {
+        return $this->members();
+    }
+
+    // Danh sách tin nhắn
+
+
+    // Tin nhắn cuối cùng (dựa trên sent_at)
+    public function lastMessage()
+    {
+        return $this->hasOne(Message::class,'conversation_id')->latestOfMany('sent_at');
+    }
+
+
 }
 

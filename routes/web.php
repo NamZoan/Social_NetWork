@@ -12,13 +12,39 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\VerifyEmailController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\MetaBusinessController;
+use App\Http\Controllers\UserPageController;
+use App\Http\Controllers\CallController;
+use App\Http\Controllers\SignalController;
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
 Route::get('/dang-ky', [UserController::class, 'register'])->name('register');
 Route::post('/dang-ky', [UserController::class, 'store']);
 
+// Route::get('/verify-email', )->middleware('auth')->name('verification.notice');
+// Route::post('/verify-email', [VerifyEmailController::class, 'verify'])->name('verify.submit');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware('auth')->group(function () {
+    // Trang nhắc xác thực
+    Route::get('/email/verify', [VerifyEmailController::class, 'notice'])
+        ->name('verification.notice');
+
+    // Link xác thực (ký số)
+    Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1', 'auth'])
+        ->name('verification.verify');
+
+    // Gửi lại email xác thực
+    Route::post('/email/verification-notification', [VerifyEmailController::class, 'send'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+});
+
+
+
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/', [PageController::class, 'index'])->name('home');
     Route::get('/posts/load-more', [PageController::class, 'loadMore'])->name('posts.load-more');
     Route::get('/cai-dat', [SettingController::class, 'account'])->name('account');
@@ -110,13 +136,19 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/groups/{group}/posts/{post}/approve', [GroupController::class, 'approvePost'])->name('groups.posts.approve');
     Route::post('/groups/{group}/posts/{post}/reject', [GroupController::class, 'rejectPost'])->name('groups.posts.reject');
 
-    Route::get('message/getFriends', [FriendshipController::class, 'getFriends']);
-    Route::post('/messages/send', [MessageController::class, 'sendMessage'])->name('messages.send');
-    Route::post('/messages/createGroup', [MessageController::class, 'createGroup'])->name('messages.createGroup');
+
 
     // Message routes
-    Route::get('/messages/{conversationId}', [MessageController::class, 'getMessages'])->name('messages.get');
-    Route::post('/conversations/{conversation}/delete', [MessageController::class, 'deleteConversation'])->name('conversations.delete');
+
+    Route::get('message/getFriends', [FriendshipController::class, 'getFriends']);
+    Route::post('/messages/send', [MessageController::class, 'sendMessage'])->middleware('validate.image')->name('messages.send');
+    Route::post('/messages/createGroup', [MessageController::class, 'createGroup'])->name('messages.createGroup');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
+    Route::get('messages/{conversation}/data', [MessageController::class, 'getMessages'])->name('messages.conversation.data');
+    Route::get('/messages/{conversation}/load-messages', [MessageController::class, 'getMessagesPaginated'])->name('messages.load');
+
     Route::get('/conversations/{conversation}/members', [MessageController::class, 'getConversationMembers']);
     Route::post('/conversations/{conversation}/add-members', [MessageController::class, 'addMembersToConversation']);
     Route::post('/conversations/{conversation}/leave', [MessageController::class, 'leaveConversation']);
@@ -127,8 +159,56 @@ Route::middleware(['auth'])->group(function () {
 
     //notifications
 
+    // Admin Routes - Role Management
+    Route::prefix('admin')->middleware(['role:administrator'])->group(function () {
+        Route::resource('roles', RoleController::class)->names([
+            'index' => 'admin.roles.index',
+            'create' => 'admin.roles.create',
+            'store' => 'admin.roles.store',
+            'show' => 'admin.roles.show',
+            'edit' => 'admin.roles.edit',
+            'update' => 'admin.roles.update',
+            'destroy' => 'admin.roles.destroy',
+        ]);
+
+        Route::post('/roles/{role}/users/{user}/assign', [RoleController::class, 'assignRole'])->name('admin.roles.assign');
+        Route::delete('/roles/{role}/users/{user}/remove', [RoleController::class, 'removeRole'])->name('admin.roles.remove');
+        Route::get('/roles/{role}/users', [RoleController::class, 'users'])->name('admin.roles.users');
+    });
+
+    Route::prefix('calls')->name('calls.')->group(function () {
+        Route::get('/{id}',     [CallController::class, 'show'])->name('show');
+        Route::post('/invite',  [CallController::class, 'invite'])->name('invite');
+        Route::post('/accept',  [CallController::class, 'accept'])->name('accept');
+        Route::post('/reject',  [CallController::class, 'reject'])->name('reject');   // nên có
+        Route::post('/end',     [CallController::class, 'end'])->name('end');
+
+        // WebRTC signaling
+        Route::post('/offer',   [SignalController::class, 'offer'])->name('offer');
+        Route::post('/answer',  [SignalController::class, 'answer'])->name('answer');
+        Route::post('/ice',     [SignalController::class, 'ice'])->name('ice');
+    });
+
+    // Meta Business Suite Routes
+    Route::prefix('meta-business')->middleware(['role:administrator,advertiser'])->group(function () {
+        Route::get('/', [MetaBusinessController::class, 'index'])->name('meta.index');
+        Route::get('/connect', [MetaBusinessController::class, 'create'])->name('meta.connect');
+        Route::get('/callback', [MetaBusinessController::class, 'callback'])->name('meta.callback');
+        Route::get('/{account}', [MetaBusinessController::class, 'show'])->name('meta.show');
+        Route::post('/{account}/sync', [MetaBusinessController::class, 'sync'])->name('meta.sync');
+        Route::post('/{account}/disconnect', [MetaBusinessController::class, 'disconnect'])->name('meta.disconnect');
+        Route::get('/pages/{page}/insights', [MetaBusinessController::class, 'getPageInsights'])->name('meta.pages.insights');
+    });
+
+    // Pages Routes
+    Route::prefix('pages')->group(function () {
+        Route::get('/create', [UserPageController::class, 'create'])->name('pages.create');
+        Route::post('/', [UserPageController::class, 'store'])->name('pages.store');
+        Route::get('/{identifier}', [UserPageController::class, 'show'])->name('pages.show');
+        Route::post('/{page}/update', [UserPageController::class, 'update'])->name('pages.update');
+        Route::post('/{page}/follow', [UserPageController::class, 'toggleFollow'])->name('pages.follow');
+        Route::get('/{page}/insights', [UserPageController::class, 'insights'])->name('pages.insights');
+        Route::get('/{page}/posts', [UserPageController::class, 'getPosts'])->name('pages.posts');
+    });
+
 });
-
-
-
-

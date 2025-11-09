@@ -8,11 +8,11 @@
         </div>
     </div>
 
+    <CallIncomingListener />
     <!-- <ChatPopup/> -->
 </template>
 
 <script setup>
 import Navbar from "../Components/Navbar.vue";
-
-import ChatPopup from "../Components/Messages/ChatPopup.vue";
+import CallIncomingListener from "../Components/Messages/CallIncomingListener.vue";
 </script>

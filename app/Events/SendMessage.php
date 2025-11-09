@@ -67,6 +67,7 @@ class SendMessage implements ShouldBroadcast
                 'conversation_id' => $this->message->conversation_id,
                 'content' => $this->message->content,
                 'message_type' => $this->message->message_type,
+                'attachment_url' => $this->message->attachment_url,
                 'sender_id' => $this->sender->id,
                 'sender' => [
                     'id' => $this->sender->id,

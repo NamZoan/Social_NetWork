@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use GetStream\StreamLaravel\Facades\FeedManager;
 use GetStream\StreamLaravel\Eloquent\ActivityTrait;
-class User extends Authenticatable
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
@@ -111,7 +113,81 @@ class User extends Authenticatable
     }
     public function conversations()
     {
-        return $this->belongsToMany(Conversation::class, 'conversation_members')
+        return $this->belongsToMany(Conversation::class, 'conversation_members', 'user_id', 'conversation_id')
             ->withPivot('role', 'joined_at');
+    }
+
+    /**
+     * Mối quan hệ với roles
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Mối quan hệ với Meta Accounts
+     */
+    public function metaAccounts()
+    {
+        return $this->hasMany(MetaAccount::class, 'user_id');
+    }
+
+    /**
+     * Kiểm tra xem user có role cụ thể không
+     */
+    public function hasRole($roleName)
+    {
+        return $this->roles()->where('name', $roleName)->where('is_active', true)->exists();
+    }
+
+    /**
+     * Kiểm tra xem user có bất kỳ role nào trong danh sách không
+     */
+    public function hasAnyRole(array $roleNames)
+    {
+        return $this->roles()->whereIn('name', $roleNames)->where('is_active', true)->exists();
+    }
+
+    /**
+     * Kiểm tra xem user có tất cả các role trong danh sách không
+     */
+    public function hasAllRoles(array $roleNames)
+    {
+        $userRoles = $this->roles()->where('is_active', true)->pluck('name')->toArray();
+        return count(array_intersect($roleNames, $userRoles)) === count($roleNames);
+    }
+
+    /**
+     * Gán role cho user
+     */
+    public function assignRole($roleName)
+    {
+        $role = Role::where('name', $roleName)->where('is_active', true)->first();
+        if ($role && !$this->hasRole($roleName)) {
+            $this->roles()->attach($role->id);
+        }
+    }
+
+    /**
+     * Xóa role khỏi user
+     */
+    public function removeRole($roleName)
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role) {
+            $this->roles()->detach($role->id);
+        }
+    }
+
+    /**
+     * Kiểm tra xem user có quyền cụ thể không (thông qua roles)
+     */
+    public function hasPermission($permission)
+    {
+        return $this->roles()->where('is_active', true)->get()->filter(function ($role) use ($permission) {
+            return $role->hasPermission($permission);
+        })->isNotEmpty();
     }
 }

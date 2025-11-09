@@ -145,7 +145,7 @@ const handleFocus = () => {
 const fetchFriends = async () => {
     isLoading.value = true;
     try {
-        const response = await axios.get('message/getFriends');
+        const response = await axios.get('/message/getFriends');
         if (Array.isArray(response.data)) {
             friends.value = response.data;
             filteredFriends.value = response.data;
@@ -167,7 +167,7 @@ const sendMessage = async () => {
             recipient_id: selectedFriend.value.id,
             content: messageText.value,
         });
-        
+
         // Emit event to parent to update conversation list
         window.dispatchEvent(new CustomEvent('new-conversation', {
             detail: response.data.conversation

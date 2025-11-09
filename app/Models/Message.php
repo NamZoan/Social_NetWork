@@ -16,6 +16,8 @@ class Message extends Model
         'sender_id',
         'content',
         'message_type',
+        'attachment_url',
+        'is_deleted',
         'sent_at',
     ];
 

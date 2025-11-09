@@ -2,7 +2,8 @@
 
 use Illuminate\Support\Facades\Broadcast;
 use App\Models\ConversationMember;
-
+use App\Models\Call;
+use App\Models\CallParticipant;
 /*
 |--------------------------------------------------------------------------
 | Broadcast Channels
@@ -29,6 +30,21 @@ Broadcast::channel('user.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
+
+Broadcast::channel('call.{id}', function ($user, $id) {
+    $call = Call::find($id);
+    if (!$call) return false;
+
+    return $call->participants()->where('user_id', $user->id)->exists()
+        ? ['id' => $user->id, 'name' => $user->name]
+        : false;
+});
+
+Broadcast::channel('call.{id}', function ($user, $id) {
+    return CallParticipant::where('call_id', $id)
+        ->where('user_id', $user->id)
+        ->exists();
+});
 
 
 

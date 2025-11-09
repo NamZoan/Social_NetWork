@@ -890,14 +890,14 @@ const deleteComment = async (commentId) => {
 
     try {
         const response = await axios.delete(`/comments/${commentId}`);
-        
+
         if (response.data.comment_id) {
             // Xóa comment khỏi danh sách
             comments.value = comments.value.filter(c => c.id !== commentId);
-            
+
             // Cập nhật số lượng comment
             await updateCommentsCount();
-            
+
             // Hiển thị thông báo thành công
             alert('Xóa bình luận thành công');
         }

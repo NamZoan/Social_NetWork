@@ -46,6 +46,12 @@ return [
             'throw' => false,
             'report' => false,
         ],
+        'messages' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/messages'),  // Đường dẫn đến thư mục mà bạn muốn lưu tệp
+            'url' => env('APP_URL').'/storage/messages',    // URL để truy cập tệp từ trình duyệt
+            'visibility' => 'public',
+        ],
 
         's3' => [
             'driver' => 's3',

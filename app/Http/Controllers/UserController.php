@@ -10,6 +10,10 @@ use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Auth\Events\Registered;
+
 
 class UserController extends Controller
 {
@@ -29,6 +33,7 @@ class UserController extends Controller
 
         return Inertia::render('Auth/Register');
     }
+
     public function store(RegisterRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -49,10 +54,14 @@ class UserController extends Controller
             'password' => $request->password,
             'birthday' => $request->day . '-' . $request->month . '-' . $request->year,
         ]);
-        if ($user) {
-            return to_route('login')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
-        }
+
+        Auth::login($user);
+        event(new Registered($user));
+
+
+        return redirect()->route('verification.notice', [], 303);
     }
+
 
     public function authenticate(Request $request): RedirectResponse
     {
