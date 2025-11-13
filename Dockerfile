@@ -1,40 +1,67 @@
+### Stage 1 - Front-end assets
+FROM node:20-alpine AS node_build
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.js tailwind.config.js postcss.config.js ./ 
+RUN npm run build
+
+### Stage 2 - Composer dependencies
+FROM composer:2.7 AS vendor_build
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader
+
+### Stage 3 - Runtime image
 FROM php:8.2-fpm
 
-# Cài đặt extension PHP và các package cần thiết
+ENV PHP_MEMORY_LIMIT=256M
+
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    libzip-dev \
-    npm
-
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
-
-# Cài Composer
-COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
+        git \
+        curl \
+        unzip \
+        zip \
+        libzip-dev \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
+        libonig-dev \
+        libxml2-dev \
+        libssl-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        bcmath \
+        exif \
+        pcntl \
+        pdo_mysql \
+        mbstring \
+        gd \
+        zip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www
 
-# Copy code vào container
+COPY --from=vendor_build /usr/bin/composer /usr/bin/composer
 COPY . .
+COPY --from=vendor_build /app/vendor ./vendor
+COPY --from=node_build /app/public/build ./public/build
 
-# Tạo thư mục nếu chưa có (phòng trường hợp clone code mới)
-RUN mkdir -p storage bootstrap/cache
-
-# Phân quyền cho storage và bootstrap/cache
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-# Cài đặt Composer dependencies (nếu muốn tự động khi build)
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
-
-# Nếu muốn build FE luôn thì mở 2 dòng sau (nếu không thì ignore)
-# RUN npm install
-# RUN npm run build
+RUN mkdir -p storage bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
 

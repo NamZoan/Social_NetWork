@@ -1,0 +1,56 @@
+databases:
+  - name: doan-mysql
+    databaseType: mysql
+    mysqlVersion: 8.0
+    plan: free
+    databaseName: doan
+    user: doan_app
+    diskSizeGB: 10
+    ipAllowList: []
+
+services:
+  - type: web
+    name: doan-laravel-app
+    env: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    healthCheckPath: /
+    postDeployCommand: php artisan migrate --force
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: LOG_LEVEL
+        value: warning
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        fromDatabase:
+          name: doan-mysql
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: doan-mysql
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: doan-mysql
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: doan-mysql
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: doan-mysql
+          property: password
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
