@@ -71,9 +71,11 @@ COPY --from=vendor_build /app/vendor ./vendor
 COPY --from=node_build /app/public/build ./public/build
 
 # --- THAY ĐỔI 2: Chạy các script tối ưu hóa ---
-# Bây giờ chúng ta đã có toàn bộ code, ta có thể chạy các lệnh artisan.
-# Lệnh 'optimize' sẽ cache config, route và chạy package:discover.
-RUN php artisan optimize
+# Thay 'optimize' bằng lệnh an toàn này để chạy package:discover
+# mà không cần load các biến môi trường.
+RUN composer run-script post-autoload-dump --no-dev
+
+# Lệnh 'view:cache' vẫn an toàn, có thể giữ lại:
 RUN php artisan view:cache
 
 # Thiết lập quyền cho storage và cache

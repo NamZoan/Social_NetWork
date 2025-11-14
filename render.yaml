@@ -9,23 +9,28 @@ databases:
     ipAllowList: []
 
 services:
-  - type: web # <--- LỖI ĐÃ SỬA (trước đây là 'mysql')
+  - type: web # <--- Đã sửa
     name: doan-laravel-app
     env: docker
     plan: starter
     dockerfilePath: ./Dockerfile
     autoDeploy: true
     healthCheckPath: /
-    postDeployCommand: php artisan migrate --force
+
+    # --- SỬA LỖI PUSHER TẠI ĐÂY ---
+    # Chuyển 'optimize' đến đây để nó chạy SAU KHI deploy
+    # và có quyền truy cập vào các biến môi trường bí mật (Pusher keys)
+    postDeployCommand: php artisan optimize && php artisan migrate --force
+    
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: "false"
       - key: APP_KEY
-        sync: false
+        sync: false # <-- Nhớ tự thêm giá trị này trên Render
       - key: APP_URL
-        sync: false
+        sync: false # <-- Nhớ tự thêm giá trị này trên Render
       - key: LOG_LEVEL
         value: warning
       - key: DB_CONNECTION
@@ -54,4 +59,13 @@ services:
         value: database
       - key: CACHE_STORE
         value: database
-# Dòng 'e: mypassword' đã bị xóa
+      
+      # --- LƯU Ý ---
+      # Bạn cũng cần thêm các biến PUSHER_... của mình vào đây
+      # (hoặc vào tab Environment trên Render)
+      # - key: PUSHER_APP_ID
+      #   sync: false
+      # - key: PUSHER_APP_KEY
+      #   sync: false
+      # - key: PUSHER_APP_SECRET
+      #   sync: false
