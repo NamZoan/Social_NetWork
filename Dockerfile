@@ -71,9 +71,9 @@ COPY --from=vendor_build /app/vendor ./vendor
 COPY --from=node_build /app/public/build ./public/build
 
 # --- THAY ĐỔI 2: Chạy các script tối ưu hóa ---
-# Thay 'optimize' bằng lệnh an toàn này để chạy package:discover
-# mà không cần load các biến môi trường.
-RUN composer run-script post-autoload-dump --no-dev
+# Chạy package:discover một cách an toàn. Bằng cách tạm thời đặt BROADCAST_DRIVER=log,
+# chúng ta tránh được lỗi khởi tạo Pusher/Reverb khi chưa có biến môi trường.
+RUN BROADCAST_DRIVER=log composer run-script post-autoload-dump --no-dev
 
 # Lệnh 'view:cache' vẫn an toàn, có thể giữ lại:
 RUN php artisan view:cache
