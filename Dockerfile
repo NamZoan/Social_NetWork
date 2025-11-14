@@ -75,9 +75,6 @@ COPY --from=node_build /app/public/build ./public/build
 # chúng ta tránh được lỗi khởi tạo Pusher/Reverb khi chưa có biến môi trường.
 RUN BROADCAST_DRIVER=log composer run-script post-autoload-dump --no-dev
 
-# Lệnh 'view:cache' vẫn an toàn, có thể giữ lại:
-RUN php artisan view:cache
-
 # Thiết lập quyền cho storage và cache
 RUN mkdir -p storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
