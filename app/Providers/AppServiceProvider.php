@@ -8,7 +8,7 @@ use App\Repositories\ConversationRepositoryInterface;
 use App\Repositories\ConversationRepository;
 use App\Repositories\FriendshipRepositoryInterface;
 use App\Repositories\FriendshipRepository;
-
+use Illuminate\Support\Facades\URL;
 use App\Repositories\GroupRepositoryInterface;
 use App\Repositories\GroupRepository;
 
@@ -40,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (config('app.env') === 'production') { // <-- Dòng này là tùy chọn, nhưng nên có
+            URL::forceScheme('https'); // <-- THÊM DÒNG NÀY
+        }
     }
 }
