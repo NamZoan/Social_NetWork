@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <GroupDetail :group="group" :user_auth="user_auth" :is-member="isMember" :isAdmin="isAdmin">
         <div class="container mt-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -8,7 +8,7 @@
             <ul class="list-group">
                 <li v-for="member in members" :key="member.id" class="list-group-item d-flex align-items-center py-3">
                     <img
-                        :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/web/users/avatar.jpg'"
+                        :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/default/avatar.jpg'"
                         alt="avatar"
                         class="rounded-circle me-3"
                         style="width:48px;height:48px;object-fit:cover;border:2px solid #e3e3e3;"
@@ -71,7 +71,7 @@ const makeAdmin = async (memberId) => {
         await axios.post(`/groups/${props.group.id}/members/${memberId}/make-admin`);
         window.location.reload();
     } catch (e) {
-        alert('Cấp quyền admin thất bại!');
+        alert('Cáº¥p quyá»n admin tháº¥t báº¡i!');
     }
 };
 </script>
@@ -87,3 +87,4 @@ const makeAdmin = async (memberId) => {
     background: #f8f9fa;
 }
 </style>
+

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <App>
         <div class="row message-right-side-content">
             <div class="col-md-12">
@@ -7,7 +7,7 @@
                         <div class="message-profile">
                             <div class="wrap">
                                 <img
-                                    :src="user.avatar && user.avatar !== 'undefined' ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'" />
+                                    :src="user.avatar && user.avatar !== 'undefined' ? `/images/client/avatar/${user.avatar}` : '/images/default/avatar.jpg'" />
                                 <p>{{ user.name }}</p>
                             </div>
                         </div>
@@ -156,3 +156,4 @@ const handleConversationDeleted = (conversationId) => {
 <style scoped>
 @import '../../../css/messenger.css';
 </style>
+

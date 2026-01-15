@@ -27,7 +27,7 @@ import { Link } from '@inertiajs/vue3';
                             alt="group"> Bạn Bè</Link>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <Link href="/pages/create" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/page.png'"
+                    <Link href="/pages/index" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/page.png'"
                             alt="page"> Trang</Link>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">

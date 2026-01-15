@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="col-md-12">
         <div
             class="message-header d-flex justify-content-between align-items-center"
@@ -27,15 +27,22 @@
 
                 <button
                     class="btn btn-link"
+                    title="Lịch sử cuộc gọi"
+                    @click="showCallHistory = true"
+                >
+                    <i class="bx bx-history" style="font-size: 24px"></i>
+                </button>
+                <button
+                    class="btn btn-link"
                     title="Gọi thoại"
-                    @click="startVideoCall"
+                    @click="startVideoCall()"
                 >
                     <i class="bx bx-phone" style="font-size: 24px"></i>
                 </button>
                 <button
                     class="btn btn-link"
                     title="Gọi video"
-                    @click="startVideoCall"
+                    @click="startVideoCall()"
                 >
                     <i class="bx bx-video" style="font-size: 24px"></i>
                 </button>
@@ -144,7 +151,7 @@
                                         :src="
                                             member.avatar
                                                 ? `/images/client/avatar/${member.avatar}`
-                                                : '/images/web/users/avatar.jpg'
+                                                : '/images/default/avatar.jpg'
                                         "
                                         alt="avatar"
                                         style="
@@ -155,7 +162,7 @@
                                         "
                                     />
                                     <span>{{ member.name }}</span>
-                                    <!-- Nút xóa thành viên, chỉ hiển thị với người tạo nhóm -->
+                                    <!-- Nút xóa thành viên, chỉ hiện với người tạo nhóm -->
                                     <button
                                         v-if="isCreator"
                                         class="btn btn-link p-0 ms-auto"
@@ -235,13 +242,21 @@
         <!-- Video Call Component -->
 
         <VideoCall
-            v-if="showVideoCall"
+            v-if="showVideoCall && currentCallId"
             :call-id="currentCallId"
             :me-id="user.id"
             :peer-id="getOtherUser?.id"
             :user="getOtherUser || {}"
             :is-caller="true"
             @end-call="endVideoCall"
+        />
+
+        <!-- Call History Component -->
+        <CallHistory
+            :visible="showCallHistory"
+            @close="showCallHistory = false"
+            @redial="handleRedial"
+            @video-call="handleVideoCallFromHistory"
         />
     </div>
 </template>
@@ -251,6 +266,7 @@ import { ref, computed, watch } from "vue";
 import axios from "axios";
 import AddMember from "../Right/AddMember.vue"; // Đường dẫn đúng tới AddMember.vue
 import VideoCall from "../VideoCall.vue"; // Import VideoCall component
+import CallHistory from "../CallHistory.vue"; // Import CallHistory component
 import { usePage } from "@inertiajs/vue3";
 import { Inertia } from "@inertiajs/inertia";
 
@@ -270,14 +286,42 @@ const props = defineProps({
 
 const showVideoCall = ref(false)
 const currentCallId = ref(null)
+const showCallHistory = ref(false)
 
-const startVideoCall = async () => {
-  // conversation cá nhân: invite 1 người
-  const { data } = await axios.post('/calls/invite', {
-    user_id: getOtherUser.value.id
-  })
-  currentCallId.value = data.id
-  showVideoCall.value = true
+const startVideoCall = async (userId = null) => {
+  try {
+    const directUserId = userId && typeof userId === 'object' ? null : userId;
+    const targetUserId = directUserId || getOtherUser.value?.id;
+    const numericUserId = Number(targetUserId);
+
+    if (!numericUserId) {
+      alert("Không tìm thấy người dùng để gọi");
+      return;
+    }
+
+    console.log("[Header] Starting video call with user ID:", numericUserId);
+    // conversation cá nhân: invite 1 người
+    const { data } = await axios.post('/calls/invite', {
+      user_id: numericUserId
+    })
+    console.log("[Header] Call created, ID:", data.id);
+    currentCallId.value = data.id
+    showVideoCall.value = true
+    console.log("[Header] VideoCall component should be visible now");
+  } catch (error) {
+    console.error("[Header] Error starting video call:", error);
+    alert("Không thể bắt đầu cuộc gọi: " + (error.response?.data?.message || error.message));
+  }
+}
+
+const handleRedial = (userId) => {
+  showCallHistory.value = false;
+  startVideoCall(userId);
+}
+
+const handleVideoCallFromHistory = (userId) => {
+  showCallHistory.value = false;
+  startVideoCall(userId);
 }
 const endVideoCall = async () => {
   if (currentCallId.value) await axios.post('/calls/end', { id: currentCallId.value })
@@ -317,7 +361,7 @@ const getOtherUser = computed(() => {
 });
 
 const getOtherUserAvatar = computed(() => {
-    if (!props.conversation) return "/images/web/users/avatar.jpg";
+    if (!props.conversation) return "/images/default/avatar.jpg";
 
     if (props.conversation.conversation_type === "group") {
         return props.conversation.image
@@ -331,7 +375,7 @@ const getOtherUserAvatar = computed(() => {
     );
     return otherUser?.avatar
         ? `/images/client/avatar/${otherUser.avatar}`
-        : "/images/web/users/avatar.jpg";
+        : "/images/default/avatar.jpg";
 });
 
 const getOtherUserName = computed(() => {

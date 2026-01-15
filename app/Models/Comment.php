@@ -35,6 +35,16 @@ class Comment extends Model
         return $this->hasMany(Comment::class, 'parent_comment_id');
     }
 
+    /**
+     * Replies together with their nested children.
+     */
+    public function repliesRecursive(): HasMany
+    {
+        return $this->replies()
+            ->with(['user', 'repliesRecursive'])
+            ->orderBy('created_at', 'asc');
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Comment::class, 'parent_comment_id');
@@ -61,10 +71,7 @@ class Comment extends Model
     // Lấy tất cả replies của một comment
     public function getAllReplies()
     {
-        return $this->replies()
-            ->with(['user', 'replies.user'])
-            ->orderBy('created_at', 'asc')
-            ->get();
+        return $this->repliesRecursive()->get();
     }
 
     // Kiểm tra xem comment có phải là reply không
@@ -85,4 +92,17 @@ class Comment extends Model
         $this->is_hidden = !$this->is_hidden;
         return $this->save();
     }
+
+    /**
+     * Delete the comment and every nested reply.
+     */
+    public function deleteRecursively(): void
+    {
+        foreach ($this->replies as $reply) {
+            $reply->deleteRecursively();
+        }
+
+        $this->delete();
+    }
 }
+

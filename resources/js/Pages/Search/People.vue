@@ -1,8 +1,8 @@
-<template>
+﻿<template>
     <ul class="list-group">
         <li v-for="user in users" :key="user.id" class="list-group-item d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
-                <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'" class="rounded-circle me-2" width="40" height="40" />
+                <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/default/avatar.jpg'" class="rounded-circle me-2" width="40" height="40" />
                 <div>
                     <Link :href="`/${user.username}`" class="fw-bold">{{ user.name }}</Link>
                     <div class="text-muted">@{{ user.username }}</div>

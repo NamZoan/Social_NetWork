@@ -9,13 +9,14 @@
             >
                 <i :class="tab.icon"></i>
                 <span class="tab-label">{{ tab.label }}</span>
+                <span v-if="tab.count !== null" class="tab-count">{{ tab.count }}</span>
             </button>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps({
     activeTab: {
@@ -25,29 +26,41 @@ const props = defineProps({
     isAdmin: {
         type: Boolean,
         default: false
+    },
+    stats: {
+        type: Object,
+        default: () => ({
+            posts: 0,
+            photos: 0,
+            videos: 0,
+            followers: 0,
+        })
     }
 });
 
 const emit = defineEmits(['tab-changed']);
 
-const tabs = [
-    { key: 'home', label: 'Trang chủ', icon: 'bx bx-home', visible: true },
-    { key: 'about', label: 'Giới thiệu', icon: 'bx bx-info-circle', visible: true },
-    { key: 'posts', label: 'Bài viết', icon: 'bx bx-file', visible: true },
-    { key: 'photos', label: 'Ảnh', icon: 'bx bx-image', visible: true },
-    { key: 'videos', label: 'Video', icon: 'bx bx-video', visible: true },
-    { key: 'community', label: 'Cộng đồng', icon: 'bx bx-group', visible: true },
-    { key: 'insights', label: 'Phân tích', icon: 'bx bx-bar-chart-alt-2', visible: false },
-    { key: 'settings', label: 'Cài đặt', icon: 'bx bx-cog', visible: false },
+const baseTabs = [
+    { key: 'home', label: 'Trang chủ', icon: 'bx bx-home', visible: true, countKey: null },
+    { key: 'about', label: 'Giới thiệu', icon: 'bx bx-info-circle', visible: true, countKey: null },
+    { key: 'posts', label: 'Bài viết', icon: 'bx bx-file', visible: true, countKey: 'posts' },
+    { key: 'photos', label: 'Ảnh', icon: 'bx bx-image', visible: true, countKey: 'photos' },
+    { key: 'community', label: 'Cộng đồng', icon: 'bx bx-group', visible: true, countKey: 'followers' },
+    { key: 'insights', label: 'Phân tích', icon: 'bx bx-bar-chart-alt-2', visible: false, countKey: null },
 ];
 
 const visibleTabs = computed(() => {
-    return tabs.filter(tab => {
-        if (tab.key === 'insights' || tab.key === 'settings') {
-            return props.isAdmin;
-        }
-        return tab.visible;
-    });
+    return baseTabs
+        .filter((tab) => {
+            if (tab.key === 'insights' || tab.key === 'settings') {
+                return props.isAdmin;
+            }
+            return tab.visible;
+        })
+        .map((tab) => ({
+            ...tab,
+            count: tab.countKey ? Number(props.stats?.[tab.countKey] || 0) : null,
+        }));
 });
 
 const selectTab = (tabKey) => {
@@ -78,7 +91,7 @@ const selectTab = (tabKey) => {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 16px 20px;
+    padding: 14px 18px;
     border: none;
     background: transparent;
     color: #65676b;
@@ -106,12 +119,17 @@ const selectTab = (tabKey) => {
     background: transparent;
 }
 
-.tab-icon {
-    font-size: 20px;
-}
-
 .tab-label {
     font-size: 15px;
+}
+
+.tab-count {
+    background: #eef2ff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -123,11 +141,5 @@ const selectTab = (tabKey) => {
     .tab-label {
         display: none;
     }
-
-    .tab-icon {
-        font-size: 24px;
-    }
 }
 </style>
-
-

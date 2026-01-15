@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <App>
         <div class="col-md-12 message-right-side">
             <div class="row profile-right-side-content">
@@ -20,7 +20,7 @@
                                         <div class="profile-img-overlay"></div>
                                         <img :src="user.avatar
                                                 ? `/images/client/avatar/${user.avatar}`
-                                                : '/images/web/users/avatar.jpg'
+                                                : '/images/default/avatar.jpg'
                                             " alt="Avatar" class="avatar img-circle" />
 
                                         <div v-if="isOwner" class="profile-img-caption">
@@ -75,8 +75,7 @@
                                             friendshipStatus ===
                                             'friends' && !isOwner
                                         " class="btn btn-follow" @click="unfriend">
-                                            <i class="bx bx-user-check"></i> Bạn
-                                            bè
+                                            <i class="bx bx-user-check"></i> Bạn bè
                                         </button>
 
                                         <button v-if="!isOwner" type="button" class="btn btn-start-chat"
@@ -207,6 +206,7 @@
                                             </div>
                                         </li>
                                     </ul>
+                                    <slot name="filters"></slot>
                                     <slot></slot>
                                 </div>
                             </div>
@@ -307,3 +307,4 @@ onMounted(() => {
 <style scoped>
 @import "../../../css/profile.css";
 </style>
+

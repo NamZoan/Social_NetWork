@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="message-contacts">
     <ul class="conversations">
       <li
@@ -77,7 +77,7 @@ const getConversationAvatar = (conversation) => {
     const other = conversation.members?.find(m => m.id !== currentUserId)
     return other?.avatar
       ? `/images/client/avatar/${other.avatar}`
-      : '/images/web/users/avatar.jpg'
+      : '/images/default/avatar.jpg'
   }
 }
 
@@ -88,7 +88,7 @@ const getConversationName = (conversation) => {
 }
 
 const getLastMessage = (conversation) => {
-  // ưu tiên lastMessage backend trả; fallback phần tử cuối trong messages
+  // Ưu tiên lastMessage backend trả; fallback phần tử cuối trong messages
   const last = conversation.last_message ?? conversation.lastMessage ?? (
     Array.isArray(conversation.messages) && conversation.messages.length
       ? conversation.messages[conversation.messages.length - 1]
@@ -128,3 +128,4 @@ const isUserOnline = (conversation) => {
 img{width:40px;height:40px;border-radius:50%;object-fit:cover}
 .no-results{padding:20px;text-align:center;color:#666;font-style:italic}
 </style>
+

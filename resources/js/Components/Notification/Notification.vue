@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <li class="nav-item s-nav dropdown notification">
         <a href="#" class="nav-link nav-links rm-drop-mobile drop-w-tooltip" data-toggle="dropdown"
             data-placement="bottom" data-title="Notifications" role="button" aria-haspopup="true" aria-expanded="false">
@@ -21,7 +21,7 @@
                 <li v-for="noti in notifications" :key="noti.id">
                     <div class="col-md-2 col-sm-2 col-xs-2">
                         <div class="notify-img">
-                            <img :src="noti.sender_avatar ? `/images/client/avatar/${noti.sender_avatar}` : '/images/web/users/avatar.jpg'"
+                            <img :src="noti.sender_avatar ? `/images/client/avatar/${noti.sender_avatar}` : '/images/default/avatar.jpg'"
                                 alt="notification user image">
                         </div>
                     </div>

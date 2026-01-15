@@ -215,7 +215,6 @@
 
     #page-content-wrapper {
         min-width: 0;
-        width: 100vw;
         position: relative;
         padding-left: 1%
     }

@@ -45,14 +45,17 @@
                 <div class="modal-body">
                     <form @submit.prevent="submitPost">
                         <!-- Chọn quyền riêng tư -->
-                        <div v-if="!props.group_id">
+                        <div v-if="!props.group_id && !pageId">
                         <select v-model="form.privacy_setting" class="form-control" aria-label="Default select example">
                             <option value="public">Công Khai</option>
                             <option value="friends">Bạn Bè</option>
                             <option value="private">Chỉ Mình Tôi</option>
                         </select>
                         </div>
-                        <div v-else class="alert" :class="props.group?.post_approval_required ? 'alert-info' : 'alert-warning'">
+                        <div v-else-if="pageId" class="alert alert-info">
+                            Bài viết sẽ được đăng công khai trên trang {{ props.page?.name }}
+                        </div>
+                        <div v-else-if="props.group" class="alert" :class="props.group?.post_approval_required ? 'alert-info' : 'alert-warning'">
                             {{ props.group?.post_approval_required ? 'Đăng bài tự do' : 'Cần quản trị viên duyệt bài viết' }}
                         </div>
 
@@ -89,11 +92,19 @@ const props = defineProps({
         type: Number,
         default: null
     },
+    page_id: {
+        type: Number,
+        default: null
+    },
     user: {
         type: Object,
         required: true
     },
     group: {
+        type: Object,
+        default: null
+    },
+    page: {
         type: Object,
         default: null
     },
@@ -107,15 +118,25 @@ const props = defineProps({
     }
 });
 
+// Ưu tiên page_id được truyền trực tiếp, fallback lấy từ đối tượng page
+const pageId = props.page_id ?? (props.page ? props.page.id : null);
+
 const fileInput = ref(null);
 const form = useForm({
     content: '',
     privacy_setting: 'public',
     files: [],
-    group_id: props.group_id || null
+    group_id: props.group_id || null,
+    page_id: pageId
 });
 
-const placeholder = props.user ? `Bạn đang nghĩ gì..., ${props.user.name}?` : "Bạn đang nghĩ gì...?";
+const placeholder = pageId 
+    ? `Đăng bài viết trên trang ${props.page?.name}...`
+    : props.group_id 
+        ? `Đăng bài viết trong nhóm ${props.group?.name}...`
+        : props.user 
+            ? `Bạn đang nghĩ gì..., ${props.user.name}?` 
+            : "Bạn đang nghĩ gì...?";
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -140,8 +161,31 @@ onMounted(() => {
 });
 
 // Gửi form lên server Laravel
-const submitPost = () => {
+const submitPost = async () => {
     if (!form.content.trim()) return;
+
+    // Page posts cần JSON response nên xử lý riêng bằng axios để tránh lỗi Inertia overlay
+    if (pageId) {
+        try {
+            const payload = new FormData();
+            payload.append('content', form.content);
+            payload.append('privacy_setting', 'public');
+            payload.append('page_id', pageId);
+            form.files.forEach((file, idx) => {
+                payload.append(`files[${idx}]`, file);
+            });
+
+            await axios.post('/posts', payload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Reload lại trang để thấy bài viết mới
+            window.location.reload();
+        } catch (error) {
+            console.error('Error creating page post:', error);
+        }
+        return;
+    }
 
     form.post('/posts', {
         forceFormData: true,
@@ -150,7 +194,6 @@ const submitPost = () => {
             if (fileInput.value) {
                 fileInput.value.value = '';
             }
-            // Reload the page to show the new post
             window.location.reload();
         }
     });
@@ -176,4 +219,3 @@ const submitPost = () => {
     color: #856404;
 }
 </style>
-

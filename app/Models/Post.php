@@ -16,6 +16,14 @@ class Post extends Model
     const PRIVACY_FRIENDS = 'friends';
     const PRIVACY_PRIVATE = 'private';
 
+    protected $casts = [
+        'allow_comments' => 'boolean',
+        'likes_count' => 'integer',
+        'comments_count' => 'integer',
+        'shares_count' => 'integer',
+        'views_count' => 'integer',
+    ];
+
     protected $fillable = [
         'user_id',
         'content',
@@ -79,7 +87,16 @@ class Post extends Model
     // Lấy số lượng comments của bài post (bao gồm cả replies)
     public function getTotalCommentsCount(): int
     {
-        return $this->comments()->count() + $this->comments()->withCount('replies')->get()->sum('replies_count');
+        if ($this->comments_count !== null) {
+            return (int) $this->comments_count;
+        }
+
+        return $this->comments()
+            ->where(function ($query) {
+                $query->where('is_hidden', false)
+                    ->orWhereNull('is_hidden');
+            })
+            ->count();
     }
 
     // Lấy số lượng comments gốc của bài post
@@ -161,4 +178,25 @@ class Post extends Model
             ->limit($limit)
             ->get();
     }
+
+    public function relatedPosts()
+    {
+        // Quan hệ Many-to-Many thông qua bảng trung gian 'related_posts'
+        // Lấy ra các bài post khác dựa trên bảng related_posts, sắp xếp theo điểm số cao nhất
+        return $this->belongsToMany(Post::class, 'related_posts', 'post_id', 'related_post_id')
+            ->withPivot('similarity_score')
+            ->orderByPivot('similarity_score', 'desc');
+    }
+    public function getSimilarPosts($limit = 5)
+    {
+        return $this->relatedPosts()
+            ->with('related') // eager load Post liên quan
+            ->orderByDesc('similarity_score')
+            ->limit($limit)
+            ->get()
+            ->map(function ($rel) {
+                return $rel->related;
+            });
+    }
+
 }

@@ -53,8 +53,15 @@ class GroupController extends Controller
     public function show(Group $group)
     {
         $posts = $group->posts()
-            ->with(['user', 'media', 'likes', 'comments'])
-            ->withCount('comments')
+            ->with([
+                'user',
+                'media',
+                'likes',
+                'comments',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->latest()
             ->paginate(1);
 
@@ -111,7 +118,15 @@ class GroupController extends Controller
     public function getPosts(Group $group)
     {
         $posts = $group->posts()
-            ->with(['user', 'images', 'likes', 'comments'])
+            ->with([
+                'user',
+                'images',
+                'likes',
+                'comments',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->latest()
             ->paginate(1);
 
@@ -123,8 +138,15 @@ class GroupController extends Controller
         $page = $request->input('page', 1);
 
         $posts = $group->posts()
-            ->with(['user', 'media', 'likes', 'comments'])
-            ->withCount('comments')
+            ->with([
+                'user',
+                'media',
+                'likes',
+                'comments',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->latest()
             ->paginate(1, ['*'], 'page', $page);
 
@@ -180,7 +202,15 @@ class GroupController extends Controller
         $isAdmin = $group->isAdmin(Auth::id());
 
         $pendingPosts = $group->posts()
-            ->with(['user', 'media', 'likes', 'comments'])
+            ->with([
+                'user',
+                'media',
+                'likes',
+                'comments',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->where('privacy_setting', 'pending')
             ->latest()
             ->get();
@@ -258,7 +288,15 @@ class GroupController extends Controller
 
         $myPosts = $group->posts()
             ->where('user_id', $user->id)
-            ->with(['user', 'media', 'likes', 'comments'])
+            ->with([
+                'user',
+                'media',
+                'likes',
+                'comments',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->latest()
             ->get();
 

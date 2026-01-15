@@ -23,7 +23,7 @@
                         <i :class="metric.icon"></i>
                     </div>
                     <div class="metric-info">
-                        <div class="metric-value">{{ formatNumber(metric.value) }}</div>
+                        <div class="metric-value">{{ metric.value }}</div>
                         <div class="metric-label">{{ metric.label }}</div>
                         <div class="metric-change" :class="metric.change >= 0 ? 'positive' : 'negative'">
                             <i :class="metric.change >= 0 ? 'bx bx-up-arrow-alt' : 'bx bx-down-arrow-alt'"></i>
@@ -68,43 +68,7 @@
                 </div>
             </div>
 
-            <!-- Top Posts -->
-            <div class="top-posts-section">
-                <h3 class="section-title">Bài đăng phổ biến</h3>
-                <div class="posts-grid">
-                    <div
-                        v-for="post in topPosts"
-                        :key="post.id"
-                        class="post-card"
-                        @click="viewPost(post)"
-                    >
-                        <div class="post-image">
-                            <img
-                                v-if="post.media && post.media[0]"
-                                :src="getImageUrl(post.media[0].url)"
-                                :alt="post.content"
-                            />
-                            <div v-else class="post-placeholder">
-                                <i class="bx bx-file"></i>
-                            </div>
-                        </div>
-                        <div class="post-stats">
-                            <div class="stat-item">
-                                <i class="bx bx-like"></i>
-                                <span>{{ formatNumber(post.likes_count || 0) }}</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="bx bx-message"></i>
-                                <span>{{ formatNumber(post.comments_count || 0) }}</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="bx bx-share-alt"></i>
-                                <span>{{ formatNumber(post.shares_count || 0) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            
         </div>
     </div>
 </template>
@@ -128,26 +92,10 @@ const isLoading = ref(false);
 const selectedPeriod = ref(30);
 const keyMetrics = ref([]);
 const topPosts = ref([]);
-const followersChart = ref(null);
-const engagementChart = ref(null);
-const reachChart = ref(null);
-const demographicsChart = ref(null);
 
-const formatNumber = (num) => {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-};
 
-const getImageUrl = (url) => {
-    if (!url) return '/images/placeholder.jpg';
-    if (url.startsWith('http')) return url;
-    return `/storage/${url}`;
-};
+
+
 
 const loadInsights = async () => {
     isLoading.value = true;
@@ -155,10 +103,10 @@ const loadInsights = async () => {
         const response = await axios.get(`/pages/${props.page.id}/insights`, {
             params: { period: selectedPeriod.value }
         });
-        
+
         keyMetrics.value = response.data.metrics || [];
         topPosts.value = response.data.top_posts || [];
-        
+
         // TODO: Initialize charts with Chart.js
         // initializeCharts(response.data.chart_data);
     } catch (error) {
@@ -168,10 +116,6 @@ const loadInsights = async () => {
     }
 };
 
-const viewPost = (post) => {
-    // TODO: Navigate to post detail
-    console.log('View post:', post);
-};
 
 onMounted(() => {
     loadInsights();

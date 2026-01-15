@@ -1,41 +1,29 @@
-<template>
+﻿<template>
     <div class="post border-bottom p-3 bg-white w-shadow mb-3">
         <div class="media text-muted pt-3">
-            <img :src="userData.avatar
-                    ? `/images/client/avatar/${userData.avatar}`
-                    : '/images/web/users/avatar.jpg'
-                " class="mr-3 post-user-image" />
+            <img :src="displayAvatar" class="mr-3 post-user-image" />
             <div class="media-body pb-3 mb-0 small lh-125">
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <span class="post-type text-muted">
-                        <Link :href="`/${userData.username}`" class="text-gray-dark post-user-name">{{ userData.name }}
-                        </Link>
-                        <!-- Hiển thị nhóm nếu có -->
-                        <template v-if="postData.group">
-                            <span class="group-name">
-                                <Link :href="`/groups/${postData.group.id}`" class="text-gray-dark post-user-name">
-                                {{ "> " + postData.group.name }}</Link>
-                            </span>
+                        <template v-if="isPagePost">
+                            <Link :href="pageLink" class="text-gray-dark post-user-name">{{ pageName }}</Link>
+                        </template>
+                        <template v-else>
+                            <Link :href="authorLink" class="text-gray-dark post-user-name">{{ authorName }}</Link>
+                            <!-- Hien thi nhom neu co -->
+                            <template v-if="postData.group">
+                                <span class="post-separator">&gt;</span>
+                                <Link :href="`/groups/${postData.group.id}`" class="text-gray-dark post-user-name group-name">
+                                    {{ postData.group.name }}</Link>
+                            </template>
                         </template>
                     </span>
-                    <div class="dropdown">
+                    <div v-if="showMenus" class="dropdown">
                         <a href="#" class="post-more-settings" role="button" data-toggle="dropdown" id="postOptions"
                             aria-haspopup="true" aria-expanded="false">
                             <i class="bx bx-dots-horizontal-rounded"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
-                            <a href="#" class="dropdown-item" data-toggle="modal"
-                                :data-target="'#modal-update' + postData.id">
-                                <div class="row">
-                                    <div class="col-md-2">
-                                        <i class="bx bx-edit-alt post-option-icon"></i>
-                                    </div>
-                                    <div class="col-md-10">
-                                        <span class="fs-9">Chỉnh sửa</span>
-                                        <small id="editPost" class="form-text text-muted">edit post article</small>
-                                    </div>
-                                </div>
-                            </a>
                             <a href="#" class="dropdown-item" aria-describedby="deletePost"
                                 @click.prevent="deletePost(postData.id)">
                                 <div class="row">
@@ -44,15 +32,16 @@
                                     </div>
                                     <div class="col-md-10">
                                         <span class="fs-9">Xóa bỏ</span>
-                                        <small id="deletePost" class="form-text text-muted">delete post</small>
+                                        <small id="deletePost" class="form-text text-muted">xóa bài viết</small>
                                     </div>
                                 </div>
                             </a>
                         </div>
                     </div>
                 </div>
-                <span class="d-block">{{ postData.created_at }}
-                    <div class="dropdown d-inline-block">
+                <span class="d-block">{{ formatTime(postData.created_at) }}
+                    <span v-if="postData.is_suggested" class="suggested-badge">Suggested</span>
+                    <div v-if="showMenus" class="dropdown d-inline-block">
                         <i :class="privacyIcon" class="ml-3 privacy-icon" data-toggle="dropdown" aria-haspopup="true"
                             aria-expanded="false"></i>
                         <div class="dropdown-menu dropdown-menu-right privacy-dropdown">
@@ -61,7 +50,7 @@
                                     postData.privacy_setting === 'public',
                             }" @click="updatePrivacy('public')">
                                 <i class="bx bx-globe mr-2"></i>
-                                <span>Public</span>
+                                <span>Công khai</span>
                                 <small class="d-block text-muted">Mọi người có thể xem bài viết này</small>
                             </div>
                             <div class="dropdown-item" :class="{
@@ -69,7 +58,7 @@
                                     postData.privacy_setting === 'friends',
                             }" @click="updatePrivacy('friends')">
                                 <i class="bx bx-user mr-2"></i>
-                                <span>Friends</span>
+                                <span>Bạn bè</span>
                                 <small class="d-block text-muted">Chỉ bạn bè có thể xem bài viết này</small>
                             </div>
                             <div class="dropdown-item" :class="{
@@ -77,8 +66,8 @@
                                     postData.privacy_setting === 'private',
                             }" @click="updatePrivacy('private')">
                                 <i class="bx bx-lock-alt mr-2"></i>
-                                <span>Private</span>
-                                <small class="d-block text-muted">Chỉ bạn có thể xem bài viết này</small>
+                                <span>Chỉ mình tôi</span>
+                                <small class="d-block text-muted">Chỉ mình tôi có thể xem bài viết này</small>
                             </div>
                         </div>
                     </div>
@@ -86,6 +75,27 @@
             </div>
         </div>
         <p>{{ postData.content }}</p>
+
+        <div v-if="sharedPost" class="shared-post-card">
+            <div class="d-flex align-items-center mb-2">
+                <img :src="sharedAuthorAvatar" class="mr-2 shared-post-avatar" />
+                <div>
+                    <Link :href="sharedAuthorLink" class="shared-post-user">
+                        {{ sharedAuthorName }}
+                    </Link>
+                        <div class="text-muted small">Bài viết gốc</div>
+                </div>
+            </div>
+            <p class="mb-2">{{ sharedPost.content }}</p>
+            <div v-if="sharedImages.length" :class="sharedGalleryClass" class="gallery shared-gallery">
+                <div v-for="(src, index) in sharedDisplayImages" :key="index" class="gallery-item">
+                    <img :src="'/images/client/post/' + src" loading="lazy" />
+                </div>
+                <div v-if="sharedImages.length > 2" class="more-overlay">
+                    +{{ sharedImages.length - 2 }}
+                </div>
+            </div>
+        </div>
 
         <div class="border-bottom"></div>
 
@@ -141,7 +151,7 @@
         <!-- Reactions -->
         <div class="argon-reaction">
             <span class="like-btn">
-                <!-- Nút chính: Hiển thị ảnh reaction hoặc icon like -->
+                <!-- N�t ch�nh: Hi?n th? ?nh reaction ho?c icon like -->
                 <a class="post-card-buttons" @click="removeReaction">
                     <img v-if="isReaction" :src="getReactionImage" width="24px" class="mr-1 mb-1" />
                     <i v-else class="bx bxs-like mr-2"></i>
@@ -149,22 +159,25 @@
                     {{ totalReaction }}
                 </a>
 
-                <!-- Danh sách các reaction -->
-                <ul class="reactions-box dropdown-shadow">
+                <!-- Danh s�ch c�c reaction -->
+                    <ul class="reactions-box dropdown-shadow">
                     <li v-for="reaction in reactions" :key="reaction.type" class="reaction"
                         :class="'reaction-' + reaction.type" @click="toggleLike(reaction.type)"></li>
                 </ul>
             </span>
         </div>
         <a href="javascript:void(0)" class="post-card-buttons" id="show-comments" data-toggle="modal"
+            @click="handleCommentModalShow"
             :data-target="'#exampleModalScrollable-' + postData.id"><i class="bx bx-message-rounded mr-1"></i>
-            {{ postData.comments_count || 0 }}</a>
+            {{ commentsCount }}</a>
         <div class="dropdown dropup share-dropup">
             <a href="#" class="post-card-buttons" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="bx bx-share-alt mr-1"></i> Share
+                <i class="bx bx-share-alt mr-1"></i>
+                Share
+                <span v-if="shareCount">({{ shareCount }})</span>
             </a>
             <div class="dropdown-menu post-dropdown-menu">
-                <a href="#" class="dropdown-item">
+                <a href="#" class="dropdown-item" @click.prevent="shareNow('public')">
                     <div class="row">
                         <div class="col-md-2">
                             <i class="bx bx-share-alt"></i>
@@ -174,7 +187,7 @@
                         </div>
                     </div>
                 </a>
-                <a href="#" class="dropdown-item">
+                <a href="#" class="dropdown-item" @click.prevent="openShareModal">
                     <div class="row">
                         <div class="col-md-2">
                             <i class="bx bx-share-alt"></i>
@@ -184,7 +197,7 @@
                         </div>
                     </div>
                 </a>
-                <a href="#" class="dropdown-item">
+                <a href="#" class="dropdown-item disabled">
                     <div class="row">
                         <div class="col-md-2">
                             <i class="bx bx-message"></i>
@@ -194,6 +207,40 @@
                         </div>
                     </div>
                 </a>
+            </div>
+        </div>
+        <div class="modal fade" :id="`shareModal-${postData.id}`" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chia sẻ bài viết</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="shareError" class="alert alert-danger">{{ shareError }}</div>
+                        <div class="form-group">
+                            <label class="col-form-label">Thêm lời nhắn</label>
+                            <textarea class="form-control" rows="3" v-model="shareContent"
+                                placeholder="Nói gì đó về bài viết này..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-form-label">Quyền riêng tư</label>
+                            <select class="form-control" v-model="sharePrivacy">
+                                <option value="public">Công khai</option>
+                                <option value="friends">Bạn bè</option>
+                                <option value="private">Chỉ mình tôi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" :disabled="shareLoading" @click="submitShare()">
+                            {{ shareLoading ? 'Đang chia sẻ...' : 'Chia sẻ' }}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -213,258 +260,87 @@
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body">
-                        <div class="hide-comments">
-                            <div class="row bootstrap snippets">
-                                <div class="col-md-12">
-                                    <div class="comment-wrapper">
-                                        <div class="panel panel-info">
-                                            <div class="panel-body">
-                                                <ul class="media-list comments-list overflow-auto"
-                                                    style="max-height: 600px">
-                                                    <!-- v-for lặp qua các comment cha -->
-                                                    <li class="media" v-for="comment in comments" :key="comment.id">
-                                                        <a href="#" class="pull-left">
-                                                            <img :src="comment.user
-                                                                    .avatar
-                                                                    ? `/images/client/avatar/${comment.user.avatar}`
-                                                                    : '/images/web/users/avatar.jpg'
-                                                                " alt="" class="img-circle" />
-                                                        </a>
-                                                        <div class="media-body">
-                                                            <div
-                                                                class="d-flex justify-content-between align-items-center w-100">
-                                                                <strong class="text-gray-dark">
-                                                                    <a href="#" class="fs-8">{{
-                                                                        comment
-                                                                            .user
-                                                                            .name
-                                                                    }}</a>
-                                                                </strong>
-                                                                <div class="dropdown">
-                                                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                                                        <i class="bx bx-dots-horizontal-rounded"></i>
-                                                                    </a>
-                                                                    <div class="dropdown-menu dropdown-menu-right">
-                                                                        <a class="dropdown-item" href="#" @click.prevent="toggleReplies(comment.id)">
-                                                                            {{ showReplies[comment.id] ? 'Ẩn phản hồi' : 'Xem phản hồi' }}
-                                                                        </a>
-                                                                        <a class="dropdown-item" href="#" @click.prevent="startEdit(comment)" v-if="comment.user_id === user.id">
-                                                                            Chỉnh sửa
-                                                                        </a>
-                                                                        <a class="dropdown-item" href="#" @click.prevent="deleteComment(comment.id)">
-                                                                            Xóa
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <span class="d-block comment-created-time">{{
-                                                                formatTime(
-                                                                    comment.created_at
-                                                                )
-                                                            }}</span>
-                                                            <p class="fs-8 pt-2" v-html="highlightMentions(
-                                                                comment.content
-                                                            )
-                                                                "></p>
-                                                            <div class="commentLR">
-                                                                <button type="button" class="btn btn-link fs-8" @click="
-                                                                    setReply(
-                                                                        comment.id
-                                                                    )
-                                                                    ">
-                                                                    Reply
-                                                                </button>
-                                                            </div>
+                    <div class="modal-body comment-modal-body">
+                        <div class="comment-thread-card">
+                            <div class="comment-thread-header">
+                                <div>
+                                    <span class="count-pill">{{ commentsCount }} bình luận</span>
+                                    <button type="button" class="btn btn-link p-0 ml-2 text-muted" @click="fetchComments(true)" :disabled="isLoading">
+                                        Làm mới
+                                    </button>
+                                </div>
+                                <div v-if="commentError" class="text-danger small">
+                                    {{ commentError }}
+                                </div>
+                            </div>
 
-                                                            <!-- Reply input -->
-                                                            <div v-if="
-                                                                replyTo ===
-                                                                comment.id
-                                                            " class="reply-input mt-2">
-                                                                <div class="input-group">
-                                                                    <input type="text" v-model="replyContent
-                                                                        " class="form-control"
-                                                                        placeholder="Viết phản hồi..."
-                                                                        @keydown.enter.prevent="
-                                                                            submitReply(
-                                                                                comment.id
-                                                                            )
-                                                                            " />
-                                                                    <div class="input-group-append">
-                                                                        <button class="btn btn-primary" @click="
-                                                                            submitReply(
-                                                                                comment.id
-                                                                            )
-                                                                            ">
-                                                                            Gửi
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                            <div class="comments-scroll">
+                                <template v-if="comments.length">
+                                    <CommentItem
+                                        v-for="comment in comments"
+                                        :key="comment.id"
+                                        :comment="comment"
+                                        :current-user-id="user.id"
+                                        :reply-to="replyTo"
+                                        :reply-content="replyContent"
+                                        :show-replies="showReplies"
+                                        :is-loading-replies="isLoadingReplies"
+                                        :highlight-mentions="highlightMentions"
+                                        :format-time="formatTime"
+                                        :build-avatar-url="buildAvatarUrl"
+                                        :update-reply-content="updateReplyContent"
+                                        @set-reply="setReply"
+                                        @submit-reply="submitReply"
+                                        @toggle-replies="toggleReplies"
+                                        @delete-comment="deleteComment"
+                                        @start-edit="startEdit"
+                                    />
+                                </template>
+                                <div v-else-if="hasLoadedComments && !isLoading" class="empty-comments-state">
+                                    <p class="mb-1 font-weight-semibold">Chưa có bình luận</p>
+                                    <small class="text-muted">Hãy là người đầu tiên để lại ý kiến.</small>
+                                </div>
 
-                                                            <!-- Replies section -->
-                                                            <div v-if="
-                                                                showReplies[
-                                                                comment
-                                                                    .id
-                                                                ]
-                                                            " class="replies-container mt-2">
-                                                                <div v-if="
-                                                                    isLoadingReplies[
-                                                                    comment
-                                                                        .id
-                                                                    ]
-                                                                " class="text-center py-2">
-                                                                    <div class="spinner-border spinner-border-sm text-primary"
-                                                                        role="status">
-                                                                        <span class="sr-only">Loading...</span>
-                                                                    </div>
-                                                                </div>
-                                                                <div v-else-if="
-                                                                    comment.replies &&
-                                                                    comment
-                                                                        .replies
-                                                                        .length >
-                                                                    0
-                                                                ">
-                                                                    <div v-for="reply in comment.replies" :key="reply.id
-                                                                        " class="media reply-item">
-                                                                        <a href="#" class="pull-left">
-                                                                            <img :src="reply
-                                                                                    .user
-                                                                                    .avatar
-                                                                                    ? `/images/client/avatar/${reply.user.avatar}`
-                                                                                    : '/images/web/users/avatar.jpg'
-                                                                                " alt="" class="img-circle" />
-                                                                        </a>
-                                                                        <div class="media-body">
-                                                                            <div
-                                                                                class="d-flex justify-content-between align-items-center w-100">
-                                                                                <strong class="text-gray-dark">
-                                                                                    <a href="#" class="fs-8">{{
-                                                                                        reply
-                                                                                            .user
-                                                                                            .name
-                                                                                    }}</a>
-                                                                                </strong>
-                                                                                <div class="dropdown" v-if="
-                                                                                    reply.user_id ===
-                                                                                    user.id
-                                                                                ">
-                                                                                    <a href="#" class="dropdown-toggle"
-                                                                                        data-toggle="dropdown">
-                                                                                        <i
-                                                                                            class="bx bx-dots-horizontal-rounded"></i>
-                                                                                    </a>
-                                                                                    <div
-                                                                                        class="dropdown-menu dropdown-menu-right">
-                                                                                        <a class="dropdown-item"
-                                                                                            href="#" @click.prevent="
-                                                                                                startEdit(
-                                                                                                    reply
-                                                                                                )
-                                                                                                ">
-                                                                                            Chỉnh
-                                                                                            sửa
-                                                                                        </a>
-                                                                                        <a class="dropdown-item"
-                                                                                            href="#" @click.prevent="
-                                                                                                deleteComment(
-                                                                                                    reply.id
-                                                                                                )
-                                                                                                ">
-                                                                                            Xóa
-                                                                                        </a>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                            <span
-                                                                                class="d-block comment-created-time">{{
-                                                                                    formatTime(
-                                                                                        reply.created_at
-                                                                                    )
-                                                                                }}</span>
-                                                                            <p class="fs-8 pt-2" v-html="highlightMentions(
-                                                                                reply.content
-                                                                            )
-                                                                                "></p>
-                                                                            <div class="commentLR">
-                                                                                <button type="button"
-                                                                                    class="btn btn-link fs-8" @click="
-                                                                                        setReply(
-                                                                                            reply.id
-                                                                                        )
-                                                                                        ">
-                                                                                    Reply
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div v-else class="text-center text-muted py-2">
-                                                                    Chưa có phản
-                                                                    hồi
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-
-                                                    <!-- Loading indicator -->
-                                                    <li v-if="isLoading" class="media">
-                                                        <div class="media-body text-center">
-                                                            <div class="spinner-border text-primary" role="status">
-                                                                <span class="sr-only">Loading...</span>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-
-                                                    <!-- Load more button -->
-                                                    <li v-if="hasMore" class="media">
-                                                        <div class="media-body">
-                                                            <div class="comment-see-more text-center">
-                                                                <button type="button" class="btn btn-link fs-8" @click="
-                                                                    loadMoreComments
-                                                                " :disabled="isLoading
-                                                                        ">
-                                                                    {{
-                                                                        isLoading
-                                                                            ? "Loading..."
-                                                                            : "Xem thêm"
-                                                                    }}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div v-if="isLoading" class="comment-loading text-center py-3">
+                                    <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                </div>
+                                <div v-if="hasMore && !isLoading" class="load-more-row text-center mt-2">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="loadMoreComments">
+                                        Xem thêm
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <form class="modal-footer" @submit.prevent="submitComment">
-                        <input type="text" v-model="content_comment" class="form-control comment-input"
-                            placeholder="Nhập bình luận của bạn..." @keydown.enter.prevent="submitComment"
-                            :disabled="commentLoading" />
-                        <button type="submit" class="btn btn-primary" :disabled="commentLoading">
-                            {{ commentLoading ? "Đang gửi..." : "Gửi" }}
-                        </button>
-                    </form>
+                    <div class="modal-footer comment-footer">
+                        <img :src="authorAvatar" alt="avatar" class="comment-footer-avatar" />
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                v-model="content_comment"
+                                class="form-control comment-input"
+                                placeholder="Nhập bình luận của bạn..."
+                                @keydown.enter.prevent="submitComment"
+                                :disabled="commentLoading"
+                            />
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-primary" :disabled="commentLoading" @click="submitComment">
+                                    {{ commentLoading ? "Đang gửi..." : "Gửi" }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <UpdatePost :post="postData" @updated="handlePostUpdated" />
 </template>
-
 <script setup>
-import "bootstrap-fileinput/css/fileinput.min.css";
-import "bootstrap-fileinput/js/fileinput.min.js";
 import { ref, computed, defineProps, onMounted, watch, onUnmounted } from "vue";
 import axios from "axios";
 import UpdatePost from "./UpdatePost.vue";
+import CommentItem from "./CommentItem.vue";
 import { Teleport } from "vue";
 import $ from "jquery";
 import { Link } from "@inertiajs/vue3";
@@ -480,6 +356,10 @@ const props = defineProps({
             privacy_setting: "public",
             media: [],
             user: {},
+            shares_count: 0,
+            is_suggested: false,
+            suggested_reason: null,
+            original_post: null,
         }),
     },
     user: {
@@ -491,21 +371,34 @@ const props = defineProps({
             avatar: null,
         }),
     },
+    showMenus: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const emit = defineEmits(["updated", "deleted"]);
+const showMenus = computed(() => props.showMenus);
 
-// Thay computed bằng ref để có thể cập nhật
+    // Thay computed b?ng ref d? c� th? c?p nh?t
 const postData = ref(props.post);
 const userData = ref(props.user);
 
-// Watch props để cập nhật khi props thay đổi
+// Watch props d? c?p nh?t khi props thay d?i
 watch(
     () => props.post,
-    (newPost) => {
+    (newPost, oldPost) => {
         postData.value = newPost;
-    },
-    { deep: true }
+        if (newPost?.id && newPost?.id !== oldPost?.id) {
+            // reset comment state when switching to a different post
+            comments.value = [];
+            page.value = 1;
+            hasMore.value = true;
+            hasLoadedComments.value = false;
+            showReplies.value = {};
+            isLoadingReplies.value = {};
+        }
+    }
 );
 
 watch(
@@ -516,11 +409,152 @@ watch(
     { deep: true }
 );
 
-// Lưu trạng thái like và số lượng like
-const totalReaction = ref(0);
+const getPostId = () => postData.value?.id ?? null;
+const logInteraction = async (interactionType) => {
+    const postId = getPostId();
+    if (!postId || !interactionType) return;
+    try {
+        await axios.post(`/posts/${postId}/interactions`, {
+            interaction_type: interactionType,
+        });
+    } catch (error) {
+        console.error("Error logging interaction:", error);
+    }
+};
+
+
+const initializePostData = () => {
+    const postId = getPostId();
+    if (!postId) {
+        return;
+    }
+    CheckReaction();
+    const hasLikesCount =
+        postData.value?.likes_count !== undefined &&
+        postData.value?.likes_count !== null;
+    if (!hasLikesCount) {
+        totalReactions();
+    }
+    if (!hasLoggedView.value) {
+        logInteraction("view");
+        hasLoggedView.value = true;
+    }
+};
+watch(
+    () => postData.value?.id,
+    (newId, oldId) => {
+        if (newId && newId !== oldId) {
+            hasLoggedView.value = false;
+            initializePostData();
+        }
+    }
+);
+const defaultAvatar = "/images/default/avatar.jpg";
+const defaultPageAvatar = "/images/web/users/avatar.jpg";
+const buildAvatarUrl = (user) => {
+    const avatar = user?.avatar;
+    if (!avatar) {
+        return defaultAvatar;
+    }
+    if (avatar.startsWith("http")) {
+        return avatar;
+    }
+    if (avatar.startsWith("/")) {
+        return avatar;
+    }
+    if (avatar.includes("/")) {
+        return `/${avatar.replace(/^\/+/, "")}`;
+    }
+    return `/images/client/avatar/${avatar}`;
+};
+
+const buildPageAvatarUrl = (page) => {
+    const avatar = page?.profile_picture_url || page?.profile_picture || page?.avatar;
+    if (!avatar) {
+        return defaultPageAvatar;
+    }
+    if (avatar.startsWith("http")) {
+        return avatar;
+    }
+    if (avatar.startsWith("/")) {
+        return avatar;
+    }
+    return `/${avatar.replace(/^\/+/, "")}`;
+};
+
+const pageData = computed(() => postData.value?.page || null);
+const isPagePost = computed(() => !!pageData.value);
+const pageName = computed(() => pageData.value?.name || "Page");
+const pageLink = computed(() => {
+    const page = pageData.value;
+    if (!page) {
+        return "#";
+    }
+    if (page.url) {
+        return page.url;
+    }
+    if (page.username) {
+        return `/pages/${page.username}`;
+    }
+    if (page.id) {
+        return `/pages/${page.id}`;
+    }
+    return "#";
+});
+
+const authorAvatar = computed(() => buildAvatarUrl(userData.value));
+const pageAvatar = computed(() => buildPageAvatarUrl(pageData.value));
+const displayAvatar = computed(() =>
+    isPagePost.value ? pageAvatar.value : authorAvatar.value
+);
+
+const authorLink = computed(() => {
+    if (userData.value?.profile_url) {
+        return userData.value.profile_url;
+    }
+    if (userData.value?.username) {
+        return `/${userData.value.username}`;
+    }
+    return "#";
+});
+
+const authorName = computed(() => userData.value?.name || "User");
+
+const sharedPost = computed(() => postData.value?.original_post || null);
+const sharedAuthor = computed(() => sharedPost.value?.user || null);
+const sharedAuthorAvatar = computed(() => buildAvatarUrl(sharedAuthor.value));
+const sharedAuthorLink = computed(() => {
+    if (sharedAuthor.value?.profile_url) {
+        return sharedAuthor.value.profile_url;
+    }
+    if (sharedAuthor.value?.username) {
+        return '/' + sharedAuthor.value.username;
+    }
+    return "#";
+});
+const sharedAuthorName = computed(() => sharedAuthor.value?.name || "Bai viet goc");
+
+// Luu tr?ng th�i like v� s? lu?ng like
+const totalReaction = ref(
+    Number(
+        postData.value?.likes_count ??
+        postData.value?.reactions_count ??
+        postData.value?.total_reactions ??
+        (Array.isArray(postData.value?.likes) ? postData.value.likes.length : 0)
+    ) || 0
+);
+const commentsCount = computed(() => {
+    if (postData.value?.comments_count !== undefined && postData.value?.comments_count !== null) {
+        return postData.value.comments_count;
+    }
+    if (Array.isArray(postData.value?.comments)) {
+        return postData.value.comments.length;
+    }
+    return 0;
+});
 const isReaction = ref(false);
 
-// Danh sách reactions
+// Danh s�ch reactions
 const reactions = [
     { type: "like" },
     { type: "love" },
@@ -530,18 +564,20 @@ const reactions = [
     { type: "angry" },
 ];
 
-// Lấy ảnh của reaction hiện tại
+// L?y ?nh c?a reaction hi?n t?i
 const getReactionImage = computed(() => {
     return isReaction.value
         ? `/images/web/icons/reactions/reactions_${isReaction.value}.png`
         : "";
 });
 
-// 🛠 Kiểm tra xem user đã like chưa
+// Ki?m tra xem user d� like chua
 const CheckReaction = async () => {
+    const postId = getPostId();
+    if (!postId) return;
     try {
         const response = await axios.get(
-            `/posts/check-reaction/${postData.value.id}`
+            `/posts/check-reaction/${postId}`
         );
         if (response.data && response.data.reaction) {
             isReaction.value = response.data.reaction;
@@ -554,58 +590,44 @@ const CheckReaction = async () => {
     }
 };
 
-// 🛠 Gửi reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
+// 🛠 G?i reaction khi click (C?P NH?T UI NGAY L?P T?C)
 const toggleLike = async (reactionType) => {
-    if (!postData.value?.id) {
+    const postId = getPostId();
+    if (!postId) {
         console.error("Post ID is missing");
         return;
     }
 
-    // Cập nhật UI ngay lập tức
     const previousReaction = isReaction.value;
     isReaction.value = reactionType;
 
     try {
-        const response = await axios.post(
-            `/posts/reaction/${postData.value.id}`,
-            {
-                reaction: reactionType,
-            }
-        );
+        const response = await axios.post(`/posts/reaction/${postId}`, { reaction: reactionType });
 
         if (response.data && response.data.reaction) {
-            // Nếu server trả về reaction khác, cập nhật lại
             isReaction.value = response.data.reaction;
-            totalReaction.value =
-                response.data.likes_count ?? totalReaction.value;
-
-            // Tạo thông báo nếu reaction thành công
-            if (response.data.notification) {
-                // Thông báo đã được tạo từ server
-                console.log(
-                    "Reaction notification created:",
-                    response.data.notification
-                );
-            }
+            totalReaction.value = response.data.likes_count ?? totalReaction.value;
         }
+
+        logInteraction("like");
     } catch (error) {
         console.error("Error liking post:", error);
-        // Nếu có lỗi, quay lại trạng thái trước đó
         isReaction.value = previousReaction;
     }
 };
 
-// 🛠 Xóa reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
+// 🛠 X�a reaction khi click (C?P NH?T UI NGAY L?P T?C)
 const removeReaction = async () => {
-    if (!isReaction.value) return;
+    const postId = getPostId();
+    if (!isReaction.value || !postId) return;
 
-    // Cập nhật UI ngay lập tức
+    // C?p nh?t UI ngay l?p t?c
     const previousReaction = isReaction.value;
     isReaction.value = null;
 
     try {
         const response = await axios.post(
-            `/posts/remove-reaction/${postData.value.id}`
+            `/posts/remove-reaction/${postId}`
         );
         if (response.data && response.data.success) {
             totalReaction.value =
@@ -613,25 +635,31 @@ const removeReaction = async () => {
         }
     } catch (error) {
         console.error("Error removing reaction:", error);
-        // Nếu có lỗi, quay lại trạng thái trước đó
+        // N?u c� l?i, quay l?i tr?ng th�i tru?c d�
         isReaction.value = previousReaction;
     }
 };
 
-// 🛠 Tổng số lượt reaction
+// 🛠 T?ng s? lu?t reaction
 const totalReactions = async () => {
+    const postId = getPostId();
+    if (!postId) return;
     try {
         const response = await axios.get(
-            `/posts/total-reaction/${postData.value.id}`
+            `/posts/total-reaction/${postId}`
         );
-        totalReaction.value = response.data.totalReaction;
+        const likesCount =
+            response.data?.likes_count ?? response.data?.totalReaction;
+        if (likesCount !== undefined && likesCount !== null) {
+            totalReaction.value = likesCount;
+        }
     } catch (error) {
         console.error("Error calculating total reactions:", error);
         return 0;
     }
 };
 
-// 🛠 Lấy danh sách ảnh của bài viết
+// 🛠 L?y danh s�ch ?nh c?a b�i vi?t
 const images = computed(() => {
     if (!postData.value?.media) return [];
     return postData.value.media
@@ -643,43 +671,168 @@ const galleryClass = computed(() =>
     images.value.length === 1 ? "single-image" : "multi-images"
 );
 
+const sharedImages = computed(() => {
+    if (!sharedPost.value?.media) return [];
+    return sharedPost.value.media
+        .filter((media) => media.media_type === "image")
+        .map((media) => media.media_url);
+});
+const sharedDisplayImages = computed(() => sharedImages.value.slice(0, 2));
+const sharedGalleryClass = computed(() =>
+    sharedImages.value.length === 1 ? "single-image" : "multi-images"
+);
+
+const shareContent = ref("");
+const sharePrivacy = ref("public");
+const shareError = ref(null);
+const shareLoading = ref(false);
+const shareCount = computed(() => postData.value?.shares_count ?? 0);
+
+const openShareModal = () => {
+    shareError.value = null;
+    shareContent.value = "";
+    sharePrivacy.value = "public";
+    const modalId = `#shareModal-${getPostId()}`;
+    $(modalId).modal("show");
+};
+
+const submitShare = async (
+    content = null,
+    privacy = null,
+    shouldCloseModal = true
+) => {
+    const postId = getPostId();
+    if (!postId) return;
+
+    shareLoading.value = true;
+    shareError.value = null;
+
+    try {
+        const response = await axios.post(`/posts/${postId}/share`, {
+            content: content !== null ? content : shareContent.value,
+            privacy_setting: privacy || sharePrivacy.value,
+        });
+        const updatedShares = response.data?.shares_count;
+        if (updatedShares !== undefined && updatedShares !== null) {
+            postData.value.shares_count = updatedShares;
+        } else {
+            postData.value.shares_count = (postData.value.shares_count || 0) + 1;
+        }
+        logInteraction("share");
+        shareContent.value = "";
+        if (shouldCloseModal) {
+            $(`#shareModal-${postId}`).modal("hide");
+        }
+    } catch (error) {
+        shareError.value =
+            error.response?.data?.message || "Khong the chia se bai viet.";
+    } finally {
+        shareLoading.value = false;
+    }
+};
+
+const shareNow = async (privacy = "public") => {
+    await submitShare("", privacy, false);
+};
+
 const content_comment = ref("");
 const comments = ref([]);
 const page = ref(1);
 const hasMore = ref(true);
 const parentCommentId = ref(null);
 const isLoading = ref(false);
+const hasLoggedView = ref(false);
 const commentLoading = ref(false);
 const commentError = ref(null);
+const hasLoadedComments = ref(false);
 const replyContent = ref("");
 const replyTo = ref(null);
 const showReplies = ref({});
 const isLoadingReplies = ref({});
+
+const normalizeComment = (comment) => {
+    if (!comment) return null;
+    const nestedReplies = normalizeComments(
+        comment.replies || comment.replies_recursive || []
+    );
+
+    return {
+        ...comment,
+        replies: nestedReplies,
+        replies_count:
+            comment.replies_count !== undefined
+                ? comment.replies_count
+                : nestedReplies.length,
+    };
+};
+
+const normalizeComments = (list = []) => {
+    return list.map((item) => normalizeComment(item));
+};
+
+const findCommentById = (list, id) => {
+    for (const item of list) {
+        if (item.id === id) return item;
+        if (item.replies && item.replies.length) {
+            const found = findCommentById(item.replies, id);
+            if (found) return found;
+        }
+    }
+    return null;
+};
+const removeCommentById = (list, id, parent = null) => {
+    for (let i = 0; i < list.length; i++) {
+        const item = list[i];
+        if (item.id === id) {
+            list.splice(i, 1);
+            if (parent && parent.replies_count !== undefined && parent.replies_count > 0) {
+                parent.replies_count -= 1;
+            }
+            return true;
+        }
+        if (item.replies && item.replies.length) {
+            if (removeCommentById(item.replies, id, item)) {
+                return true;
+            }
+        }
+    }
+    return false;
+};
 const editComment = ref(null);
 const editContent = ref("");
 
-// Thêm hàm để cập nhật số lượng comment
+const updateReplyContent = (value) => {
+    replyContent.value = value;
+};
+
+// Th�m h�m d? c?p nh?t s? lu?ng comment
 const updateCommentsCount = async () => {
+    const postId = getPostId();
+    if (!postId) return;
     try {
         const response = await axios.get(
-            `/posts/${postData.value.id}/comments-count`
+            `/posts/${postId}/comments-count`
         );
-        if (response.data && response.data.count !== undefined) {
-            postData.value.comments_count = response.data.count;
+        const count =
+            response.data?.comments_count ?? response.data?.count;
+        if (count !== undefined) {
+            postData.value.comments_count = count;
         }
     } catch (error) {
         console.error("Error updating comments count:", error);
     }
 };
 
-// 🛠 Gửi comment bình luận bài post
+// 🛠 G?i b�nh lu?n b�i vi?t
 const submitComment = async () => {
-    if (!content_comment.value.trim()) return;
+    const postId = getPostId();
+    if (!content_comment.value.trim() || !postId) return;
 
     try {
         commentLoading.value = true;
+        commentError.value = null;
         const response = await axios.post("/comments", {
-            post_id: postData.value.id,
+            post_id: postId,
             content: content_comment.value,
             parent_comment_id: parentCommentId.value,
         });
@@ -687,12 +840,10 @@ const submitComment = async () => {
         content_comment.value = "";
         parentCommentId.value = null;
 
-        const newComment = response.data.comment;
+        const newComment = normalizeComment(response.data.comment);
 
-        if (newComment.parent_comment_id) {
-            const parentComment = comments.value.find(
-                (comment) => comment.id === newComment.parent_comment_id
-            );
+        if (newComment?.parent_comment_id) {
+            const parentComment = findCommentById(comments.value, newComment.parent_comment_id);
             if (parentComment) {
                 if (!Array.isArray(parentComment.replies)) {
                     parentComment.replies = [];
@@ -704,38 +855,50 @@ const submitComment = async () => {
             comments.value.unshift(newComment);
         }
 
+        logInteraction("comment");
         await updateCommentsCount();
     } catch (error) {
-        console.error("Lỗi khi gửi bình luận:", error);
+        console.error("Error sending comment:", error);
         commentError.value = "Không thể gửi bình luận. Vui lòng thử lại sau.";
     } finally {
         commentLoading.value = false;
     }
 };
 
-// 🛠 Hiện comment bình luận bài post
-const fetchComments = async () => {
-    if (isLoading.value) return;
+// 🛠 Hi?n th? b�nh lu?n b�i vi?t
+const fetchComments = async (reset = false) => {
+    const postId = getPostId();
+    if (!postId || isLoading.value) return;
+
+    if (reset) {
+        comments.value = [];
+        page.value = 1;
+        hasMore.value = true;
+        showReplies.value = {};
+        isLoadingReplies.value = {};
+        commentError.value = null;
+    }
 
     try {
         isLoading.value = true;
-        const response = await axios.get(
-            `/comments/${postData.value.id}?page=${page.value}`
-        );
+        const response = await axios.get(`/comments/${postId}`, {
+            params: { page: page.value }
+        });
 
         const paginatedData = response.data;
 
         if (paginatedData.data.length === 0) {
             hasMore.value = false;
         } else {
-            // Chỉ thêm comments mới vào mảng hiện có
-            comments.value.push(...paginatedData.data);
+            const normalized = normalizeComments(paginatedData.data);
+            comments.value.push(...normalized);
             page.value++;
             hasMore.value = paginatedData.next_page_url !== null;
         }
+        hasLoadedComments.value = true;
     } catch (error) {
         console.error("Error fetching comments:", error);
-        commentError.value = "Không thể tải bình luận. Vui lòng thử lại sau.";
+        commentError.value = "Khong the tai binh luan. Vui long thu lai sau.";
     } finally {
         isLoading.value = false;
     }
@@ -745,6 +908,16 @@ const loadMoreComments = () => {
     if (!isLoading.value && hasMore.value) {
         fetchComments();
     }
+};
+
+const getCommentModalSelector = () => {
+    const postId = getPostId();
+    return postId ? `#exampleModalScrollable-${postId}` : null;
+};
+
+const handleCommentModalShow = async () => {
+    if (hasLoadedComments.value) return;
+    await fetchComments(true);
 };
 
 const setReply = (commentId) => {
@@ -760,10 +933,15 @@ const highlightMentions = (text) => {
 };
 
 const formatTime = (time) => {
-    return new Date(time).toLocaleString();
+    if (!time) return "";
+    const date = new Date(time);
+    if (Number.isNaN(date.getTime())) {
+        return time;
+    }
+    return date.toLocaleString();
 };
 
-// 🛠 Xóa bài viết
+// 🛠 X�a b�i vi?t
 const deletePost = async (postId) => {
     try {
         const response = await axios.post(`/posts/${postId}`);
@@ -775,28 +953,30 @@ const deletePost = async (postId) => {
     }
 };
 
-// 🛠 Cập nhật quyền riêng tư của bài viết
+// 🛠 C?p nh?t quy?n ri�ng tu c?a b�i vi?t
 const updatePrivacy = async (privacy) => {
+    const postId = getPostId();
+    if (!postId) return;
     try {
         const response = await axios.post(
-            `/posts/${postData.value.id}/privacy`,
+            `/posts/${postId}/privacy`,
             {
                 privacy_setting: privacy,
             }
         );
 
-        // Cập nhật trạng thái quyền riêng tư trong component
-        postData.value.privacy_setting = privacy;
+            // C?p nh?t tr?ng th�i quy?n ri�ng tu trong component
+            postData.value.privacy_setting = privacy;
 
-        // Hiển thị thông báo thành công
-        // Bạn có thể thêm toast notification ở đây
+            // Hi?n th? th�ng b�o th�nh c�ng
+            // B?n c� th? th�m toast notification ? d�y
     } catch (error) {
-        console.error("Lỗi khi cập nhật quyền riêng tư:", error);
-        // Hiển thị thông báo lỗi
+            console.error("L?i khi c?p nh?t quy?n ri�ng tu:", error);
+            // Hi?n th? th�ng b�o l?i
     }
 };
 
-// 🛠 Xác định icon quyền riêng tư
+// 🛠 X�c d?nh icon quy?n ri�ng tu
 const privacyIcon = computed(() => {
     switch (postData.value.privacy_setting) {
         case "public":
@@ -816,12 +996,13 @@ const handlePostUpdated = (updatedPost) => {
         content: updatedPost.content,
         media: updatedPost.media,
     };
-    // Cập nhật lại danh sách ảnh
+    // C?p nh?t l?i danh s�ch ?nh
     images.value = updatedPost.media
         ? updatedPost.media
             .filter((media) => media.media_type === "image")
             .map((media) => media.media_url)
         : [];
+    emit("updated", postData.value);
 };
 
 const setupEchoListener = () => {
@@ -838,40 +1019,59 @@ const setupEchoListener = () => {
 };
 
 const toggleReplies = async (commentId) => {
-    try {
-        if (!showReplies.value[commentId]) {
+    const target = findCommentById(comments.value, commentId);
+    if (!target) return;
+
+    const shouldShow = !showReplies.value[commentId];
+
+    if (shouldShow && (!target.replies || target.replies.length === 0)) {
+        try {
             isLoadingReplies.value[commentId] = true;
-            const response = await axios.get(`/comments/${commentId}/replies`);
-            const comment = comments.value.find((c) => c.id === commentId);
-            if (comment) {
-                comment.replies = response.data.replies;
-            }
+            await fetchReplies(commentId);
+        } catch (error) {
+            console.error("Error fetching replies:", error);
+        } finally {
+            isLoadingReplies.value[commentId] = false;
         }
-        showReplies.value[commentId] = !showReplies.value[commentId];
-    } catch (error) {
-        console.error("Error fetching replies:", error);
-    } finally {
-        isLoadingReplies.value[commentId] = false;
     }
+
+    showReplies.value[commentId] = shouldShow;
+};
+
+const fetchReplies = async (commentId) => {
+    const comment = findCommentById(comments.value, commentId);
+    if (!comment) return;
+    const response = await axios.get(`/comments/${commentId}/replies`);
+    const dataReplies = normalizeComments(response.data.replies || []);
+
+    comment.replies = dataReplies;
 };
 
 const submitReply = async (commentId) => {
-    if (!replyContent.value.trim()) return;
+    const postId = getPostId();
+    if (!replyContent.value.trim() || !postId) return;
 
     try {
         const response = await axios.post("/comments", {
-            post_id: postData.value.id,
+            post_id: postId,
             content: replyContent.value,
             parent_comment_id: commentId,
         });
 
-        const comment = comments.value.find((c) => c.id === commentId);
+        const newReply = normalizeComment(response.data.comment);
+        const comment = findCommentById(comments.value, commentId);
         if (comment) {
             if (!comment.replies) comment.replies = [];
-            comment.replies.unshift(response.data.comment);
+            comment.replies.unshift(newReply);
+            if (comment.replies_count !== undefined) {
+                comment.replies_count += 1;
+            } else {
+                comment.replies_count = comment.replies.length;
+            }
             showReplies.value[commentId] = true;
         }
 
+        logInteraction("comment");
         replyContent.value = "";
         replyTo.value = null;
         await updateCommentsCount();
@@ -886,24 +1086,24 @@ const startEdit = (comment) => {
 };
 
 const deleteComment = async (commentId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
+    if (!confirm('B?n c� ch?c ch?n mu?n x�a b�nh lu?n n�y?')) return;
 
     try {
         const response = await axios.delete(`/comments/${commentId}`);
 
         if (response.data.comment_id) {
-            // Xóa comment khỏi danh sách
-            comments.value = comments.value.filter(c => c.id !== commentId);
+            // X�a comment kh?i danh s�ch
+            removeCommentById(comments.value, commentId);
 
-            // Cập nhật số lượng comment
+            // C?p nh?t s? lu?ng comment
             await updateCommentsCount();
 
-            // Hiển thị thông báo thành công
-            alert('Xóa bình luận thành công');
+            // Hi?n th? th�ng b�o th�nh c�ng
+            alert('X�a b�nh lu?n th�nh c�ng');
         }
     } catch (error) {
         console.error('Error deleting comment:', error);
-        alert('Đây không phải bình luận của bạn.');
+        alert('��y kh�ng ph?i b�nh lu?n c?a b?n.');
     }
 };
 
@@ -912,9 +1112,9 @@ const toggleCommentVisibility = async (commentId) => {
         const response = await axios.put(
             `/api/comments/${commentId}/toggle-visibility`
         );
-        const index = comments.value.findIndex((c) => c.id === commentId);
-        if (index !== -1) {
-            comments.value[index].is_hidden = response.data.is_hidden;
+        const target = findCommentById(comments.value, commentId);
+        if (target) {
+            target.is_hidden = response.data.is_hidden;
         }
     } catch (error) {
         console.error("Error toggling comment visibility:", error);
@@ -922,14 +1122,19 @@ const toggleCommentVisibility = async (commentId) => {
 };
 
 onMounted(() => {
-    CheckReaction();
-    totalReactions();
-    fetchComments();
-    updateCommentsCount();
+    initializePostData();
+    const modalSelector = getCommentModalSelector();
+    if (modalSelector) {
+        $(modalSelector).on("show.bs.modal", handleCommentModalShow);
+    }
     setupEchoListener();
 });
 
 onUnmounted(() => {
+    const modalSelector = getCommentModalSelector();
+    if (modalSelector) {
+        $(modalSelector).off("show.bs.modal", handleCommentModalShow);
+    }
     if (window.Echo) {
         window.Echo.leave(`user.${window.userId}`);
     }
@@ -989,6 +1194,18 @@ onUnmounted(() => {
 .privacy-dropdown small {
     font-size: 0.8em;
     margin-top: 2px;
+}
+
+.suggested-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #f0f2f5;
+    color: #65676b;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
 }
 
 .bx-globe {
@@ -1100,6 +1317,12 @@ onUnmounted(() => {
     margin-left: 5px;
 }
 
+.post-separator {
+    color: #9ca3af;
+    margin: 0 4px;
+    font-weight: 600;
+}
+
 .avatar {
     width: 40px;
     height: 40px;
@@ -1186,4 +1409,115 @@ onUnmounted(() => {
     color: #1877f2;
     text-decoration: none;
 }
+
+.shared-post-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    background: #f8fafc;
+}
+
+.shared-post-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.shared-post-user {
+    font-weight: 600;
+    color: #1d2129;
+}
+
+.shared-gallery {
+    margin-top: 8px;
+}
+/* Comment UI refresh */
+.comment-modal-body {
+    background: #f8fafc;
+}
+
+.comment-thread-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
+}
+
+.comment-thread-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.count-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #1d4ed8;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.comments-scroll {
+    max-height: 620px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.empty-comments-state {
+    text-align: center;
+    padding: 28px 12px;
+    color: #6b7280;
+    background: #f9fafb;
+    border: 1px dashed #e5e7eb;
+    border-radius: 12px;
+}
+
+.load-more-row button {
+    border-radius: 999px;
+    padding: 6px 14px;
+}
+
+.comment-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+}
+
+.comment-footer-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e5e7eb;
+}
+
+.comment-footer .input-group {
+    flex: 1;
+}
+
+.comment-footer .comment-input {
+    border-radius: 20px 0 0 20px;
+}
+
+.comment-footer .btn {
+    border-radius: 0 20px 20px 0;
+}
 </style>
+
+
+
+
+
+
+
+
+
+

@@ -129,6 +129,9 @@ class PostRepository implements PostRepositoryInterface
         DB::beginTransaction();
         try {
             $post->content = $data['content'];
+            if (array_key_exists('allow_comments', $data)) {
+                $post->allow_comments = (bool) $data['allow_comments'];
+            }
             $post->save();
 
             $existingMedia = $post->media()->where('media_type', 'image')->get();
@@ -170,6 +173,19 @@ class PostRepository implements PostRepositoryInterface
     {
         $count = $post->comments()->count();
         return $count;
+    }
+
+    public function sharePost(int $userId, Post $originalPost, ?string $content, string $privacySetting)
+    {
+        return Post::create([
+            'user_id' => $userId,
+            'content' => $content ?? '',
+            'privacy_setting' => $privacySetting,
+            'allow_comments' => true,
+            'original_post_id' => $originalPost->id,
+            'group_id' => null,
+            'page_id' => null,
+        ]);
     }
 
     public function find($postId)

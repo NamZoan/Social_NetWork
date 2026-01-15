@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Call;
 use App\Models\CallParticipant;
 use App\Events\CallInvited;
 use App\Events\CallAccepted;
 use App\Events\CallEnded;
+use Yasser\Agora\RtcTokenBuilder;
 class CallController extends Controller
 {
     /**
@@ -163,7 +165,7 @@ class CallController extends Controller
     {
         $call = Call::findOrFail($id);
         $user = auth()->user();
-        
+
         abort_unless(
             $call->participants()->where('user_id', $user->id)->exists(),
             403
@@ -172,7 +174,7 @@ class CallController extends Controller
         // Nếu request là AJAX/API, trả về JSON
         if (request()->wantsJson() || request()->expectsJson()) {
             $participants = $call->participants()->with('user:id,name,avatar')->get();
-            
+
             return response()->json([
                 'call' => [
                     'id'         => $call->id,
@@ -202,6 +204,128 @@ class CallController extends Controller
                 'id'   => $user->id,
                 'name' => $user->name ?? '',
             ],
+        ]);
+    }
+
+    /**
+     * Lấy thông tin Agora để join channel.
+     * GET /calls/{id}/agora-token
+     */
+    public function getAgoraToken($id)
+    {
+        $call = Call::findOrFail($id);
+        $user = auth()->user();
+
+        abort_unless(
+            $call->participants()->where('user_id', $user->id)->exists(),
+            403
+        );
+
+        $appId = config('services.agora.app_id');
+        $appCertificate = config('services.agora.app_certificate');
+        $channelName = "call_{$call->id}";
+        $uid = $user->id;
+
+        // Kiểm tra cấu hình
+        if (!$appId || !$appCertificate) {
+            return response()->json([
+                'error' => 'Agora App ID hoặc App Certificate chưa được cấu hình'
+            ], 500);
+        }
+
+        // Thời gian hết hạn token (24 giờ)
+        $expireTimeInSeconds = 24 * 3600;
+        $currentTimestamp = now()->getTimestamp();
+        $privilegeExpiredTs = $currentTimestamp + $expireTimeInSeconds;
+
+        // Tạo token với User Account (string)
+        try {
+            $userAccount = (string) $uid;
+            $token = RtcTokenBuilder::buildTokenWithUserAccount(
+                $appId,
+                $appCertificate,
+                $channelName,
+                $userAccount,
+                RtcTokenBuilder::RolePublisher, // Có quyền publish audio/video
+                $privilegeExpiredTs
+            );
+
+            return response()->json([
+                'app_id' => $appId,
+                'channel' => $channelName,
+                'uid' => $uid,
+                'token' => $token,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error generating Agora token: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Không thể tạo token Agora: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy lịch sử cuộc gọi của user hiện tại.
+     * GET /calls/history
+     */
+    public function history(Request $r)
+    {
+        $user = $r->user();
+        $limit = $r->input('limit', 50);
+        $offset = $r->input('offset', 0);
+
+        // Lấy các cuộc gọi mà user tham gia
+        $calls = Call::whereHas('participants', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->with(['participants.user:id,name,avatar', 'creator:id,name,avatar'])
+        ->orderBy('created_at', 'desc')
+        ->limit($limit)
+        ->offset($offset)
+        ->get();
+
+        // Format dữ liệu
+        $formattedCalls = $calls->map(function ($call) use ($user) {
+            // Lấy người còn lại trong cuộc gọi (không phải user hiện tại)
+            $otherParticipant = $call->participants
+                ->where('user_id', '!=', $user->id)
+                ->first();
+
+            $otherUser = $otherParticipant ? $otherParticipant->user : null;
+            $myParticipant = $call->participants->where('user_id', $user->id)->first();
+
+            // Tính thời lượng cuộc gọi
+            $duration = null;
+            if ($call->started_at && $call->ended_at) {
+                $duration = $call->started_at->diffInSeconds($call->ended_at);
+            } elseif ($call->started_at && $myParticipant && $myParticipant->joined_at) {
+                $duration = $myParticipant->joined_at->diffInSeconds(now());
+            }
+
+            return [
+                'id' => $call->id,
+                'type' => $call->type,
+                'status' => $call->status,
+                'started_at' => $call->started_at?->toISOString(),
+                'ended_at' => $call->ended_at?->toISOString(),
+                'duration' => $duration,
+                'is_outgoing' => $call->creator_id === $user->id,
+                'other_user' => $otherUser ? [
+                    'id' => $otherUser->id,
+                    'name' => $otherUser->name,
+                    'avatar' => $otherUser->avatar
+                        ? asset("images/client/avatar/{$otherUser->avatar}")
+                        : null,
+                ] : null,
+                'my_role' => $myParticipant?->role,
+                'my_state' => $myParticipant?->state,
+            ];
+        });
+
+        return response()->json([
+            'calls' => $formattedCalls,
+            'total' => $calls->count(),
+            'has_more' => $calls->count() >= $limit,
         ]);
     }
 }

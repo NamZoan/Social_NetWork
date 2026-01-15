@@ -13,8 +13,8 @@
                             <img :src="'/images/web/logo-64x64.png'" class="logo-img" alt="Logo">
                         </div>
                         <div class="col-md-10">
-                            <p>Argon Social Network</p>
-                            <span>Design System</span>
+                            <p>Argon Mạng Xã Hội</p>
+                            <span>Hệ Thống Thiết Kế</span>
                         </div>
                     </div>
                 </div>
@@ -28,7 +28,7 @@
                                     type="email"
                                     v-model="form.email"
                                     class="form-control"
-                                    placeholder="Email Address"
+                                    placeholder="Địa chỉ email"
                                 />
                                 <span v-if="form.errors.email" class="text-danger small">
                                     {{ form.errors.email }}
@@ -42,7 +42,7 @@
                                     type="password"
                                     v-model="form.password"
                                     class="form-control"
-                                    placeholder="Password"
+                                    placeholder="Mật khẩu"
                                 />
                                 <span v-if="form.errors.password" class="text-danger small">
                                     {{ form.errors.password }}
@@ -50,29 +50,21 @@
                             </div>
                         </div>
 
-                        <div class="col-md-12 mb-3">
-                            <a href="/forgot-password">Forgot password?</a>
-                        </div>
-
                         <div class="col-md-6">
-                            <label class="custom-control material-checkbox">
-                                <input type="checkbox" class="material-control-input">
-                                <span class="material-control-indicator"></span>
-                                <span class="material-control-description">Remember Me</span>
-                            </label>
+                            <a href="/forgot-password">Quên mật khẩu?</a>
                         </div>
 
                         <div class="col-md-6 text-right">
                             <div class="form-group">
                                 <button type="submit" class="btn btn-primary sign-up" :disabled="form.processing">
-                                    Sign In
+                                    Đăng nhập
                                 </button>
                             </div>
                         </div>
 
                         <div class="col-md-12 text-center mt-5">
-                            <span class="go-login">Not yet a member?
-                                <Link href="/dang-ky">Sign Up</Link>
+                            <span class="go-login">Chưa là thành viên?
+                                <Link href="/dang-ky">Đăng ký</Link>
                             </span>
                         </div>
                     </div>

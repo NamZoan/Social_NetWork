@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="conversation-container">
         <div class="messages" ref="messagesContainer" @scroll="handleScroll">
             <!-- Load More Button (appears at top when scrolled up) -->
@@ -135,7 +135,7 @@
             v-if="showScrollToBottom"
             @click="scrollToBottom(true)"
             class="scroll-to-bottom"
-            title="Cuộn xuống cuối"
+            title="Cuốn xuống cuối"
         >
             <i class="bx bx-down-arrow-alt"></i>
         </button>
@@ -247,7 +247,7 @@ const formatDateTime = (time) => {
 
 const getAvatarUrl = (sender) => {
     if (!sender?.avatar) {
-        return '/images/web/users/avatar.jpg';
+        return '/images/default/avatar.jpg';
     }
 
     const avatar = sender.avatar;
@@ -307,7 +307,7 @@ const getGalleryLayout = (imageCount) => {
 };
 
 const handleAvatarError = (event) => {
-    event.target.src = '/images/web/users/avatar.jpg';
+    event.target.src = '/images/default/avatar.jpg';
 };
 
 // const handleImageError = (event) => {
@@ -1107,3 +1107,4 @@ defineExpose({
     background: rgba(0, 0, 0, 0.5);
 }
 </style>
+

@@ -177,7 +177,6 @@ CREATE TABLE Page_Followers (
     page_id BIGINT REFERENCES Pages(page_id),
     user_id BIGINT REFERENCES Users(user_id),
     followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notification_settings VARCHAR(20) DEFAULT 'all', -- 'all', 'highlights', 'none'
     UNIQUE(page_id, user_id)
 );
 

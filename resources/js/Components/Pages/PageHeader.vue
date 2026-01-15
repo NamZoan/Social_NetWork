@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="page-header">
         <!-- Cover Photo -->
         <div class="cover-photo-container" :style="{ backgroundImage: `url(${coverPhotoUrl})` }">
@@ -65,29 +65,13 @@
                                 <i class="bx bx-edit"></i>
                                 <span class="btn-text">Chỉnh sửa</span>
                             </button>
-                            <button @click="viewAsGuest" class="btn-action btn-view-as" title="Xem với tư cách khách">
-                                <i class="bx bx-show"></i>
-                                <span class="btn-text">Xem với tư cách khách</span>
-                            </button>
                         </template>
-
-                        <!-- Public Actions -->
-                        <button v-if="!isAdmin" @click="likePage"
-                            :class="['btn-action', isLiked ? 'btn-liked' : 'btn-like']" title="Thích trang">
-                            <i class="bx bx-like"></i>
-                        </button>
-                        <button v-if="!isAdmin" @click="messagePage" class="btn-action btn-message" title="Nhắn tin">
-                            <i class="bx bx-message"></i>
-                        </button>
-                        <button v-if="!isAdmin" @click="sharePage" class="btn-action btn-share" title="Chia sẻ">
-                            <i class="bx bx-share-alt"></i>
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-      </div>  
+      </div>
 </template>
 
 <script setup>
@@ -121,16 +105,26 @@ const isLiked = ref(false);
 const coverPhotoInput = ref(null);
 const profilePictureInput = ref(null);
 
+const sanitizePath = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+
+    let normalized = path;
+    normalized = normalized.replace(/^storage\/(app\/)?public\//i, '');
+    normalized = normalized.replace(/^storage\//i, '');
+    normalized = normalized.replace(/^\/+/g, '');
+
+    return `/${normalized}`;
+};
+
 const coverPhotoUrl = computed(() => {
-    return props.page.cover_photo_url
-        ? `/storage/${props.page.cover_photo_url}`
-        : '/images/web/default-cover.jpg';
+    const sanitized = sanitizePath(props.page.cover_photo_url);
+    return sanitized || '/images/default/page.jpg';
 });
 
 const profilePictureUrl = computed(() => {
-    return props.page.profile_picture_url
-        ? `/storage/${props.page.profile_picture_url}`
-        : '/images/web/users/avatar.jpg';
+    const sanitized = sanitizePath(props.page.profile_picture_url);
+    return sanitized || '/images/default/avatar.jpg';
 });
 
 const formatNumber = (num) => {
@@ -196,12 +190,6 @@ const openEditModal = () => {
     emit('edit-page');
 };
 
-const viewAsGuest = () => {
-    // TODO: Xem với tư cách khách
-    router.visit(`/pages/${props.page.username || props.page.id}`, {
-        data: { viewAsGuest: true }
-    });
-};
 
 const likePage = () => {
     // TODO: Implement like page
@@ -496,4 +484,5 @@ const sharePage = () => {
     }
 }
 </style>
+
 

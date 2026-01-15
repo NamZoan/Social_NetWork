@@ -11,12 +11,24 @@
                 <div class="modal-body">
                     <form @submit.prevent="updatePost">
                         <div class="form-group">
-                            <textarea 
-                                v-model="content" 
-                                class="form-control" 
-                                rows="5" 
+                            <textarea
+                                v-model="content"
+                                class="form-control"
+                                rows="5"
                                 placeholder="Bạn đang nghĩ gì?"
                             ></textarea>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input
+                                id="allowComments"
+                                type="checkbox"
+                                class="form-check-input"
+                                v-model="allowComments"
+                            />
+                            <label class="form-check-label" for="allowComments">
+                                Cho phép bình luận
+                            </label>
                         </div>
                         
                         <!-- Hiển thị ảnh hiện tại -->
@@ -25,8 +37,8 @@
                                 <div v-for="(image, index) in currentImages" :key="index" class="col-md-4 mb-2">
                                     <div class="position-relative">
                                         <img :src="'/images/client/post/' + image" class="img-fluid rounded" />
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
                                             @click="removeImage(index)"
                                         >
@@ -40,12 +52,12 @@
                         <!-- Upload ảnh mới sử dụng fileinput -->
                         <div class="form-group">
                             <label for="newImages">Thêm ảnh mới</label>
-                            <input 
-                                id="newImages" 
-                                name="new_images[]" 
-                                type="file" 
-                                multiple 
-                                class="file" 
+                            <input
+                                id="newImages"
+                                name="new_images[]"
+                                type="file"
+                                multiple
+                                class="file"
                                 data-show-upload="false"
                                 data-show-caption="true"
                                 data-msg-placeholder="Chọn ảnh để tải lên..."
@@ -82,6 +94,7 @@ const props = defineProps({
 const emit = defineEmits(['updated']);
 
 const content = ref(props.post.content);
+const allowComments = ref(props.post.allow_comments !== false);
 const currentImages = ref(props.post.media ? props.post.media.filter(m => m.media_type === 'image').map(m => m.media_url) : []);
 const isUpdating = ref(false);
 
@@ -97,6 +110,7 @@ const updatePost = async () => {
     try {
         const formData = new FormData();
         formData.append('content', content.value);
+        formData.append('allow_comments', allowComments.value ? 1 : 0);
         
         // Thêm danh sách ảnh hiện tại
         currentImages.value.forEach(image => {
@@ -105,7 +119,7 @@ const updatePost = async () => {
 
         // Lấy các file đã chọn từ fileinput
         const fileInput = document.getElementById('newImages');
-        if (fileInput.files.length > 0) {
+        if (fileInput?.files?.length) {
             for (let i = 0; i < fileInput.files.length; i++) {
                 formData.append('new_images[]', fileInput.files[i]);
             }
@@ -158,9 +172,8 @@ onMounted(() => {
     });
 
     // Xử lý sự kiện khi xóa ảnh
-    $('#newImages').on('filebeforedelete', function(event, key, jqXHR, data) {
+    $('#newImages').on('filebeforedelete', function(event, key) {
         if (currentImages.value.includes(key)) {
-            // Nếu là ảnh hiện tại, xóa khỏi danh sách
             const index = currentImages.value.indexOf(key);
             if (index > -1) {
                 currentImages.value.splice(index, 1);
@@ -196,4 +209,4 @@ onMounted(() => {
 .m-1 {
     margin: 0.25rem;
 }
-</style> 
+</style>

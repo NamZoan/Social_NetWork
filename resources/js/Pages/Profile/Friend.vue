@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <Index :user="user" :activeTab="activeTab">
         <ul class="list-group list-group-horizontal types-list fs-8">
             <a href="#" class="list-group-item">Recently Added</a>
@@ -100,7 +100,7 @@
                     <div class="card group-card shadow-sm">
                         <img :src="friend.avatar
                             ? `/images/client/avatar/${friend.avatar}`
-                            : '/images/web/users/avatar.jpg'
+                            : '/images/default/avatar.jpg'
                             " class="card-img-top group-card-image" alt="Avatar">
                         <div class="card-body">
                             <h5 class="card-title">{{ friend.name }}</h5>
@@ -147,3 +147,4 @@ const isOwner = computed(() => {
 <style scoped>
 @import "../../../css/update.css";
 </style>
+

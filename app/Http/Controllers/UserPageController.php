@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Page;
 use App\Models\Post;
+use App\Models\Media;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -11,6 +12,27 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 class UserPageController extends Controller
 {
+
+    /**
+     * Hiển thị danh sách Page của user
+     */
+    public function index()
+    {
+        $user = Auth::user();
+        $pages = Page::where('creator_id', $user->id)
+            ->orWhereHas('admins', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->with(['creator:id,name,avatar', 'admins:id,name,avatar'])
+            ->withCount(['posts', 'followers'])
+            ->latest()
+            ->paginate(12);
+
+        return Inertia::render('Pages/Index', [
+            'pages' => $pages,
+            'currentUser' => $user,
+        ]);
+    }
     /**
      * Hiển thị form tạo Page mới
      */
@@ -30,6 +52,7 @@ class UserPageController extends Controller
         $page = Page::where('username', $identifier)
             ->orWhere('id', $identifier)
             ->with(['creator', 'admins', 'posts.user'])
+            ->withCount(['posts', 'followers'])
             ->firstOrFail();
 
         // Kiểm tra xem user có đang theo dõi page không
@@ -37,13 +60,40 @@ class UserPageController extends Controller
 
         // Kiểm tra xem user có phải là admin không
         $isAdmin = $page->isAdmin($user->id);
-        $adminRole = $isAdmin ? $page->admins()->where('user_id', $user->id)->first()->pivot->role : null;
+        $adminRole = $page->getRoleForUser($user->id);
 
         // Lấy posts của page
         $posts = $page->posts()
-            ->with(['user', 'media', 'likes', 'comments.user'])
+            ->with([
+                'user',
+                'media',
+                'likes',
+                'comments.user',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->latest()
             ->paginate(10);
+
+        $photosCount = Media::where('media_type', 'image')
+            ->whereHas('post', function ($q) use ($page) {
+                $q->where('page_id', $page->id);
+            })
+            ->count();
+
+        $videosCount = Media::where('media_type', 'video')
+            ->whereHas('post', function ($q) use ($page) {
+                $q->where('page_id', $page->id);
+            })
+            ->count();
+
+        $pageStats = [
+            'posts' => $page->posts_count ?? $posts->total(),
+            'followers' => $page->followers_count ?? $page->followers()->count(),
+            'photos' => $photosCount,
+            'videos' => $videosCount,
+        ];
 
         return Inertia::render('Pages/Show', [
             'page' => $page,
@@ -52,7 +102,58 @@ class UserPageController extends Controller
             'adminRole' => $adminRole,
             'posts' => $posts,
             'currentUser' => $user,
+            'pageStats' => $pageStats,
         ]);
+    }
+
+    /**
+     * Lấy dữ liệu Cộng đồng (followers + admins) cho page
+     */
+    public function community(Page $page)
+    {
+        $user = Auth::user();
+
+        $page->loadCount(['followers', 'posts']);
+
+        $admins = $page->admins()
+            ->select('users.id', 'users.name', 'users.username', 'users.avatar', 'page_admins.role')
+            ->get();
+
+        $followers = $page->followers()
+            ->select('users.id', 'users.name', 'users.username', 'users.avatar')
+            ->latest('page_followers.created_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'counts' => [
+                'followers' => $page->followers_count,
+                'posts' => $page->posts_count,
+                'admins' => $admins->count(),
+            ],
+            'admins' => $admins,
+            'followers' => $followers,
+            'isFollowing' => $page->isFollowedBy($user->id),
+        ]);
+    }
+
+    /**
+     * Danh sách ảnh của Page
+     */
+    public function photos(Request $request, Page $page)
+    {
+        $perPage = (int) $request->input('per_page', 24);
+        $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 24;
+
+        $media = Media::where('media_type', 'image')
+            ->whereHas('post', function ($q) use ($page) {
+                $q->where('page_id', $page->id);
+            })
+            ->latest()
+            ->select('id', 'media_url', 'created_at')
+            ->paginate($perPage);
+
+        return response()->json($media);
     }
 
     /**
@@ -141,8 +242,8 @@ class UserPageController extends Controller
     {
         $user = Auth::user();
 
-        // Kiểm tra quyền
-        if (!$page->isAdmin($user->id)) {
+        // Kiểm tra quyền theo role (admin, editor)
+        if (!$page->canUpdateBy($user->id)) {
             abort(403, 'Bạn không có quyền chỉnh sửa trang này.');
         }
 
@@ -221,9 +322,7 @@ class UserPageController extends Controller
             $page->decrementFollowers();
             $message = 'Đã bỏ theo dõi trang.';
         } else {
-            $page->followers()->attach($user->id, [
-                'notification_settings' => $request->input('notification_settings', 'all')
-            ]);
+            $page->followers()->attach($user->id);
             $page->incrementFollowers();
             $message = 'Đã theo dõi trang.';
         }
@@ -349,11 +448,58 @@ class UserPageController extends Controller
     public function getPosts(Request $request, Page $page)
     {
         $posts = $page->posts()
-            ->with(['user', 'media', 'likes', 'comments.user'])
+            ->with([
+                'user',
+                'media',
+                'likes',
+                'comments.user',
+                'originalPost.user',
+                'originalPost.media'
+            ])
+            ->withCount(['comments', 'shares'])
             ->latest()
             ->paginate(10);
 
         return response()->json($posts);
     }
-}
 
+    /**
+     * Xóa Page (chỉ creator mới có quyền)
+     */
+    public function destroy(Page $page)
+    {
+        $user = Auth::user();
+
+        // Chỉ creator mới có quyền xóa
+        if ($page->creator_id !== $user->id) {
+            abort(403, 'Bạn không có quyền xóa trang này.');
+        }
+
+        // Xóa ảnh nếu có
+        if ($page->profile_picture_url) {
+            $profilePath = public_path($page->profile_picture_url);
+            if (File::exists($profilePath)) {
+                File::delete($profilePath);
+            }
+        }
+
+        if ($page->cover_photo_url) {
+            $coverPath = public_path($page->cover_photo_url);
+            if (File::exists($coverPath)) {
+                File::delete($coverPath);
+            }
+        }
+
+        $page->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã xóa trang thành công!'
+            ]);
+        }
+
+        return redirect()->route('pages.index')
+            ->with('success', 'Đã xóa trang thành công!');
+    }
+}

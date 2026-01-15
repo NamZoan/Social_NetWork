@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <nav id="navbar-main" class="navbar navbar-expand-lg shadow-sm sticky-top">
         <div class="w-100 justify-content-md-center">
 
@@ -33,7 +33,7 @@
                     <Link :href="`/${user.username}`" class="nav-link nav-links">
                     <div class="menu-user-image">
                         <img :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'"
-                            class="menu-user-img ml-1" alt="Menu Image">
+                            class="menu-user-img" alt="Menu Image">
                     </div>
                     </Link>
                 </li>

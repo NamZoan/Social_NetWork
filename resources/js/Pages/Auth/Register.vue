@@ -8,8 +8,8 @@
                             <img :src="'/images/web/logo-64x64.png'" class="logo-img" alt="Logo" />
                         </div>
                         <div class="col-md-10">
-                            <p>Argon Social Network</p>
-                            <span>Design System</span>
+                            <p>Argon Mạng Xã Hội</p>
+                            <span>Hệ Thống Thiết Kế</span>
                         </div>
                     </div>
                 </div>
@@ -23,13 +23,13 @@
                         </div>
                         <div class="col-md-12">
                             <div class="form-group">
-                                <input type="text" class="form-control" v-model="form.username" placeholder="Username (duy nhất)" />
+                                <input type="text" class="form-control" v-model="form.username" placeholder="Tên người dùng (duy nhất)" />
                                 <span v-if="form.errors.username" class="text-danger small">{{ form.errors.username }}</span>
                             </div>
                         </div>
                         <div class="col-md-12">
                             <div class="form-group">
-                                <input type="text" class="form-control" v-model="form.email" placeholder="Email" />
+                                <input type="text" class="form-control" v-model="form.email" placeholder="Địa chỉ email" />
                                 <span v-if="form.errors.email" class="text-danger small">{{ form.errors.email }}</span>
                             </div>
                         </div>

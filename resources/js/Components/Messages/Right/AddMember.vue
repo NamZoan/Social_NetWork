@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div>
         <div class="search-container">
             <input type="text" class="form-control search-input" v-model="searchQuery"
@@ -6,7 +6,7 @@
             <div class="search-results" v-if="showResults && filteredFriends.length > 0">
                 <div v-for="friend in filteredFriends" :key="friend.id" class="search-item"
                     @click="addMember(friend)">
-                    <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/web/users/avatar.jpg'"
+                    <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/default/avatar.jpg'"
                         :alt="friend.name">
                     <span>{{ friend.name }}</span>
                 </div>
@@ -14,7 +14,7 @@
         </div>
         <div class="selected-members" v-if="selectedMembers.length > 0">
             <div class="selected-member" v-for="member in selectedMembers" :key="member.id">
-                <img :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/web/users/avatar.jpg'"
+                <img :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/default/avatar.jpg'"
                     :alt="member.name">
                 <span>{{ member.name }}</span>
                 <button @click="removeMember(member)" class="remove-member">&times;</button>
@@ -238,3 +238,4 @@ watch(() => props.conversationId, () => {
     color: #c82333;
 }
 </style>
+

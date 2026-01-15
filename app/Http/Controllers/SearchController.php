@@ -51,7 +51,8 @@ class SearchController extends Controller
                 });
         }
         if ($type === 'post') {
-            $posts = Post::with('user')
+            $posts = Post::with(['user', 'media', 'originalPost.user', 'originalPost.media'])
+                ->withCount(['comments', 'shares'])
                 ->where('content', 'like', "%$q%")
                 ->limit(30)->get();
         }

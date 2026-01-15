@@ -16,4 +16,5 @@ interface PostRepositoryInterface
     public function updatePost($post, array $data, $currentImages, $newImages, $userId);
     public function getCommentsCount($post);
     public function find($postId);
+    public function sharePost(int $userId, \App\Models\Post $originalPost, ?string $content, string $privacySetting);
 }

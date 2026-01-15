@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <Index>
         <div class="col-md-9 second-section" id="page-content-wrapper">
             <div class="card-body">
@@ -7,7 +7,7 @@
                         <div class="user-img img-fluid flex-shrink-0">
                             <Link :href="`/${user.username}`" class="btn btn-quick-link join-group-btn border w-100">
                             <img
-                                :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/web/users/avatar.jpg'"
+                                :src="user.avatar ? `/images/client/avatar/${user.avatar}` : '/images/default/avatar.jpg'"
                                 alt="avatar"
                                 class="rounded-circle avatar-40"
                             >
@@ -60,3 +60,4 @@ function rejectRequest(userId) {
 <style scoped>
 @import '../../../css/socialv.css';
 </style>
+

@@ -49,7 +49,6 @@ Các migrations sẽ tạo:
 #### Bảng `page_followers`
 - `page_id` - ID trang
 - `user_id` - ID user
-- `notification_settings` - Cài đặt thông báo: all, highlights, none
 
 ## API Endpoints
 
@@ -241,7 +240,6 @@ Posts trên Page:
 2. Thêm tính năng Live streaming
 3. Thêm tính năng Events
 4. Thêm tính năng Quảng cáo
-5. Thêm notification settings cho followers
-6. Thêm tính năng verified badge
+5. Thêm tính năng verified badge
 
 

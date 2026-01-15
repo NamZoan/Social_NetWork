@@ -1,37 +1,124 @@
 <template>
-  <div class="max-w-md mx-auto mt-10 p-6 border rounded">
-    <h2 class="text-xl font-bold mb-2">Xác thực Email</h2>
-    <p class="mb-4">
-      Chúng tôi đã gửi một email xác thực tới <strong>{{ email }}</strong>.
-      Vui lòng kiểm tra hộp thư và bấm vào liên kết để kích hoạt tài khoản.
-    </p>
+    <div class="row ht-100v flex-row-reverse no-gutters">
+        <div class="col-md-12 d-flex justify-content-center align-items-center">
+            <div class="signup-form">
+                <div v-if="statusMessage" class="alert alert-success">
+                    {{ statusMessage }}
+                </div>
 
-    <div class="space-y-3">
-      <button
-        class="px-4 py-2 rounded bg-blue-600 text-white"
-        @click="resend"
-        :disabled="form.processing"
-      >
-        Gửi lại email xác thực
-      </button>
+                <div class="auth-logo text-center mb-5">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <img :src="'/images/web/logo-64x64.png'" class="logo-img" alt="Logo">
+                        </div>
+                        <div class="col-md-10">
+                            <p>Argon Mạng Xã Hội</p>
+                        </div>
+                    </div>
+                </div>
 
-      <div v-if="$page.props.flash?.status" class="text-green-600">
-        {{ $page.props.flash.status }}
-      </div>
+                <form @submit.prevent="submit">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <p>
+                                Chúng tôi đã gửi mã xác thực 6 chữ số tới
+                                <strong>{{ email }}</strong>.
+                                Vui lòng nhập mã để kích hoạt tài khoản.
+                            </p>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <input
+                                    v-model="form.code"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="one-time-code"
+                                    maxlength="6"
+                                    class="form-control"
+                                    placeholder="Nhập mã xác thực"
+                                    @input="sanitizeCode"
+                                />
+                                <span v-if="form.errors.code" class="text-danger small">
+                                    {{ form.errors.code }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <button
+                                    type="button"
+                                    class="btn btn-light"
+                                    @click="resend"
+                                    :disabled="resendForm.processing"
+                                >
+                                    Gửi lại mã
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 text-right">
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary sign-up" :disabled="form.processing">
+                                    Xác thực
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 text-center mt-4">
+                            <span class="go-login">
+                                Đã có tài khoản?
+                                <Link href="/dang-nhap">Đăng nhập</Link>
+                            </span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 
-const props = defineProps({
-  email: String,
+defineProps({
+    email: String,
 });
 
-const form = useForm({});
+const page = usePage();
+const statusMessage = computed(() => page.props.flash?.status || '');
+
+const form = useForm({
+    code: '',
+});
+
+const resendForm = useForm({});
+
+const sanitizeCode = () => {
+    form.code = form.code.replace(/\D/g, '').slice(0, 6);
+};
+
+    const submit = () => {
+        form.post('/email/verify-otp', {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.reset('code');
+            },
+            onError: () => {
+                form.code = '';
+            },
+        });
+    };
 
 const resend = () => {
-  form.post(route('verification.send'));
+    resendForm.post('/email/verification-notification', {
+    });
 };
 </script>
+
+<style scoped>
+@import '../../../css/forms.css';
+@import '../../../css/auth.css';
+</style>

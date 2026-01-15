@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('page_id');
             $table->unsignedBigInteger('user_id');
-            $table->enum('notification_settings', ['all', 'highlights', 'none'])->default('all');
             $table->timestamps();
 
             $table->foreign('page_id')->references('id')->on('pages')->onDelete('cascade');

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <Index>
         <div class="col-md-9 second-section" id="page-content-wrapper">
             <div>
@@ -27,7 +27,7 @@
                             <div class="card group-card bg-transparent group-card-inline mb-3">
                                 <div class="row no-gutters d-flex align-items-center">
                                     <div class="col-md-3">
-                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : 'images/web/groups/group-5.jpg'"
+                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : '/images/default/group.jpg'"
                                              class="card-img group-card-inline-img" alt="Group image">
                                     </div>
                                     <div class="col-md-6">
@@ -61,7 +61,7 @@
                             <div class="card group-card bg-transparent group-card-inline mb-3">
                                 <div class="row no-gutters d-flex align-items-center">
                                     <div class="col-md-3">
-                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : 'images/web/groups/group-5.jpg'"
+                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : '/images/default/group.jpg'"
                                              class="card-img group-card-inline-img" alt="Group image">
                                     </div>
                                     <div class="col-md-6">
@@ -204,5 +204,6 @@ const submit = () => {
     });
 };
 </script>
+
 
 

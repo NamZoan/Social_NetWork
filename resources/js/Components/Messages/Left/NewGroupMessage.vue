@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="modal fade" id="newGroupConversation" tabindex="-1" role="dialog"
         aria-labelledby="newGroupConversationLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -24,7 +24,7 @@
                             <div class="search-results" v-if="showResults && filteredFriends.length > 0">
                                 <div v-for="friend in filteredFriends" :key="friend.id" class="search-item"
                                     @click="addMember(friend)">
-                                    <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/web/users/avatar.jpg'"
+                                    <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/default/avatar.jpg'"
                                         :alt="friend.name">
                                     <span>{{ friend.name }}</span>
                                 </div>
@@ -34,7 +34,7 @@
 
                     <div class="selected-members" v-if="selectedMembers.length > 0">
                         <div class="selected-member" v-for="member in selectedMembers" :key="member.id">
-                            <img :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/web/users/avatar.jpg'"
+                            <img :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/default/avatar.jpg'"
                                 :alt="member.name">
                             <span>{{ member.name }}</span>
                             <button @click="removeMember(member)" class="remove-member">&times;</button>

@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Carbon;
+use App\Mail\VerificationCodeMail;
 
 
 class UserController extends Controller
@@ -46,6 +48,8 @@ class UserController extends Controller
             return back()->withErrors(['email' => 'Email đã tồn tại.'])->withInput();
         }
 
+        $otpCode = sprintf('%06d', random_int(0, 999999));
+
         $user = User::create([
             'name' => $request->name,
             'username' => $request->username,
@@ -53,10 +57,13 @@ class UserController extends Controller
             'phone' => $request->phone,
             'password' => $request->password,
             'birthday' => $request->day . '-' . $request->month . '-' . $request->year,
+            'verification_code' => $otpCode,
+            'verification_code_expires_at' => Carbon::now()->addMinutes(3),
         ]);
 
+        Mail::to($user->email)->send(new VerificationCodeMail($otpCode));
+
         Auth::login($user);
-        event(new Registered($user));
 
 
         return redirect()->route('verification.notice', [], 303);
@@ -156,4 +163,36 @@ class UserController extends Controller
 
         return back()->with('success', 'Cập nhật ảnh đại diện thành công!');
     }
+    public function verify(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'code' => 'required|numeric',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    // 1. Kiểm tra User có tồn tại không
+    if (!$user) {
+        return response()->json(['message' => 'Không tìm thấy tài khoản.'], 404);
+    }
+
+    // 2. Kiểm tra mã đúng không
+    if ($user->verification_code !== $request->code) {
+        return response()->json(['message' => 'Mã xác thực không đúng.'], 400);
+    }
+
+    // 3. Kiểm tra mã còn hạn không
+    if (Carbon::now()->gt($user->verification_code_expires_at)) {
+        return response()->json(['message' => 'Mã xác thực đã hết hạn.'], 400);
+    }
+
+    // 4. Thành công -> Kích hoạt tài khoản
+    $user->email_verified_at = Carbon::now();
+    $user->verification_code = null; // Xóa mã cũ đi
+    $user->verification_code_expires_at = null;
+    $user->save();
+
+    return response()->json(['message' => 'Xác thực tài khoản thành công!'], 200);
+}
 }

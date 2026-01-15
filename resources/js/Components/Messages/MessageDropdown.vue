@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <li class="nav-item s-nav dropdown message-drop-li">
         <a href="#" class="nav-link nav-links message-drop drop-w-tooltip" data-toggle="dropdown"
             data-placement="bottom" data-title="Messages" role="button" aria-haspopup="true" aria-expanded="false">
@@ -26,7 +26,7 @@
                         <div class="notification-content" @click="handleNotificationClick(noti)">
                             <div class="notify-img">
                                 <img :src="noti.group_avatar ? `/images/client/group/conversation/${noti.group_avatar}` : 
-                                    (noti.sender_avatar ? `/images/client/avatar/${noti.sender_avatar}` : '/images/web/users/avatar.jpg')"
+                                    (noti.sender_avatar ? `/images/client/avatar/${noti.sender_avatar}` : '/images/default/avatar.jpg')"
                                     :class="{'group-avatar': noti.conversation_type === 'group', 'user-avatar': noti.conversation_type === 'individual'}"
                                     alt="avatar">
                             </div>

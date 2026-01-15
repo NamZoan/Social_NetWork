@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 
     <div class="modal fade" id="newConversation" tabindex="-1" role="dialog" aria-labelledby="newConversationLabel"
         aria-hidden="true">
@@ -45,7 +45,7 @@
                                             <div class="row">
                                                 <div class="col-md-2 col-sm-2 col-xs-2">
                                                     <div class="notify-img">
-                                                        <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/web/users/avatar.jpg'"
+                                                        <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/default/avatar.jpg'"
                                                             alt="Friend avatar" @error="handleImageError">
                                                     </div>
                                                 </div>
@@ -97,8 +97,8 @@ const isLoading = ref(false);
 function removeVietnameseTones(str) {
     return str.normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '') // loại bỏ dấu
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
+        .replace(/Ä‘/g, 'd')
+        .replace(/Ä/g, 'D')
         .toLowerCase();
 }
 
@@ -186,7 +186,7 @@ const sendMessage = async () => {
 };
 
 const handleImageError = (e) => {
-    e.target.src = '/images/web/users/avatar.jpg';
+    e.target.src = '/images/default/avatar.jpg';
 };
 
 onMounted(() => {
@@ -255,3 +255,4 @@ watch(searchQuery, () => {
     padding: 0.5rem 0;
 }
 </style>
+

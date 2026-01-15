@@ -54,6 +54,7 @@ class ProfileRepository implements ProfileRepositoryInterface
     {
         $posts = Post::where('user_id', $user->id)
             ->whereNull('group_id')
+            ->whereNull('page_id')
             ->where(function($query) use ($user, $currentUser) {
                 if ($currentUser && $currentUser->id === $user->id) {
                     return;
@@ -86,8 +87,10 @@ class ProfileRepository implements ProfileRepositoryInterface
                 'likes.user',
                 'comments.user',
                 'comments.replies.user',
-                'originalPost.user'
+                'originalPost.user',
+                'originalPost.media'
             ])
+            ->withCount(['likes', 'comments', 'shares'])
             ->latest()
             ->paginate(2, ['*'], 'page', $page);
 
@@ -122,12 +125,14 @@ class ProfileRepository implements ProfileRepositoryInterface
                         })
                     ];
                 }),
-                'likes_count' => $post->likes->count(),
-                'comments_count' => $post->comments->count(),
+                'likes_count' => $post->likes_count ?? $post->likes->count(),
+                'comments_count' => $post->comments_count ?? $post->comments->count(),
+                'shares_count' => $post->shares_count ?? 0,
                 'original_post' => $post->originalPost ? [
                     'id' => $post->originalPost->id,
                     'content' => $post->originalPost->content,
-                    'user' => $post->originalPost->user
+                    'user' => $post->originalPost->user,
+                    'media' => $post->originalPost->media
                 ] : null
             ];
         });

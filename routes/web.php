@@ -16,37 +16,61 @@ use App\Http\Controllers\VerifyEmailController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\MetaBusinessController;
 use App\Http\Controllers\UserPageController;
+use App\Http\Controllers\PageAdminController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\SignalController;
+use App\Http\Controllers\RelatedPostController;
+use App\Http\Controllers\FeedController;
+use App\Http\Controllers\PasswordResetController;
+
 Route::get('/dang-nhap', [UserController::class, 'login'])->name('login');
 Route::post('/dang-nhap', [UserController::class, 'authenticate']);
 Route::get('/dang-ky', [UserController::class, 'register'])->name('register');
 Route::post('/dang-ky', [UserController::class, 'store']);
+Route::get('/forgot-password', [PasswordResetController::class, 'requestForm'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])->middleware('throttle:6,1')->name('password.email');
+Route::get('/reset-password', [PasswordResetController::class, 'resetForm'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:6,1')->name('password.update');
 
 // Route::get('/verify-email', )->middleware('auth')->name('verification.notice');
 // Route::post('/verify-email', [VerifyEmailController::class, 'verify'])->name('verify.submit');
 
-Route::middleware('auth')->group(function () {
-    // Trang nhắc xác thực
-    Route::get('/email/verify', [VerifyEmailController::class, 'notice'])
-        ->name('verification.notice');
+        // Trang nhắc xác thực
+        Route::get('/email/verify', [VerifyEmailController::class, 'notice'])
+            ->name('verification.notice');
 
-    // Link xác thực (ký số)
-    Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verify'])
-        ->middleware(['signed', 'throttle:6,1', 'auth'])
-        ->name('verification.verify');
+        Route::get('/verify-email', [VerifyEmailController::class, 'notice'])
+            ->name('verify-email');
 
-    // Gửi lại email xác thực
-    Route::post('/email/verification-notification', [VerifyEmailController::class, 'send'])
-        ->middleware('throttle:6,1')
-        ->name('verification.send');
-});
+        // Link xác thực (ký số)
+        Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verify'])
+            ->middleware(['signed', 'throttle:6,1', 'auth'])
+            ->name('verification.verify');
+
+        Route::post('/email/verify-otp', [VerifyEmailController::class, 'verifyOtp'])
+            ->middleware('throttle:6,1')
+            ->name('verification.verify-otp');
+
+        // Gửi lại email xác thực
+        Route::post('/email/verification-notification', [VerifyEmailController::class, 'send'])
+            ->middleware('throttle:6,1')
+            ->name('verification.send');
 
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/', [PageController::class, 'index'])->name('home');
-    Route::get('/posts/load-more', [PageController::class, 'loadMore'])->name('posts.load-more');
+    // Feed Routes
+    Route::get('/', [FeedController::class, 'index'])->name('home');
+    Route::get('/newsfeed', [FeedController::class, 'getNewsFeed'])->name('feed.newsfeed');
+    Route::post('/track-interaction', [FeedController::class, 'trackInteraction'])->name('feed.track');
+    Route::get('/posts/{postId}/related', [FeedController::class, 'getRelatedPosts'])->name('feed.related');
+    Route::get('/pages/{pageId}/posts', [FeedController::class, 'getPagePosts'])->name('feed.page-posts');
+    Route::get('/posts/friends', [FeedController::class, 'getFriendsPosts'])->name('feed.friends');
+    Route::get('/feed/prefetch', [FeedController::class, 'prefetchFeed'])->name('feed.prefetch');
+    Route::get('/newsfeed/check-new', [FeedController::class, 'checkNewPosts'])->name('feed.check-new');
+    
+    // Lấy chỉ bài viết của bạn bè
+    Route::get('/posts/friends', [FeedController::class, 'getFriendsPosts']);
     Route::get('/cai-dat', [SettingController::class, 'account'])->name('account');
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
@@ -82,6 +106,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/posts/{post}/media/delete', [PostController::class, 'deleteMedia'])->name('posts.media.delete');
     Route::post('/posts/{post}/privacy', [PostController::class, 'updatePrivacy'])->name('posts.privacy.update');
     Route::post('/posts/{post}/update', [PostController::class, 'update'])->name('posts.update');
+    Route::post('/posts/{post}/share', [PostController::class, 'share'])->name('posts.share');
+    Route::post('/posts/{post}/interactions', [PostController::class, 'logInteraction'])->name('posts.interactions.store');
+
+    Route::post('/related-posts', [RelatedPostController::class, 'store']);
+    Route::get('/related-posts/{post_id}', [RelatedPostController::class, 'getRelated']);
 
     //reaction
     Route::post('/posts/reaction/{postId}', [PostController::class, 'likePost']);
@@ -177,13 +206,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('calls')->name('calls.')->group(function () {
+        Route::get('/history',  [CallController::class, 'history'])->name('history');
         Route::get('/{id}',     [CallController::class, 'show'])->name('show');
+        Route::get('/{id}/agora-token', [CallController::class, 'getAgoraToken'])->name('agora-token');
         Route::post('/invite',  [CallController::class, 'invite'])->name('invite');
         Route::post('/accept',  [CallController::class, 'accept'])->name('accept');
         Route::post('/reject',  [CallController::class, 'reject'])->name('reject');   // nên có
         Route::post('/end',     [CallController::class, 'end'])->name('end');
 
-        // WebRTC signaling
+        // WebRTC signaling (có thể giữ lại để tương thích ngược)
         Route::post('/offer',   [SignalController::class, 'offer'])->name('offer');
         Route::post('/answer',  [SignalController::class, 'answer'])->name('answer');
         Route::post('/ice',     [SignalController::class, 'ice'])->name('ice');
@@ -202,13 +233,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Pages Routes
     Route::prefix('pages')->group(function () {
+        Route::get('/index', [UserPageController::class, 'index'])->name('pages.index');
         Route::get('/create', [UserPageController::class, 'create'])->name('pages.create');
         Route::post('/', [UserPageController::class, 'store'])->name('pages.store');
         Route::get('/{identifier}', [UserPageController::class, 'show'])->name('pages.show');
-        Route::post('/{page}/update', [UserPageController::class, 'update'])->name('pages.update');
+        Route::post('/{page}/update', [PageController::class, 'update'])->name('pages.update');
         Route::post('/{page}/follow', [UserPageController::class, 'toggleFollow'])->name('pages.follow');
         Route::get('/{page}/insights', [UserPageController::class, 'insights'])->name('pages.insights');
         Route::get('/{page}/posts', [UserPageController::class, 'getPosts'])->name('pages.posts');
+        Route::get('/{page}/community', [UserPageController::class, 'community'])->name('pages.community');
+        Route::get('/{page}/photos', [UserPageController::class, 'photos'])->name('pages.photos');
+        Route::delete('/{page}', [UserPageController::class, 'destroy'])->name('pages.destroy');
+        Route::post('/{page}/admins', [PageAdminController::class, 'store'])->name('pages.admins.store');
+        Route::put('/{page}/admins/{user}', [PageAdminController::class, 'update'])->name('pages.admins.update');
+        Route::delete('/{page}/admins/{user}', [PageAdminController::class, 'destroy'])->name('pages.admins.destroy');
     });
 
 });

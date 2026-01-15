@@ -27,10 +27,7 @@
             <section class="call-layout">
                 <div class="call-stage" :class="{ 'call-stage--sharing': isScreenSharing }">
                     <video id="remoteVideo" autoplay playsinline class="call-stage__video"></video>
-                    <div class="call-stage__pip">
-                        <video id="localVideo" autoplay playsinline muted class="call-stage__pip-video"></video>
-                    </div>
-                    <div v-if="!remoteStream" class="call-stage__placeholder">
+                    <div v-if="!remoteVideoTrack" class="call-stage__placeholder">
                         <div class="call-stage__avatar">
                             <i class="bx bx-user"></i>
                         </div>
@@ -142,6 +139,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, onBeforeUnmount, nextTick } from "vue";
 import axios from "axios";
+import AgoraRTC from "agora-rtc-sdk-ng";
 
 const props = defineProps({
     callId: {
@@ -173,9 +171,6 @@ const emit = defineEmits(["end-call"]);
 
 const localVideo = ref(null);
 const remoteVideo = ref(null);
-const localStream = ref(null);
-const remoteStream = ref(null);
-const screenStream = ref(null);
 
 const isMuted = ref(false);
 const isCameraOff = ref(false);
@@ -189,22 +184,21 @@ const isCallActive = ref(false);
 const callDuration = ref(0);
 const timerHandle = ref(null);
 
-let pc = null;
-let echoSub = null;
+// Agora SDK variables
+let agoraClient = null;
+let localAudioTrack = null;
+let localVideoTrack = null;
+let localScreenTrack = null;
+let remoteAudioTrack = null;
+let remoteVideoTrack = null;
+let remoteUid = null;
+
 let callChannel = null;
 let isCallerFlag = ref(false);
 const resolvedPeerId = ref(null);
 const isCleaningUp = ref(false);
 const channelName = ref(null);
-
-const iceServers = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    {
-        urls: 'turn:relay1.expressturn.com:3480',
-        username: '000000002077978350',
-        credential: 'Qjj9PbBlQ/+G1jqNwPDRDP54/qA='
-    }
-];
+const agoraConfig = ref(null);
 
 // Xác định caller/callee và peerId dựa trên prop hoặc từ call data
 const determineCallRole = async () => {
@@ -234,35 +228,143 @@ const determineCallRole = async () => {
     }
 };
 
-async function startLocalStream() {
+async function initializeAgoraClient() {
     try {
+        console.log("[VideoCall] Initializing Agora client for call:", props.callId);
+
+        // Lấy Agora config từ backend
+        const response = await axios.get(`/calls/${props.callId}/agora-token`);
+        console.log("[VideoCall] Agora config response:", response.data);
+        agoraConfig.value = response.data;
+
+        if (!agoraConfig.value.app_id) {
+            console.error("[VideoCall] Agora App ID không được cấu hình");
+            throw new Error("Agora App ID không được cấu hình");
+        }
+
+        if (!agoraConfig.value.token) {
+            console.warn("[VideoCall] Agora token không có, có thể gây lỗi kết nối");
+        }
+
+        // Tạo Agora client
+        console.log("[VideoCall] Creating Agora client...");
+        agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        console.log("[VideoCall] Agora client created successfully");
+
+        // Xử lý khi user join channel
+        agoraClient.on("user-published", async (user, mediaType) => {
+            await agoraClient.subscribe(user, mediaType);
+
+            if (mediaType === "video") {
+                remoteVideoTrack = user.videoTrack;
+                remoteUid = user.uid;
+                await nextTick();
+                const rv = document.querySelector('#remoteVideo');
+                if (rv && remoteVideoTrack) {
+                    remoteVideoTrack.play(rv);
+                }
+                callStatus.value = "Đang trò chuyện";
+                if (!isCallActive.value) {
+                    isCallActive.value = true;
+                    startCallTimer();
+                }
+            }
+
+            if (mediaType === "audio") {
+                remoteAudioTrack = user.audioTrack;
+                if (remoteAudioTrack) {
+                    remoteAudioTrack.play();
+                }
+            }
+        });
+
+        // Xử lý khi user leave channel
+        agoraClient.on("user-unpublished", (user, mediaType) => {
+            if (mediaType === "video") {
+                remoteVideoTrack = null;
+                remoteUid = null;
+            }
+            if (mediaType === "audio") {
+                remoteAudioTrack = null;
+            }
+        });
+
+        // Xử lý khi user left
+        agoraClient.on("user-left", () => {
+            remoteVideoTrack = null;
+            remoteAudioTrack = null;
+            remoteUid = null;
+        });
+
+        // Xử lý connection state
+        agoraClient.on("connection-state-change", (curState, revState) => {
+            console.log("Agora connection state:", curState, revState);
+            if (curState === "CONNECTED") {
+                callStatus.value = "Đang trò chuyện";
+                if (!isCallActive.value) {
+                    isCallActive.value = true;
+                    startCallTimer();
+                }
+            } else if (curState === "DISCONNECTED") {
+                callStatus.value = "Kết nối bị gián đoạn";
+            }
+        });
+
+        return true;
+    } catch (error) {
+        console.error("Error initializing Agora client:", error);
+        callStatus.value = "Không thể khởi tạo kết nối Agora";
+        return false;
+    }
+}
+
+async function createLocalTracks() {
+    try {
+        console.log("[VideoCall] Creating local tracks...");
         const devices = await navigator.mediaDevices.enumerateDevices();
         const hasVideo = devices.some((d) => d.kind === "videoinput");
         const hasAudio = devices.some((d) => d.kind === "audioinput");
 
+        console.log("[VideoCall] Available devices - Video:", hasVideo, "Audio:", hasAudio);
+
         if (!hasVideo && !hasAudio) {
             callStatus.value = "Không tìm thấy camera hoặc micro";
+            console.error("[VideoCall] Không tìm thấy camera hoặc micro");
             return false;
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: hasVideo ? { facingMode: 'user' } : false,
-            audio: hasAudio,
-        });
+        // Tạo audio track
+        if (hasAudio) {
+            console.log("[VideoCall] Creating microphone track...");
+            localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            console.log("[VideoCall] Microphone track created");
+        }
 
-        localStream.value = stream;
+        // Tạo video track
+        if (hasVideo) {
+            console.log("[VideoCall] Creating camera track...");
+            localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+                encoderConfig: "720p_1",
+            });
+            console.log("[VideoCall] Camera track created");
+        }
 
+        // Hiển thị local video
         await nextTick();
-        if (localVideo.value) {
-            localVideo.value.srcObject = stream;
+        if (localVideo.value && localVideoTrack) {
+            console.log("[VideoCall] Playing local video...");
+            localVideoTrack.play(localVideo.value);
+        } else {
+            console.warn("[VideoCall] Local video element not found or track not available");
         }
 
         callStatus.value = isCallerFlag.value ? "Đang kết nối..." : "Đang chờ đối phương...";
+        console.log("[VideoCall] Local tracks created successfully");
         return true;
     } catch (err) {
-        console.error("Error accessing media devices:", err);
-        isCameraOff.value = !err.name.includes("video");
-        isMuted.value = !err.name.includes("audio");
+        console.error("Error creating local tracks:", err);
+        isCameraOff.value = !err.name?.includes("video");
+        isMuted.value = !err.name?.includes("audio");
         mediaError.value = err.name;
 
         if (err.name === "NotFoundError") {
@@ -278,211 +380,75 @@ async function startLocalStream() {
     }
 }
 
-function createPeerConnection() {
-    if (pc) {
-        pc.close();
-    }
-
-    pc = new RTCPeerConnection({ iceServers });
-
-    // Thêm tracks từ local stream
-    if (localStream.value) {
-        localStream.value.getTracks().forEach(track => {
-            pc.addTrack(track, localStream.value);
-        });
-    }
-
-    // Xử lý ICE candidates
-    pc.onicecandidate = (event) => {
-        if (event.candidate) {
-            const peerId = resolvedPeerId.value || props.peerId;
-            if (peerId) {
-                sendSignal('/calls/ice', {
-                    type: 'ice',
-                    from: props.meId,
-                    to: peerId,
-                    candidate: event.candidate
-                });
-            }
-        }
-    };
-
-    // Xử lý khi nhận được remote stream
-    pc.ontrack = (event) => {
-        console.log("Received remote track:", event);
-        if (event.streams && event.streams[0]) {
-            remoteStream.value = event.streams[0];
-            nextTick(() => {
-                const rv = document.querySelector('#remoteVideo');
-                if (rv) {
-                    rv.srcObject = remoteStream.value;
-                }
-            });
-        }
-    };
-
-    // Xử lý connection state changes
-    pc.onconnectionstatechange = () => {
-        console.log("Connection state:", pc.connectionState);
-        if (pc.connectionState === 'connected') {
-            callStatus.value = "Đang trò chuyện";
-            if (!isCallActive.value) {
-                isCallActive.value = true;
-                startCallTimer();
-            }
-        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-            callStatus.value = "Kết nối bị gián đoạn";
-        }
-    };
-
-    // Xử lý ICE connection state
-    pc.oniceconnectionstatechange = () => {
-        console.log("ICE connection state:", pc.iceConnectionState);
-        if (pc.iceConnectionState === 'failed') {
-            // Retry connection
-            pc.restartIce();
-        }
-    };
-}
-
-async function makeOffer() {
-    if (!pc) return;
-
-    const peerId = resolvedPeerId.value || props.peerId;
-    if (!peerId) {
-        console.error("Cannot create offer: peerId not found");
-        // Thử lấy lại peerId
-        await determineCallRole();
-        const retryPeerId = resolvedPeerId.value || props.peerId;
-        if (!retryPeerId) {
-            console.error("Still cannot find peerId after retry");
-            return;
-        }
-        // Sử dụng retryPeerId
-        return makeOfferWithPeerId(retryPeerId);
-    }
-
-    return makeOfferWithPeerId(peerId);
-}
-
-async function makeOfferWithPeerId(peerId) {
-    if (!pc || !peerId) return;
-
-    try {
-        const offer = await pc.createOffer({
-            offerToReceiveAudio: true,
-            offerToReceiveVideo: true
-        });
-        await pc.setLocalDescription(offer);
-        await sendSignal('/calls/offer', {
-            type: 'offer',
-            from: props.meId,
-            to: peerId,
-            sdp: offer
-        });
-        console.log("Offer sent to peer:", peerId);
-    } catch (error) {
-        console.error("Error creating offer:", error);
-    }
-}
-
-async function handleOffer(offerData) {
-    if (!pc) return;
-
-    try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offerData.sdp));
-        const answer = await pc.createAnswer({
-            offerToReceiveAudio: true,
-            offerToReceiveVideo: true
-        });
-        await pc.setLocalDescription(answer);
-        await sendSignal('/calls/answer', {
-            type: 'answer',
-            from: props.meId,
-            to: offerData.from,
-            sdp: answer
-        });
-        console.log("Answer sent");
-    } catch (error) {
-        console.error("Error handling offer:", error);
-    }
-}
-
-async function handleAnswer(answerData) {
-    if (!pc) return;
-
-    try {
-        await pc.setRemoteDescription(new RTCSessionDescription(answerData.sdp));
-        console.log("Answer received and set");
-    } catch (error) {
-        console.error("Error handling answer:", error);
-    }
-}
-
-async function handleIceCandidate(candidateData) {
-    if (!pc || !candidateData.candidate) return;
-
-    try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidateData.candidate));
-    } catch (error) {
-        console.error("Error adding ICE candidate:", error);
-    }
-}
-
-async function sendSignal(url, payload) {
-    try {
-        await axios.post(url, {
-            id: props.callId,
-            payload
-        });
-    } catch (error) {
-        console.error("Error sending signal:", error);
-    }
-}
-
-function subscribeToCallChannel() {
-    if (!window.Echo) {
-        console.error("Echo is not available");
+async function joinChannel() {
+    if (!agoraClient || !agoraConfig.value) {
+        console.error("[VideoCall] Cannot join channel: client or config missing");
         return;
     }
 
+    try {
+        const token = agoraConfig.value.token || null; // Có thể null nếu dùng temporary token
+        const uid = agoraConfig.value.uid || props.meId;
+        const channel = agoraConfig.value.channel;
+
+        console.log("[VideoCall] Joining channel:", {
+            appId: agoraConfig.value.app_id,
+            channel: channel,
+            uid: uid,
+            hasToken: !!token
+        });
+
+        await agoraClient.join(
+            agoraConfig.value.app_id,
+            channel,
+            token,
+            uid
+        );
+
+        console.log("[VideoCall] Successfully joined channel");
+
+        // Publish local tracks
+        const tracksToPublish = [];
+        if (localAudioTrack) tracksToPublish.push(localAudioTrack);
+        if (localVideoTrack) tracksToPublish.push(localVideoTrack);
+
+        if (tracksToPublish.length > 0) {
+            console.log("[VideoCall] Publishing tracks:", tracksToPublish.length);
+            await agoraClient.publish(tracksToPublish);
+            console.log("[VideoCall] Tracks published successfully");
+        } else {
+            console.warn("[VideoCall] No tracks to publish");
+        }
+
+        callStatus.value = "Đang kết nối...";
+    } catch (error) {
+        console.error("[VideoCall] Error joining channel:", error);
+        callStatus.value = "Không thể tham gia kênh: " + (error.message || error);
+    }
+}
+
+
+function subscribeToCallChannel() {
+    if (!window.Echo) {
+        console.error("[VideoCall] Echo is not available");
+        return;
+    }
+
+    console.log("[VideoCall] Subscribing to call channel:", `call.${props.callId}`);
     channelName.value = `call.${props.callId}`;
     callChannel = window.Echo.join(channelName.value);
 
-    // Lắng nghe signaling messages
-    callChannel.listen('.signal', async (data) => {
-        if (isCleaningUp.value) return; // Bỏ qua nếu đang cleanup
-        const { payload } = data;
-        if (!payload || payload.to !== props.meId) return;
-
-        console.log("Received signal:", payload.type);
-
-        switch (payload.type) {
-            case 'offer':
-                await handleOffer(payload);
-                break;
-            case 'answer':
-                await handleAnswer(payload);
-                break;
-            case 'ice':
-                await handleIceCandidate(payload);
-                break;
-        }
-    });
-
-    // Lắng nghe khi call được accept
+    // Lắng nghe khi call được accept (không cần WebRTC signaling nữa vì Agora tự xử lý)
     callChannel.listen('.call.accepted', (data) => {
         if (isCleaningUp.value) return;
-        console.log("Call accepted:", data);
+        console.log("[VideoCall] Call accepted:", data);
         callStatus.value = "Đang kết nối...";
-        // Nếu là callee và chưa có offer, đợi caller gửi offer
-        // Nếu là caller, đã gửi offer rồi, chỉ cần đợi answer
     });
 
     // Lắng nghe khi call kết thúc
     callChannel.listen('.call.ended', (data) => {
         if (isCleaningUp.value) return;
-        console.log("Call ended:", data);
+        console.log("[VideoCall] Call ended:", data);
         if (data.byUserId !== props.meId) {
             callStatus.value = "Cuộc gọi đã kết thúc";
             setTimeout(() => {
@@ -492,51 +458,48 @@ function subscribeToCallChannel() {
             }, 1000);
         }
     });
+
+    console.log("[VideoCall] Successfully subscribed to call channel");
 }
 
 const toggleScreenShare = async () => {
-    if (!pc) return;
+    if (!agoraClient) return;
 
     try {
         if (!isScreenSharing.value) {
             // Bắt đầu chia sẻ màn hình
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-                audio: true
+            localScreenTrack = await AgoraRTC.createScreenVideoTrack({
+                encoderConfig: "1080p_1",
             });
 
-            screenStream.value = stream;
-
-            // Thay thế video track
-            const videoTrack = stream.getVideoTracks()[0];
-            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (sender) {
-                await sender.replaceTrack(videoTrack);
+            // Unpublish camera track
+            if (localVideoTrack) {
+                await agoraClient.unpublish([localVideoTrack]);
             }
 
+            // Publish screen track
+            await agoraClient.publish([localScreenTrack]);
+
             // Xử lý khi người dùng dừng chia sẻ màn hình
-            videoTrack.onended = () => {
+            localScreenTrack.on("track-ended", () => {
                 if (isScreenSharing.value) {
                     toggleScreenShare();
                 }
-            };
+            });
 
             isScreenSharing.value = true;
             callStatus.value = "Đang chia sẻ màn hình";
         } else {
-            // Dừng chia sẻ màn hình và quay lại camera
-            if (screenStream.value) {
-                screenStream.value.getTracks().forEach(track => track.stop());
-                screenStream.value = null;
+            // Dừng chia sẻ màn hình
+            if (localScreenTrack) {
+                await agoraClient.unpublish([localScreenTrack]);
+                localScreenTrack.close();
+                localScreenTrack = null;
             }
 
             // Quay lại camera
-            if (localStream.value) {
-                const videoTrack = localStream.value.getVideoTracks()[0];
-                const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                if (sender && videoTrack) {
-                    await sender.replaceTrack(videoTrack);
-                }
+            if (localVideoTrack) {
+                await agoraClient.publish([localVideoTrack]);
             }
 
             isScreenSharing.value = false;
@@ -550,31 +513,16 @@ const toggleScreenShare = async () => {
     }
 };
 
-const stopLocalStream = () => {
-    if (localStream.value) {
-        localStream.value.getTracks().forEach(track => track.stop());
-        localStream.value = null;
-    }
-    if (screenStream.value) {
-        screenStream.value.getTracks().forEach(track => track.stop());
-        screenStream.value = null;
-    }
-};
-
 const toggleMute = () => {
-    if (!localStream.value) return;
+    if (!localAudioTrack) return;
     isMuted.value = !isMuted.value;
-    localStream.value.getAudioTracks().forEach(track => {
-        track.enabled = !isMuted.value;
-    });
+    localAudioTrack.setEnabled(!isMuted.value);
 };
 
 const toggleCamera = () => {
-    if (!localStream.value) return;
+    if (!localVideoTrack) return;
     isCameraOff.value = !isCameraOff.value;
-    localStream.value.getVideoTracks().forEach(track => {
-        track.enabled = !isCameraOff.value;
-    });
+    localVideoTrack.setEnabled(!isCameraOff.value);
 };
 
 const toggleLayout = () => {
@@ -608,18 +556,35 @@ const cleanup = () => {
 
     stopCallTimer();
 
-    // Đóng peer connection
-    if (pc) {
-        try {
-            pc.close();
-        } catch (error) {
-            console.error("Error closing peer connection:", error);
-        }
-        pc = null;
+    // Rời khỏi Agora channel
+    if (agoraClient) {
+        agoraClient.leave().catch(console.error);
+        agoraClient = null;
     }
 
-    // Dừng local stream
-    stopLocalStream();
+    // Đóng local tracks
+    if (localAudioTrack) {
+        localAudioTrack.close();
+        localAudioTrack = null;
+    }
+    if (localVideoTrack) {
+        localVideoTrack.close();
+        localVideoTrack = null;
+    }
+    if (localScreenTrack) {
+        localScreenTrack.close();
+        localScreenTrack = null;
+    }
+
+    // Đóng remote tracks
+    if (remoteAudioTrack) {
+        remoteAudioTrack.close();
+        remoteAudioTrack = null;
+    }
+    if (remoteVideoTrack) {
+        remoteVideoTrack.close();
+        remoteVideoTrack = null;
+    }
 
     // Rời khỏi Echo channel
     if (window.Echo && channelName.value) {
@@ -664,30 +629,20 @@ const formattedDuration = computed(() => {
 });
 
 const connectionLabel = computed(() => {
-    if (!localStream.value) return "Đang chuẩn bị thiết bị";
-    if (!remoteStream.value) return "Chờ phản hồi";
-    if (pc && pc.connectionState === 'connected') return "Kết nối ổn định";
+    if (!localVideoTrack && !localAudioTrack) return "Đang chuẩn bị thiết bị";
+    if (!remoteVideoTrack && !remoteAudioTrack) return "Chờ phản hồi";
+    if (agoraClient && agoraClient.connectionState === "CONNECTED") return "Kết nối ổn định";
     return "Đang kết nối...";
 });
 
 const connectionPillClass = computed(() => {
-    if (!localStream.value) {
+    if (!localVideoTrack && !localAudioTrack) {
         return "call-pill--idle";
     }
-    if (pc && pc.connectionState === 'connected') {
+    if (agoraClient && agoraClient.connectionState === "CONNECTED") {
         return "call-pill--good";
     }
     return "call-pill--waiting";
-});
-
-watch(remoteStream, (stream) => {
-    if (stream) {
-        callStatus.value = "Đang trò chuyện";
-        if (!isCallActive.value) {
-            isCallActive.value = true;
-            startCallTimer();
-        }
-    }
 });
 
 watch(isCallActive, (active) => {
@@ -699,27 +654,45 @@ watch(isCallActive, (active) => {
 });
 
 onMounted(async () => {
-    // Xác định vai trò caller/callee
-    await determineCallRole();
+    console.log("[VideoCall] Component mounted, callId:", props.callId, "meId:", props.meId);
 
-    // Khởi tạo local stream
-    const ready = await startLocalStream();
-    if (!ready) {
+    try {
+        // Xác định vai trò caller/callee
+        console.log("[VideoCall] Determining call role...");
+        await determineCallRole();
+        console.log("[VideoCall] Call role determined, isCaller:", isCallerFlag.value);
+
+        // Khởi tạo Agora client
+        console.log("[VideoCall] Initializing Agora client...");
+        const clientReady = await initializeAgoraClient();
+        if (!clientReady) {
+            console.error("[VideoCall] Failed to initialize Agora client");
+            emit("end-call");
+            return;
+        }
+
+        // Tạo local tracks
+        console.log("[VideoCall] Creating local tracks...");
+        const tracksReady = await createLocalTracks();
+        if (!tracksReady) {
+            console.error("[VideoCall] Failed to create local tracks");
+            emit("end-call");
+            return;
+        }
+
+        // Join channel
+        console.log("[VideoCall] Joining channel...");
+        await joinChannel();
+
+        // Subscribe to call channel để lắng nghe events
+        console.log("[VideoCall] Subscribing to call channel...");
+        subscribeToCallChannel();
+
+        console.log("[VideoCall] Initialization completed");
+    } catch (error) {
+        console.error("[VideoCall] Error during initialization:", error);
+        callStatus.value = "Lỗi khởi tạo: " + (error.message || error);
         emit("end-call");
-        return;
-    }
-
-    // Tạo peer connection
-    createPeerConnection();
-
-    // Subscribe to call channel
-    subscribeToCallChannel();
-
-    // Nếu là caller, tạo offer sau một chút delay để đảm bảo callee đã join
-    if (isCallerFlag.value) {
-        setTimeout(() => {
-            makeOffer();
-        }, 1000);
     }
 });
 

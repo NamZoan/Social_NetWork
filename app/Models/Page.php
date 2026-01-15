@@ -49,6 +49,7 @@ class Page extends Model
     public function admins()
     {
         return $this->belongsToMany(User::class, 'page_admins', 'page_id', 'user_id')
+            ->using(PageAdmin::class)
             ->withPivot('role')
             ->withTimestamps();
     }
@@ -59,7 +60,6 @@ class Page extends Model
     public function followers()
     {
         return $this->belongsToMany(User::class, 'page_followers', 'page_id', 'user_id')
-            ->withPivot('notification_settings')
             ->withTimestamps();
     }
 
@@ -77,6 +77,23 @@ class Page extends Model
     public function isAdmin($userId)
     {
         return $this->admins()->where('user_id', $userId)->exists();
+    }
+
+    public function getRoleForUser($userId): ?string
+    {
+        $admin = $this->admins()->where('user_id', $userId)->first();
+        return $admin?->pivot?->role;
+    }
+
+    public function canUpdateBy($userId): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        return in_array($role, [PageAdmin::ROLE_ADMIN, PageAdmin::ROLE_EDITOR], true);
+    }
+
+    public function canManageAdmins($userId): bool
+    {
+        return $this->getRoleForUser($userId) === PageAdmin::ROLE_ADMIN;
     }
 
     /**
@@ -144,5 +161,4 @@ class Page extends Model
             : route('pages.show', $this->id);
     }
 }
-
 

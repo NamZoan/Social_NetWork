@@ -40,8 +40,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (config('app.env') === 'production') { // <-- Dòng này là tùy chọn, nhưng nên có
-            URL::forceScheme('https'); // <-- THÊM DÒNG NÀY
+        if ($this->app->environment('production') || !empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+            URL::forceScheme('https');
         }
     }
 }

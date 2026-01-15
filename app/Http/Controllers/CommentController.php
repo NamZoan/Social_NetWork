@@ -14,7 +14,24 @@ use Illuminate\Support\Facades\DB;
 class CommentController extends Controller
 {
     /**
-     * Lấy danh sách comments của một bài viết
+     * Build nested replies tree for consistent json shape.
+     */
+    private function buildRepliesTree(Comment $comment): Comment
+    {
+        $comment->loadMissing(['user', 'repliesRecursive.user']);
+        $comment->loadCount('replies');
+
+        $nestedReplies = $comment->repliesRecursive->map(function (Comment $reply) {
+            return $this->buildRepliesTree($reply);
+        });
+
+        $comment->setRelation('replies', $nestedReplies);
+        $comment->unsetRelation('repliesRecursive');
+
+        return $comment;
+    }
+    /**
+     * Lay danh sach comments cua mot bai viet
      *
      * @param Post $post
      * @return \Illuminate\Http\JsonResponse
@@ -23,10 +40,18 @@ class CommentController extends Controller
     {
         try {
             $comments = $post->comments()
-                ->with(['user', 'replies.user'])
+                ->with([
+                    'user',
+                    'repliesRecursive.user',
+                ])
+                ->withCount('replies')
                 ->whereNull('parent_comment_id')
                 ->orderBy('created_at', 'desc')
                 ->paginate(2);
+
+            $comments->getCollection()->transform(function ($comment) {
+                return $this->buildRepliesTree($comment);
+            });
 
             return response()->json($comments);
         } catch (\Exception $e) {
@@ -43,10 +68,12 @@ class CommentController extends Controller
     public function getReplies(Comment $comment)
     {
         try {
-            $replies = $comment->replies()
+            $replies = $comment->repliesRecursive()
                 ->with('user')
-                ->orderBy('created_at', 'desc')
-                ->get();
+                ->get()
+                ->map(function ($reply) {
+                    return $this->buildRepliesTree($reply);
+                });
 
             return response()->json([
                 'replies' => $replies,
@@ -93,8 +120,8 @@ class CommentController extends Controller
                 'created_at' => now()
             ]);
 
-            // Load thông tin user và replies nếu có
-            $comment->load(['user', 'replies.user']);
+            // Load thong tin user va cay replies
+            $comment = $this->buildRepliesTree($comment);
 
             // Tạo thông báo cho chủ bài viết
             if ($post->user_id !== Auth::id()) {
@@ -132,37 +159,6 @@ class CommentController extends Controller
     /**
      * Cập nhật comment
      */
-    public function update(Request $request, $commentId)
-    {
-        try {
-            $comment = Comment::findOrFail($commentId);
-            
-            // Kiểm tra quyền sửa comment
-            if ($comment->user_id !== Auth::id()) {
-                return response()->json([
-                    'error' => 'You do not have permission to edit this comment'
-                ], 403);
-            }
-
-            $request->validate([
-                'content' => 'required|string|max:1000'
-            ]);
-
-            $comment->update([
-                'content' => $request->content
-            ]);
-
-            return response()->json([
-                'message' => 'Comment updated successfully',
-                'comment' => $comment
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to update comment',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Xóa comment
@@ -179,11 +175,9 @@ class CommentController extends Controller
                 ], 403);
             }
 
-            // Xóa tất cả replies của comment này
-            $comment->replies()->delete();
-            
-            // Xóa comment
-            $comment->delete();
+            // XA3a comment va toan bo cay replies
+            $comment->load('replies');
+            $comment->deleteRecursively();
 
             DB::commit();
 
@@ -229,3 +223,4 @@ class CommentController extends Controller
         }
     }
 }
+
