@@ -16,7 +16,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { router } from '@inertiajs/vue3';
 import App from '../../Layouts/App.vue';
 import PageInsights from '../../Components/Pages/PageInsights.vue';
 import axios from 'axios';

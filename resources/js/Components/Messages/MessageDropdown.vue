@@ -25,8 +25,7 @@
                     <li v-for="noti in messageNotifications" :key="noti.id" class="notification-item">
                         <div class="notification-content" @click="handleNotificationClick(noti)">
                             <div class="notify-img">
-                                <img :src="noti.group_avatar ? `/images/client/group/conversation/${noti.group_avatar}` : 
-                                    (noti.sender_avatar ? `/images/client/avatar/${noti.sender_avatar}` : '/images/default/avatar.jpg')"
+                                <img :src="getAvatarUrl(noti.group_avatar, noti.sender_avatar)"
                                     :class="{'group-avatar': noti.conversation_type === 'group', 'user-avatar': noti.conversation_type === 'individual'}"
                                     alt="avatar">
                             </div>
@@ -100,6 +99,20 @@ const formatTime = (time) => {
     if (minutes < 60) return `${minutes}m`;
     if (hours < 24) return `${hours}h`;
     return `${days}d`;
+};
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (groupAvatar, userAvatar) => {
+    if (groupAvatar) {
+        if (groupAvatar.startsWith('http')) return groupAvatar;
+        if (groupAvatar.startsWith('/')) return groupAvatar;
+        return `/images/client/group/conversation/${groupAvatar}`;
+    }
+    
+    if (!userAvatar) return '/images/web/users/avatar.jpg';
+    if (userAvatar.startsWith('http')) return userAvatar;
+    if (userAvatar.startsWith('/')) return userAvatar;
+    return `/images/client/avatar/${userAvatar}`;
 };
 
 const handleNotificationClick = async (notification) => {
@@ -177,39 +190,161 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Message Dropdown Visual Improvements */
+.message-drop-li .nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    transition: all 0.3s ease;
+}
+
+.message-dropdown {
+    display: block;
+    width: 24px;
+    height: 24px;
+}
+
+.message-drop-li .badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    border: 2px solid white;
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+    padding: 2px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.notify-drop {
+    min-width: 380px;
+    max-width: 380px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    animation: dropdownSlide 0.3s ease;
+}
+
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notify-drop-title {
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+    font-weight: 600;
+}
+
+.notify-drop-title .fs-8 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.notify-right-icon {
+    color: white !important;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.notify-right-icon:hover {
+    background: rgba(255, 255, 255, 0.3);
+    text-decoration: none !important;
+    transform: scale(1.05);
+}
+
+.drop-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.drop-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.drop-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.drop-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.drop-content::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
 .notification-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+    padding: 0;
+    border-bottom: 1px solid #f0f0f0;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    list-style: none;
 }
 
 .notification-item:hover {
-    background-color: #f8f9fa;
+    background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border-left: 3px solid #667eea;
 }
 
 .notification-content {
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    padding: 12px 15px;
+    align-items: flex-start;
 }
 
 .notify-img {
     flex-shrink: 0;
+    position: relative;
 }
 
 .notify-img img {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+.notification-item:hover .notify-img img {
+    border-color: #667eea;
+    transform: scale(1.05);
 }
 
 .group-avatar {
-    border: 2px solid #007bff;
+    border: 2px solid #667eea !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .user-avatar {
-    border: 2px solid #6c757d;
+    border: 2px solid #95a5a6 !important;
 }
 
 .notification-details {
@@ -218,29 +353,36 @@ onUnmounted(() => {
 }
 
 .group-info, .individual-info {
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .group-name {
-    font-weight: 500;
-    color: #007bff;
+    font-weight: 600;
+    color: #667eea;
+    font-size: 14px;
 }
 
 .sender-name {
-    font-weight: 500;
+    font-weight: 600;
     color: #2c3e50;
+    font-size: 14px;
 }
 
 .message-preview {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     color: #666;
-    font-size: 0.9em;
+    font-size: 13px;
+    margin-top: 4px;
 }
 
 .message-text {
     color: #666;
-    white-space: nowrap;
+    font-size: 13px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -249,33 +391,68 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 4px;
+    margin-top: 6px;
+}
+
+.notification-meta small {
+    color: #999;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.notification-meta small::before {
+    content: '⏱';
+    font-size: 14px;
 }
 
 .notify-drop-footer {
-    padding: 10px;
-    border-top: 1px solid #eee;
+    padding: 12px 20px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+    border-radius: 0 0 12px 12px;
+    text-align: center;
 }
 
 .notify-drop-footer a {
-    color: #007bff;
+    color: #667eea;
+    font-weight: 600;
+    font-size: 14px;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
 }
 
 .notify-drop-footer a:hover {
-    color: #0056b3;
-    text-decoration: underline;
-}
-
-
-.notify-right-icon {
-    color: #007bff;
+    color: #3b82f6;
+    gap: 10px;
     text-decoration: none;
-    font-size: 0.9em;
 }
 
-.notify-right-icon:hover {
-    color: #0056b3;
-    text-decoration: underline;
+.notify-drop-footer a::after {
+    content: '→';
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.notify-drop-footer a:hover::after {
+    transform: translateX(4px);
+}
+
+/* Empty State */
+.drop-content .text-center {
+    padding: 40px 20px;
+    color: #999;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .notify-drop {
+        min-width: 320px;
+        max-width: 320px;
+    }
 }
 </style>

@@ -2,7 +2,7 @@
     <div class="page-header">
         <!-- Cover Photo -->
         <div class="cover-photo-container" :style="{ backgroundImage: `url(${coverPhotoUrl})` }">
-            <div v-if="isAdmin" class="cover-overlay">
+            <div v-if="canEditPage" class="cover-overlay">
                 <label for="coverPhotoInput" class="btn-update-cover">
                     <i class="bx bxs-camera"></i>
                     Cập nhật ảnh bìa
@@ -20,7 +20,7 @@
                     <div class="profile-picture-container">
                         <div class="profile-picture-wrapper">
                             <img :src="profilePictureUrl" :alt="page.name" class="profile-picture" />
-                            <div v-if="isAdmin" class="profile-picture-overlay">
+                            <div v-if="canEditPage" class="profile-picture-overlay">
                                 <label for="profilePictureInput" class="btn-update-avatar">
                                     <i class="bx bxs-camera"></i>
                                 </label>
@@ -37,6 +37,7 @@
                             <div v-if="page.verified" class="verified-badge">
                                 <i class="bx bx-check-circle"></i>
                             </div>
+                            <RoleBadge v-if="adminRole" :role="adminRole" />
                         </div>
                         <p v-if="page.username" class="page-username">@{{ page.username }}</p>
                         <p v-if="page.category" class="page-category">{{ page.category }}</p>
@@ -60,7 +61,7 @@
                         </button>
 
                         <!-- Admin Actions -->
-                        <template v-if="isAdmin">
+                        <template v-if="canEditPage">
                             <button @click="openEditModal" class="btn-action btn-edit" title="Chỉnh sửa trang">
                                 <i class="bx bx-edit"></i>
                                 <span class="btn-text">Chỉnh sửa</span>
@@ -78,6 +79,7 @@
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import { router } from '@inertiajs/vue3';
+import RoleBadge from './RoleBadge.vue';
 
 const props = defineProps({
     page: {
@@ -89,6 +91,14 @@ const props = defineProps({
         default: false
     },
     isAdmin: {
+        type: Boolean,
+        default: false
+    },
+    adminRole: {
+        type: String,
+        default: null
+    },
+    canEditPage: {
         type: Boolean,
         default: false
     },
@@ -119,12 +129,12 @@ const sanitizePath = (path) => {
 
 const coverPhotoUrl = computed(() => {
     const sanitized = sanitizePath(props.page.cover_photo_url);
-    return sanitized || '/images/default/page.jpg';
+    return sanitized || '/images/web/users/cover/cover-1.gif';
 });
 
 const profilePictureUrl = computed(() => {
     const sanitized = sanitizePath(props.page.profile_picture_url);
-    return sanitized || '/images/default/avatar.jpg';
+    return sanitized || '/images/client/pages/default-page.png';
 });
 
 const formatNumber = (num) => {

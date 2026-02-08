@@ -32,13 +32,7 @@
                 >
                     <i class="bx bx-history" style="font-size: 24px"></i>
                 </button>
-                <button
-                    class="btn btn-link"
-                    title="Gọi thoại"
-                    @click="startVideoCall()"
-                >
-                    <i class="bx bx-phone" style="font-size: 24px"></i>
-                </button>
+                
                 <button
                     class="btn btn-link"
                     title="Gọi video"
@@ -148,11 +142,7 @@
                                     class="list-group-item d-flex align-items-center"
                                 >
                                     <img
-                                        :src="
-                                            member.avatar
-                                                ? `/images/client/avatar/${member.avatar}`
-                                                : '/images/default/avatar.jpg'
-                                        "
+                                        :src="getAvatarUrl(member.avatar)"
                                         alt="avatar"
                                         style="
                                             width: 32px;
@@ -361,7 +351,7 @@ const getOtherUser = computed(() => {
 });
 
 const getOtherUserAvatar = computed(() => {
-    if (!props.conversation) return "/images/default/avatar.jpg";
+    if (!props.conversation) return "/images/web/users/avatar.jpg";
 
     if (props.conversation.conversation_type === "group") {
         return props.conversation.image
@@ -373,10 +363,16 @@ const getOtherUserAvatar = computed(() => {
     const otherUser = props.conversation.members.find(
         (member) => member.id !== user.value.id
     );
-    return otherUser?.avatar
-        ? `/images/client/avatar/${otherUser.avatar}`
-        : "/images/default/avatar.jpg";
+    return getAvatarUrl(otherUser?.avatar);
 });
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 const getOtherUserName = computed(() => {
     if (!props.conversation) return "Unknown";

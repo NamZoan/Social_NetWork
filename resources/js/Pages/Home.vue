@@ -7,19 +7,6 @@
                     <!-- Create Post -->
                     <Post :user="user_auth" />
 
-                    <!-- Feed Type Indicator -->
-                    <div v-if="feedType && posts.length > 0" class="feed-type-badge mb-3">
-                        <span v-if="feedType === 'friends'" class="badge bg-primary">
-                            <i class="bi bi-people-fill"></i> Bài viết từ bạn bè
-                        </span>
-                        <span v-else-if="feedType === 'recommended'" class="badge bg-info">
-                            <i class="bi bi-star-fill"></i> Gợi ý cho bạn
-                        </span>
-                        <span v-else class="badge bg-secondary">
-                            <i class="bi bi-grid-fill"></i> Kết hợp
-                        </span>
-                    </div>
-
                     <!-- Posts Section -->
                     <div class="posts-section mb-5">
                         <TransitionGroup name="post-list" tag="div">

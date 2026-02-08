@@ -26,9 +26,32 @@ class UserPageController extends Controller
             ->with(['creator:id,name,avatar', 'admins:id,name,avatar'])
             ->withCount(['posts', 'followers'])
             ->latest()
-            ->paginate(12);
+            ->paginate(6);
 
         return Inertia::render('Pages/Index', [
+            'pages' => $pages,
+            'currentUser' => $user,
+        ]);
+    }
+
+    /**
+     * Hiển thị danh sách Page mà user đang theo dõi
+     * (loại trừ các trang do chính user tạo)
+     */
+    public function following()
+    {
+        $user = Auth::user();
+
+        $pages = Page::whereHas('followers', function ($query) use ($user) {
+                $query->where('users.id', $user->id);
+            })
+            ->where('creator_id', '!=', $user->id)
+            ->with(['creator:id,name,avatar'])
+            ->withCount(['posts', 'followers'])
+            ->latest()
+            ->paginate(6);
+
+        return Inertia::render('Pages/Following', [
             'pages' => $pages,
             'currentUser' => $user,
         ]);
@@ -61,6 +84,18 @@ class UserPageController extends Controller
         // Kiểm tra xem user có phải là admin không
         $isAdmin = $page->isAdmin($user->id);
         $adminRole = $page->getRoleForUser($user->id);
+
+        // Lấy permissions của user
+        $permissions = [
+            'can_create_post' => $page->canCreatePost($user->id),
+            'can_edit_post' => $page->canEditPost($user->id),
+            'can_delete_post' => $page->canDeletePost($user->id),
+            'can_manage_comments' => $page->canManageComments($user->id),
+            'can_view_insights' => $page->canViewInsights($user->id),
+            'can_manage_admins' => $page->canManageAdmins($user->id),
+            'can_edit_page' => $page->canUpdateBy($user->id),
+            'can_delete_page' => $page->canDeletePage($user->id),
+        ];
 
         // Lấy posts của page
         $posts = $page->posts()
@@ -100,6 +135,7 @@ class UserPageController extends Controller
             'isFollowing' => $isFollowing,
             'isAdmin' => $isAdmin,
             'adminRole' => $adminRole,
+            'permissions' => $permissions,
             'posts' => $posts,
             'currentUser' => $user,
             'pageStats' => $pageStats,
@@ -242,8 +278,8 @@ class UserPageController extends Controller
     {
         $user = Auth::user();
 
-        // Kiểm tra quyền theo role (admin, editor)
-        if (!$page->canUpdateBy($user->id)) {
+        // Kiểm tra quyền chỉnh sửa trang (chỉ admin và editor)
+        if (!$page->hasPermission($user->id, 'edit_page_info')) {
             abort(403, 'Bạn không có quyền chỉnh sửa trang này.');
         }
 
@@ -342,7 +378,8 @@ class UserPageController extends Controller
     {
         $user = Auth::user();
 
-        if (!$page->isAdmin($user->id)) {
+        // Kiểm tra quyền xem insights (admin và analyst)
+        if (!$page->canViewInsights($user->id)) {
             abort(403, 'Bạn không có quyền xem insights.');
         }
 
@@ -431,7 +468,10 @@ class UserPageController extends Controller
     private function calculateEngagementRate(Page $page)
     {
         $totalPosts = $page->posts()->count();
-        if ($totalPosts === 0) {
+        $followerCount = $page->follower_count ?? 0;
+
+        // Kiểm tra chia cho 0
+        if ($totalPosts === 0 || $followerCount === 0) {
             return 0;
         }
 
@@ -439,7 +479,7 @@ class UserPageController extends Controller
         $totalComments = $page->posts()->withCount('comments')->get()->sum('comments_count');
         $totalEngagement = $totalLikes + $totalComments;
 
-        return round(($totalEngagement / ($totalPosts * $page->follower_count)) * 100, 2);
+        return round(($totalEngagement / ($totalPosts * $followerCount)) * 100, 2);
     }
 
     /**
@@ -450,10 +490,12 @@ class UserPageController extends Controller
         $posts = $page->posts()
             ->with([
                 'user',
+                'page',
                 'media',
                 'likes',
                 'comments.user',
                 'originalPost.user',
+                'originalPost.page',
                 'originalPost.media'
             ])
             ->withCount(['comments', 'shares'])

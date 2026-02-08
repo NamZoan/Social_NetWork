@@ -22,11 +22,18 @@ export default defineConfig({
                 additionalData: `@import "resources/css/app.css";`
             }
         }
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vue-vendor': ['vue', '@inertiajs/vue3'],
+                    'bootstrap-vendor': ['bootstrap'],
+                    'axios-vendor': ['axios'],
+                }
+            }
+        },
+        chunkSizeWarningLimit: 1000,
     }
-//     server: {
-//     host: '0.0.0.0',
-//     port: 5173,
-//     strictPort: true,
-//   },
 });
   

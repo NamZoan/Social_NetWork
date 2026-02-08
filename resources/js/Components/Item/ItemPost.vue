@@ -9,12 +9,15 @@
                             <Link :href="pageLink" class="text-gray-dark post-user-name">{{ pageName }}</Link>
                         </template>
                         <template v-else>
-                            <Link :href="authorLink" class="text-gray-dark post-user-name">{{ authorName }}</Link>
-                            <!-- Hien thi nhom neu co -->
                             <template v-if="postData.group">
-                                <span class="post-separator">&gt;</span>
                                 <Link :href="`/groups/${postData.group.id}`" class="text-gray-dark post-user-name group-name">
-                                    {{ postData.group.name }}</Link>
+                                    {{ postData.group.name }}
+                                </Link>
+                                <span class="post-separator">•</span>
+                                <Link :href="authorLink" class="text-gray-dark post-user-name">{{ authorName }}</Link>
+                            </template>
+                            <template v-else>
+                                <Link :href="authorLink" class="text-gray-dark post-user-name">{{ authorName }}</Link>
                             </template>
                         </template>
                     </span>
@@ -23,8 +26,20 @@
                             aria-haspopup="true" aria-expanded="false">
                             <i class="bx bx-dots-horizontal-rounded"></i>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
-                            <a href="#" class="dropdown-item" aria-describedby="deletePost"
+                        <div v-show="canManagePost" class="dropdown-menu dropdown-menu-right dropdown-menu-lg-left post-dropdown-menu">
+                            <a v-if="canEditPost" href="#" class="dropdown-item" aria-describedby="editPost"
+                                data-toggle="modal" :data-target="'#modal-update' + postData.id">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <i class="bx bx-edit-alt post-option-icon"></i>
+                                    </div>
+                                    <div class="col-md-10">
+                                        <span class="fs-9">Chỉnh sửa</span>
+                                        <small id="editPost" class="form-text text-muted">chỉnh sửa bài viết</small>
+                                    </div>
+                                </div>
+                            </a>
+                            <a v-if="canDeletePost" href="#" class="dropdown-item" aria-describedby="deletePost"
                                 @click.prevent="deletePost(postData.id)">
                                 <div class="row">
                                     <div class="col-md-2">
@@ -151,7 +166,7 @@
         <!-- Reactions -->
         <div class="argon-reaction">
             <span class="like-btn">
-                <!-- N�t ch�nh: Hi?n th? ?nh reaction ho?c icon like -->
+                <!-- Nút chính: Hiển thị ảnh reaction hoặc icon like -->
                 <a class="post-card-buttons" @click="removeReaction">
                     <img v-if="isReaction" :src="getReactionImage" width="24px" class="mr-1 mb-1" />
                     <i v-else class="bx bxs-like mr-2"></i>
@@ -159,7 +174,7 @@
                     {{ totalReaction }}
                 </a>
 
-                <!-- Danh s�ch c�c reaction -->
+                <!-- Danh sách các reaction -->
                     <ul class="reactions-box dropdown-shadow">
                     <li v-for="reaction in reactions" :key="reaction.type" class="reaction"
                         :class="'reaction-' + reaction.type" @click="toggleLike(reaction.type)"></li>
@@ -183,27 +198,7 @@
                             <i class="bx bx-share-alt"></i>
                         </div>
                         <div class="col-md-10">
-                            <span>Share Now (Public)</span>
-                        </div>
-                    </div>
-                </a>
-                <a href="#" class="dropdown-item" @click.prevent="openShareModal">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <i class="bx bx-share-alt"></i>
-                        </div>
-                        <div class="col-md-10">
-                            <span>Share...</span>
-                        </div>
-                    </div>
-                </a>
-                <a href="#" class="dropdown-item disabled">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <i class="bx bx-message"></i>
-                        </div>
-                        <div class="col-md-10">
-                            <span>Send as Message</span>
+                            <span>Chia sẻ (Công khai)</span>
                         </div>
                     </div>
                 </a>
@@ -375,16 +370,24 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    canEdit: {
+        type: Boolean,
+        default: false,
+    },
+    canDelete: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(["updated", "deleted"]);
 const showMenus = computed(() => props.showMenus);
 
-    // Thay computed b?ng ref d? c� th? c?p nh?t
+// Thay computed bằng ref để có thể cập nhật
 const postData = ref(props.post);
 const userData = ref(props.user);
 
-// Watch props d? c?p nh?t khi props thay d?i
+// Watch props để cập nhật khi props thay đổi
 watch(
     () => props.post,
     (newPost, oldPost) => {
@@ -449,8 +452,8 @@ watch(
         }
     }
 );
-const defaultAvatar = "/images/default/avatar.jpg";
-const defaultPageAvatar = "/images/web/users/avatar.jpg";
+const defaultAvatar = "/images/web/users/avatar.jpg";
+const defaultPageAvatar = "/images/client/pages/default-page.png";
 const buildAvatarUrl = (user) => {
     const avatar = user?.avatar;
     if (!avatar) {
@@ -520,6 +523,19 @@ const authorLink = computed(() => {
 
 const authorName = computed(() => userData.value?.name || "User");
 
+// Kiểm tra xem user hiện tại có phải là chủ bài viết không
+const isPostOwner = computed(() => {
+    const currentUserId = props.user?.id;
+    const postOwnerId = postData.value?.user_id || userData.value?.id;
+    return (currentUserId && postOwnerId && currentUserId === postOwnerId);
+});
+
+// Quyền chỉnh sửa và xóa (kết hợp chủ bài viết và permissions được truyền vào)
+const canEditPost = computed(() => isPostOwner.value || props.canEdit);
+const canDeletePost = computed(() => isPostOwner.value || props.canDelete);
+const canManagePost = computed(() => canEditPost.value || canDeletePost.value);
+
+
 const sharedPost = computed(() => postData.value?.original_post || null);
 const sharedAuthor = computed(() => sharedPost.value?.user || null);
 const sharedAuthorAvatar = computed(() => buildAvatarUrl(sharedAuthor.value));
@@ -532,9 +548,9 @@ const sharedAuthorLink = computed(() => {
     }
     return "#";
 });
-const sharedAuthorName = computed(() => sharedAuthor.value?.name || "Bai viet goc");
+const sharedAuthorName = computed(() => sharedAuthor.value?.name || "Bài viết gốc");
 
-// Luu tr?ng th�i like v� s? lu?ng like
+// Lưu trạng thái like và số lượng like
 const totalReaction = ref(
     Number(
         postData.value?.likes_count ??
@@ -554,7 +570,7 @@ const commentsCount = computed(() => {
 });
 const isReaction = ref(false);
 
-// Danh s�ch reactions
+// Danh sách reactions
 const reactions = [
     { type: "like" },
     { type: "love" },
@@ -564,14 +580,14 @@ const reactions = [
     { type: "angry" },
 ];
 
-// L?y ?nh c?a reaction hi?n t?i
+// Lấy ảnh của reaction hiện tại
 const getReactionImage = computed(() => {
     return isReaction.value
         ? `/images/web/icons/reactions/reactions_${isReaction.value}.png`
         : "";
 });
 
-// Ki?m tra xem user d� like chua
+// Kiểm tra xem user đã like chưa
 const CheckReaction = async () => {
     const postId = getPostId();
     if (!postId) return;
@@ -590,7 +606,7 @@ const CheckReaction = async () => {
     }
 };
 
-// 🛠 G?i reaction khi click (C?P NH?T UI NGAY L?P T?C)
+// 🛠 Gửi reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
 const toggleLike = async (reactionType) => {
     const postId = getPostId();
     if (!postId) {
@@ -616,12 +632,12 @@ const toggleLike = async (reactionType) => {
     }
 };
 
-// 🛠 X�a reaction khi click (C?P NH?T UI NGAY L?P T?C)
+// 🛠 Xóa reaction khi click (CẬP NHẬT UI NGAY LẬP TỨC)
 const removeReaction = async () => {
     const postId = getPostId();
     if (!isReaction.value || !postId) return;
 
-    // C?p nh?t UI ngay l?p t?c
+    // Cập nhật UI ngay lập tức
     const previousReaction = isReaction.value;
     isReaction.value = null;
 
@@ -635,12 +651,12 @@ const removeReaction = async () => {
         }
     } catch (error) {
         console.error("Error removing reaction:", error);
-        // N?u c� l?i, quay l?i tr?ng th�i tru?c d�
+        // Nếu có lỗi, quay lại trạng thái trước đó
         isReaction.value = previousReaction;
     }
 };
 
-// 🛠 T?ng s? lu?t reaction
+// 🛠 Tổng số luợt reaction
 const totalReactions = async () => {
     const postId = getPostId();
     if (!postId) return;
@@ -659,7 +675,7 @@ const totalReactions = async () => {
     }
 };
 
-// 🛠 L?y danh s�ch ?nh c?a b�i vi?t
+// 🛠 Lấy danh sách ảnh của bài viết
 const images = computed(() => {
     if (!postData.value?.media) return [];
     return postData.value.media
@@ -725,7 +741,7 @@ const submitShare = async (
         }
     } catch (error) {
         shareError.value =
-            error.response?.data?.message || "Khong the chia se bai viet.";
+            error.response?.data?.message || "Không thể chia sẻ bài viết.";
     } finally {
         shareLoading.value = false;
     }
@@ -805,7 +821,7 @@ const updateReplyContent = (value) => {
     replyContent.value = value;
 };
 
-// Th�m h�m d? c?p nh?t s? lu?ng comment
+// Thêm hàm để cập nhật số lượng comment
 const updateCommentsCount = async () => {
     const postId = getPostId();
     if (!postId) return;
@@ -823,7 +839,7 @@ const updateCommentsCount = async () => {
     }
 };
 
-// 🛠 G?i b�nh lu?n b�i vi?t
+// 🛠 Gửi bình luận bài viết
 const submitComment = async () => {
     const postId = getPostId();
     if (!content_comment.value.trim() || !postId) return;
@@ -865,7 +881,7 @@ const submitComment = async () => {
     }
 };
 
-// 🛠 Hi?n th? b�nh lu?n b�i vi?t
+// 🛠 Hiển thị bình luận bài viết
 const fetchComments = async (reset = false) => {
     const postId = getPostId();
     if (!postId || isLoading.value) return;
@@ -898,7 +914,7 @@ const fetchComments = async (reset = false) => {
         hasLoadedComments.value = true;
     } catch (error) {
         console.error("Error fetching comments:", error);
-        commentError.value = "Khong the tai binh luan. Vui long thu lai sau.";
+        commentError.value = "Không thể tải bình luận. Vui lòng thử lại sau.";
     } finally {
         isLoading.value = false;
     }
@@ -941,7 +957,7 @@ const formatTime = (time) => {
     return date.toLocaleString();
 };
 
-// 🛠 X�a b�i vi?t
+// 🛠 Xóa bài viết
 const deletePost = async (postId) => {
     try {
         const response = await axios.post(`/posts/${postId}`);
@@ -953,7 +969,7 @@ const deletePost = async (postId) => {
     }
 };
 
-// 🛠 C?p nh?t quy?n ri�ng tu c?a b�i vi?t
+// 🛠 Cập nhật quyền riêng tư của bài viết
 const updatePrivacy = async (privacy) => {
     const postId = getPostId();
     if (!postId) return;
@@ -965,18 +981,18 @@ const updatePrivacy = async (privacy) => {
             }
         );
 
-            // C?p nh?t tr?ng th�i quy?n ri�ng tu trong component
+            // Cập nhật trạng thái quyền riêng tư trong component
             postData.value.privacy_setting = privacy;
 
-            // Hi?n th? th�ng b�o th�nh c�ng
-            // B?n c� th? th�m toast notification ? d�y
+            // Hiển thị thông báo thành công
+            // Bạn có thể thêm toast notification ở đây
     } catch (error) {
-            console.error("L?i khi c?p nh?t quy?n ri�ng tu:", error);
-            // Hi?n th? th�ng b�o l?i
+            console.error("Lỗi khi cập nhật quyền riêng tư:", error);
+            // Hiển thị thông báo lỗi
     }
 };
 
-// 🛠 X�c d?nh icon quy?n ri�ng tu
+// 🛠 Xác định icon quyền riêng tư
 const privacyIcon = computed(() => {
     switch (postData.value.privacy_setting) {
         case "public":
@@ -996,7 +1012,7 @@ const handlePostUpdated = (updatedPost) => {
         content: updatedPost.content,
         media: updatedPost.media,
     };
-    // C?p nh?t l?i danh s�ch ?nh
+    // Cập nhật lại danh sách ảnh
     images.value = updatedPost.media
         ? updatedPost.media
             .filter((media) => media.media_type === "image")
@@ -1086,24 +1102,24 @@ const startEdit = (comment) => {
 };
 
 const deleteComment = async (commentId) => {
-    if (!confirm('B?n c� ch?c ch?n mu?n x�a b�nh lu?n n�y?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
 
     try {
         const response = await axios.delete(`/comments/${commentId}`);
 
         if (response.data.comment_id) {
-            // X�a comment kh?i danh s�ch
+            // Xóa comment khỏi danh sách
             removeCommentById(comments.value, commentId);
 
-            // C?p nh?t s? lu?ng comment
+            // Cập nhật số lượng comment
             await updateCommentsCount();
 
-            // Hi?n th? th�ng b�o th�nh c�ng
-            alert('X�a b�nh lu?n th�nh c�ng');
+            // Hiển thị thông báo thành công
+            alert('Xóa bình luận thành công');
         }
     } catch (error) {
         console.error('Error deleting comment:', error);
-        alert('��y kh�ng ph?i b�nh lu?n c?a b?n.');
+        alert('Đây không phải bình luận của bạn.');
     }
 };
 
@@ -1126,6 +1142,7 @@ onMounted(() => {
     const modalSelector = getCommentModalSelector();
     if (modalSelector) {
         $(modalSelector).on("show.bs.modal", handleCommentModalShow);
+        
     }
     setupEchoListener();
 });

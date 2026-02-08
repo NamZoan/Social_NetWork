@@ -24,7 +24,7 @@ class NotificationController extends Controller
             Log::info('Fetching notifications for user: ' . Auth::id());
 
             $notifications = Notification::where('user_id', Auth::id())
-                ->whereIn('type', ['comment', 'post'])
+                ->whereIn('type', ['comment', 'post', 'reaction'])
                 ->where('is_read', 0)
                 ->latest()
                 ->limit(20)
@@ -275,5 +275,195 @@ class NotificationController extends Controller
         return back()->with('error', 'Failed to fetch notifications');
     }
 }
+
+    /**
+     * Get unread notifications count
+     */
+    public function getUnreadCount(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            $count = Notification::where('user_id', Auth::id())
+                ->where('is_read', 0)
+                ->count();
+
+            return response()->json([
+                'count' => $count
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting unread count: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get unread count'], 500);
+        }
+    }
+
+    /**
+     * Delete a specific notification
+     */
+    public function deleteNotification(Request $request, $id)
+    {
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            $deleted = Notification::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->delete();
+
+            if ($deleted) {
+                return response()->json(['success' => true, 'message' => 'Notification deleted']);
+            } else {
+                return response()->json(['error' => 'Notification not found'], 404);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error deleting notification: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete notification'], 500);
+        }
+    }
+
+    /**
+     * Clear all notifications
+     */
+    public function clearAll(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            Notification::where('user_id', Auth::id())->delete();
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'All notifications cleared']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error clearing all notifications: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to clear notifications'], 500);
+        }
+    }
+
+    /**
+     * Mark notification as unread
+     */
+    public function markAsUnread(Request $request, $id)
+    {
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            $updated = Notification::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->update(['is_read' => 0]);
+
+            if ($updated) {
+                return response()->json(['success' => true]);
+            } else {
+                return response()->json(['error' => 'Notification not found'], 404);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error marking notification as unread: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to mark notification as unread'], 500);
+        }
+    }
+
+    /**
+     * Get notifications by type
+     */
+    public function getByType(Request $request, $type)
+    {
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            $notifications = Notification::where('user_id', Auth::id())
+                ->where('type', $type)
+                ->latest()
+                ->paginate(20);
+
+            $formattedNotifications = $notifications->getCollection()->map(function ($notification) {
+                try {
+                    switch ($notification->type) {
+                        case 'reaction':
+                            $post = Post::find($notification->reference_id);
+                            if (!$post) return null;
+                            return [
+                                'id' => $notification->id,
+                                'type' => $notification->type,
+                                'reaction_type' => $notification->message,
+                                'post_id' => $post->id,
+                                'post_content' => $post->content,
+                                'sender_name' => $notification->sender->name ?? 'Unknown',
+                                'sender_avatar' => $notification->sender->avatar,
+                                'action_url' => $notification->action_url,
+                                'created_at' => $notification->created_at,
+                                'is_read' => $notification->is_read
+                            ];
+
+                        case 'comment':
+                            $post = Post::find($notification->reference_id);
+                            if (!$post) return null;
+                            return [
+                                'id' => $notification->id,
+                                'type' => $notification->type,
+                                'comment_content' => $notification->message,
+                                'post_id' => $post->id,
+                                'sender_name' => $notification->sender->name ?? 'Unknown',
+                                'sender_avatar' => $notification->sender->avatar,
+                                'action_url' => $notification->action_url,
+                                'created_at' => $notification->created_at,
+                                'is_read' => $notification->is_read
+                            ];
+
+                        case 'message':
+                            $message = Message::with(['sender', 'conversation'])
+                                ->find($notification->reference_id);
+                            if (!$message) return null;
+                            $conversation = $message->conversation;
+                            return [
+                                'id' => $notification->id,
+                                'type' => $notification->type,
+                                'message' => $message->content,
+                                'sender_name' => $message->sender->name ?? 'Unknown',
+                                'sender_avatar' => $message->sender->avatar,
+                                'action_url' => $notification->action_url ?? ($conversation ? "/messages?conversation=" . $conversation->id : '#'),
+                                'created_at' => $notification->created_at,
+                                'conversation_type' => $conversation ? $conversation->conversation_type : 'individual',
+                                'group_name' => $conversation && $conversation->conversation_type === 'group' ? $conversation->name : null,
+                                'group_avatar' => $conversation && $conversation->conversation_type === 'group' ? $conversation->image : null,
+                                'is_read' => $notification->is_read
+                            ];
+
+                        default:
+                            return null;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error processing notification ' . $notification->id . ': ' . $e->getMessage());
+                    return null;
+                }
+            })->filter()->values();
+
+            $notifications->setCollection($formattedNotifications);
+
+            return response()->json([
+                'notifications' => $formattedNotifications,
+                'pagination' => [
+                    'current_page' => $notifications->currentPage(),
+                    'last_page' => $notifications->lastPage(),
+                    'per_page' => $notifications->perPage(),
+                    'total' => $notifications->total(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching notifications by type: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch notifications'], 500);
+        }
+    }
 
 }

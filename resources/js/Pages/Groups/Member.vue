@@ -7,8 +7,8 @@
             </div>
             <ul class="list-group">
                 <li v-for="member in members" :key="member.id" class="list-group-item d-flex align-items-center py-3">
-                    <img
-                        :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/default/avatar.jpg'"
+    <img
+                        :src="getAvatarUrl(member.avatar)"
                         alt="avatar"
                         class="rounded-circle me-3"
                         style="width:48px;height:48px;object-fit:cover;border:2px solid #e3e3e3;"
@@ -54,6 +54,14 @@ const props = defineProps({
     isAdmin: { type: Boolean, required: true },
     members: { type: Array, required: true }
 });
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 const removeMember = async (memberId) => {
     if (!confirm('Bạn có chắc muốn xóa thành viên này?')) return;

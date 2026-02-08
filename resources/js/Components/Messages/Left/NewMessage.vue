@@ -45,7 +45,7 @@
                                             <div class="row">
                                                 <div class="col-md-2 col-sm-2 col-xs-2">
                                                     <div class="notify-img">
-                                                        <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/default/avatar.jpg'"
+                                                        <img :src="getAvatarUrl(friend.avatar)"
                                                             alt="Friend avatar" @error="handleImageError">
                                                     </div>
                                                 </div>
@@ -92,7 +92,13 @@ const inputRef = ref(null);
 const messageText = ref('');
 const isLoading = ref(false);
 
-
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 function removeVietnameseTones(str) {
     return str.normalize('NFD')
@@ -186,7 +192,7 @@ const sendMessage = async () => {
 };
 
 const handleImageError = (e) => {
-    e.target.src = '/images/default/avatar.jpg';
+    e.target.src = '/images/web/users/avatar.jpg';
 };
 
 onMounted(() => {

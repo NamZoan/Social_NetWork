@@ -18,15 +18,53 @@ class GroupController extends Controller
         $this->groupRepo = $groupRepo;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $createdGroups = $this->groupRepo->getCreatedGroups($user->id);
-        $joinedGroups = $this->groupRepo->getJoinedGroups($user->id);
+        $search = $request->input('search');
+        
+        $createdGroups = $this->groupRepo->getCreatedGroups($user->id, $search);
+        $joinedGroups = $this->groupRepo->getJoinedGroups($user->id, $search);
 
         return Inertia::render('Groups/Groups', [
             'createdGroups' => $createdGroups,
-            'joinedGroups' => $joinedGroups
+            'joinedGroups' => $joinedGroups,
+            'search' => $search
+        ]);
+    }
+
+    public function discover(Request $request)
+    {
+        $search = $request->input('search');
+        $privacy = $request->input('privacy');
+        
+        $query = Group::query()
+            ->with(['creator:id,name,avatar'])
+            ->withCount('members');
+            
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+        
+        if ($privacy !== null) {
+            $query->where('privacy_setting', $privacy);
+        }
+        
+        $groups = $query->latest()->paginate(12);
+        
+        // Check membership status for each group
+        foreach ($groups as $group) {
+            $group->user_is_member = $this->groupRepo->isMember($group, Auth::id());
+            $group->user_is_pending = $this->groupRepo->isPending($group, Auth::id());
+        }
+        
+        return Inertia::render('Groups/Discover', [
+            'groups' => $groups,
+            'search' => $search,
+            'privacy' => $privacy
         ]);
     }
 
@@ -378,5 +416,106 @@ class GroupController extends Controller
         ]);
 
         return back()->with('success', 'Đã cấp quyền admin thành công!');
+    }
+
+    public function inviteMembers(Group $group, Request $request)
+    {
+        $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'exists:users,id'
+        ]);
+
+        $user = Auth::user();
+        $isAdmin = $group->isAdmin($user->id);
+
+        if (!$isAdmin) {
+            return back()->with('error', 'Chỉ admin mới có thể mời thành viên!');
+        }
+
+        foreach ($request->user_ids as $userId) {
+            if (!$this->groupRepo->isMember($group, $userId) && !$this->groupRepo->isPending($group, $userId)) {
+                // Create notification or invitation logic here
+                $this->groupRepo->addMember($group, $userId, 'member', 'invited');
+            }
+        }
+
+        return back()->with('success', 'Đã gửi lời mời thành công!');
+    }
+
+    public function about(Group $group)
+    {
+        $user = Auth::user();
+        $isMember = $this->groupRepo->isMember($group, $user->id);
+        $isPending = $this->groupRepo->isPending($group, $user->id);
+        $isAdmin = $group->isAdmin($user->id);
+
+        $group->loadCount(['members', 'posts']);
+        $group->load('creator:id,name,avatar,username');
+
+        return Inertia::render('Groups/About', [
+            'group' => $group,
+            'user_auth' => $user,
+            'isMember' => $isMember,
+            'isPending' => $isPending,
+            'isAdmin' => $isAdmin,
+        ]);
+    }
+
+    public function updateRules(Group $group, Request $request)
+    {
+        $request->validate([
+            'rules' => 'nullable|string|max:5000'
+        ]);
+
+        $user = Auth::user();
+        if (!$group->isAdmin($user->id)) {
+            return back()->with('error', 'Bạn không có quyền cập nhật quy tắc nhóm!');
+        }
+
+        $group->update([
+            'rules' => $request->rules
+        ]);
+
+        return back()->with('success', 'Đã cập nhật quy tắc nhóm!');
+    }
+
+    public function statistics(Group $group)
+    {
+        $user = Auth::user();
+        if (!$group->isAdmin($user->id)) {
+            return back()->with('error', 'Bạn không có quyền xem thống kê!');
+        }
+
+        $stats = [
+            'total_members' => $group->members()->count(),
+            'pending_requests' => GroupMember::where('group_id', $group->id)
+                ->where('membership_status', 'pending')
+                ->count(),
+            'total_posts' => $group->posts()->count(),
+            'pending_posts' => $group->posts()->where('privacy_setting', 'pending')->count(),
+            'posts_this_month' => $group->posts()
+                ->whereMonth('created_at', now()->month)
+                ->count(),
+            'new_members_this_month' => $group->members()
+                ->wherePivot('joined_at', '>=', now()->startOfMonth())
+                ->count(),
+            'active_members' => $group->posts()
+                ->distinct('user_id')
+                ->whereMonth('created_at', now()->month)
+                ->count('user_id'),
+        ];
+
+        $isMember = $this->groupRepo->isMember($group, $user->id);
+        $isPending = $this->groupRepo->isPending($group, $user->id);
+        $isAdmin = $group->isAdmin($user->id);
+
+        return Inertia::render('Groups/Admin/Statistics', [
+            'group' => $group,
+            'stats' => $stats,
+            'isMember' => $isMember,
+            'isPending' => $isPending,
+            'isAdmin' => $isAdmin,
+            'user_auth' => $user,
+        ]);
     }
 }

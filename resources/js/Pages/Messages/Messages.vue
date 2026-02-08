@@ -4,19 +4,13 @@
             <div class="col-md-12">
                 <div id="message-frame">
                     <div class="message-sidepanel">
-                        <div class="message-profile">
-                            <div class="wrap">
-                                <img
-                                    :src="user.avatar && user.avatar !== 'undefined' ? `/images/client/avatar/${user.avatar}` : '/images/default/avatar.jpg'" />
-                                <p>{{ user.name }}</p>
-                            </div>
-                        </div>
 
-                        <SearchBar />
+                        <SearchBar @search="handleSearch" />
                         <NewMessage />
                         <NewGroupMessage />
 
                         <ContactItem :conversations="conversations" :selected-conversation-id="selectedConversation?.id"
+                            :search-query="searchQuery"
                             @select-conversation="selectConversation" />
 
                     </div>
@@ -60,6 +54,11 @@ const props = defineProps({
 
 const selectedConversation = ref(null);
 const conversationRef = ref(null);
+const searchQuery = ref('');
+
+const handleSearch = (query) => {
+    searchQuery.value = query;
+};
 
 const handleMessageSent = (message) => {
     console.log('Parent handling message:', message);

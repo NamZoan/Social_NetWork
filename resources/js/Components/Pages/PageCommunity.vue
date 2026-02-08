@@ -11,15 +11,6 @@
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon posts">
-                    <i class="bx bx-file"></i>
-                </div>
-                <div>
-                    <div class="stat-value">{{ counts.posts }}</div>
-                    <div class="stat-label">Bài viết</div>
-                </div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-icon admins">
                     <i class="bx bx-shield-quarter"></i>
                 </div>
@@ -46,7 +37,7 @@
                                 <div class="name">{{ admin.name }}</div>
                                 <div class="username">@{{ admin.username || admin.id }}</div>
                             </div>
-                            <span class="badge-role">{{ admin.role }}</span>
+                            <RoleBadge :role="admin.pivot?.role || admin.role" />
                         </div>
                     </div>
                     <div v-else class="empty-state">Chưa có quản trị viên.</div>
@@ -78,13 +69,15 @@
 </template>
 
 <script setup>
+import RoleBadge from './RoleBadge.vue';
+
 const props = defineProps({
     counts: { type: Object, default: () => ({ followers: 0, posts: 0, admins: 0 }) },
     admins: { type: Array, default: () => [] },
     followers: { type: Array, default: () => [] }
 });
 
-const defaultAvatar = '/images/default/avatar.jpg';
+const defaultAvatar = '/images/web/users/avatar.jpg';
 const avatarUrl = (avatar) => {
     if (!avatar) return defaultAvatar;
     if (avatar.startsWith('http')) return avatar;

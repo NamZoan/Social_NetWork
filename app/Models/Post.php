@@ -16,6 +16,8 @@ class Post extends Model
     const PRIVACY_FRIENDS = 'friends';
     const PRIVACY_PRIVATE = 'private';
 
+    
+
     protected $casts = [
         'allow_comments' => 'boolean',
         'likes_count' => 'integer',

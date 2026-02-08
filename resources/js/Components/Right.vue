@@ -3,7 +3,6 @@
         <div class="p-3 bg-white rounded w-shadow">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="card-title mb-0">Gợi ý kết bạn</h6>
-                <Link href="/search" class="fs-8 text-primary">Xem thêm</Link>
             </div>
             <div class="bg-white rounded contacts">
                 <template v-if="suggestedFriends.length">
@@ -29,7 +28,6 @@
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
                 <h6 class="card-title mb-0">Nhóm Gợi Ý</h6>
-                <Link href="/groups" class="fs-8 text-primary">Xem Thêm</Link>
             </div>
             <div v-if="suggestedGroups.length" class="group-suggestions">
                 <div v-for="group in suggestedGroups" :key="group.id" class="card suggestion-card mb-3">
@@ -56,7 +54,6 @@
 
             <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
                 <h6 class="card-title mb-0">Gợi ý trang</h6>
-                <Link href="/pages/index" class="fs-8 text-primary">Xem thêm</Link>
             </div>
             <div class="bg-white rounded contacts">
                 <template v-if="suggestedPages.length">
@@ -111,9 +108,9 @@ const props = defineProps({
     }
 });
 
-const defaultAvatar = '/images/default/avatar.jpg';
-const defaultGroupCover = '/images/default/group.jpg';
-const defaultPageAvatar = '/images/default/page.jpg';
+const defaultAvatar = '/images/web/users/avatar.jpg';
+const defaultGroupCover = '/images/web/groups/group.webp';
+const defaultPageAvatar = '/images/client/pages/default-page.png';
 
 const avatarUrl = (user) => {
     const avatar = user?.avatar;
@@ -185,12 +182,17 @@ const notificationItems = computed(() =>
 }
 
 .third-section .w-shadow {
-    border: 1px solid #e9eef3;
-    box-shadow: 0 12px 26px rgba(16, 24, 40, 0.08);
-    border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+    border: 1px solid #e5e9f0;
+    box-shadow: 0 4px 20px rgba(16, 24, 40, 0.06), 0 0 1px rgba(16, 24, 40, 0.04);
+    border-radius: 16px;
+    background: #ffffff;
     max-height: calc(100vh - 110px);
     overflow-y: auto;
+    transition: box-shadow 0.3s ease;
+}
+
+.third-section .w-shadow:hover {
+    box-shadow: 0 8px 30px rgba(16, 24, 40, 0.1), 0 0 1px rgba(16, 24, 40, 0.08);
 }
 
 .third-section .w-shadow::-webkit-scrollbar {
@@ -198,7 +200,7 @@ const notificationItems = computed(() =>
 }
 
 .third-section .w-shadow::-webkit-scrollbar-thumb {
-    background: #d5dbe3;
+    background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
     border-radius: 6px;
 }
 
@@ -208,19 +210,79 @@ const notificationItems = computed(() =>
 
 .third-section .card-title {
     font-weight: 700;
-    color: #1f2a37;
-    letter-spacing: 0.01em;
+    font-size: 1rem;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.third-section .fs-8 {
+    font-size: 0.813rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.third-section .fs-8:hover {
+    color: #2563eb !important;
+    text-decoration: underline;
 }
 
 .third-section .contacts {
-    border: 1px solid #edf1f5;
-    border-radius: 12px;
-    padding: 0.5rem 0.75rem;
-    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 14px;
+    padding: 0.75rem;
+    background: #fafbfc;
+    box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .third-section .contacts .media {
     align-items: center;
+    padding: 0.5rem;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.third-section .contacts .media:hover {
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.third-section .online-user-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+    margin-right: 0.75rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.third-section .online-user-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.third-section .media-body .smFLname {
+    color: #1e293b;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.938rem;
+    transition: color 0.2s ease;
+}
+
+.third-section .media-body .smFLname:hover {
+    color: #3b82f6;
+}
+
+.third-section .media-body small {
+    font-size: 0.813rem;
+    color: #64748b;
+}
+
+.third-section .fs-9 {
+    font-size: 0.75rem;
+    color: #94a3b8;
 }
 
 .group-suggestions .suggestion-card + .suggestion-card {
@@ -228,26 +290,95 @@ const notificationItems = computed(() =>
 }
 
 .third-section .contacts .media + .media {
-    border-top: 1px dashed #edf1f5;
-    margin-top: 0.65rem;
-    padding-top: 0.65rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
 }
 
 .third-section .suggestion-card {
-    border: 1px solid #e7edf4;
-    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.1);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
 }
 
 .third-section .suggestion-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+    border-color: #cbd5e1;
+}
+
+.third-section .suggestion-image {
+    height: 120px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.third-section .suggestion-card:hover .suggestion-image {
+    transform: scale(1.05);
+}
+
+.third-section .overlay-card {
+    position: relative;
+}
+
+.third-section .card-body {
+    padding: 1rem;
+}
+
+.third-section .card-body h5 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.third-section .badge-light {
+    background-color: #f1f5f9;
+    color: #475569;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.688rem;
+}
+
+.third-section .card-text {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.third-section .btn-quick-links {
+    width: 100%;
+    padding: 0.5rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.third-section .btn-quick-links:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
 }
 
 .limit-1-lines {
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.limit-2-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

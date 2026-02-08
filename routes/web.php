@@ -68,23 +68,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/posts/friends', [FeedController::class, 'getFriendsPosts'])->name('feed.friends');
     Route::get('/feed/prefetch', [FeedController::class, 'prefetchFeed'])->name('feed.prefetch');
     Route::get('/newsfeed/check-new', [FeedController::class, 'checkNewPosts'])->name('feed.check-new');
-    
+
     // Lấy chỉ bài viết của bạn bè
     Route::get('/posts/friends', [FeedController::class, 'getFriendsPosts']);
     Route::get('/cai-dat', [SettingController::class, 'account'])->name('account');
     Route::post('/dang-xuat', [UserController::class, 'logout'])->name('logout');
     Route::get('/messages', [MessageController::class, 'index'])->name('message');
     Route::get('/groups', [GroupController::class, 'index'])->name('group');
-    Route::get('/friend-requests', [FriendshipController::class, 'index']);
+    Route::get('/friends', [FriendshipController::class, 'friends'])->name('friends');
 
     //search
     Route::get('/search', [SearchController::class, 'index'])->name('search');
+    Route::get('/search/autocomplete', [SearchController::class, 'autocomplete'])->name('search.autocomplete');
+
     //notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
+    Route::get('/notifications/type/{type}', [NotificationController::class, 'getByType'])->name('notifications.by-type');
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
-    Route::get('/message-notifications', [NotificationController::class, 'messageNotifications'])->name('message.notifications');
+    Route::post('/notifications/{id}/mark-as-unread', [NotificationController::class, 'markAsUnread'])->name('notifications.mark-as-unread');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
+    Route::post('/notifications/clear-all', [NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNotification'])->name('notifications.delete');
+    Route::get('/message-notifications', [NotificationController::class, 'messageNotifications'])->name('message.notifications');
     Route::get('/thong-bao', [NotificationController::class, 'indexNotification'])->name('notifications.index');
+
     //update user
     Route::post('/user/update', [UserController::class, 'update'])->name('user.update');
     Route::post('/user/update-password', [UserController::class, 'updatePassword'])->name('user.update-password');
@@ -134,6 +142,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/unfriend', [FriendshipController::class, 'unfriend']);
 
     //group
+    Route::get('/groups/discover', [GroupController::class, 'discover'])->name('groups.discover');
     Route::delete('/groups/{group}', [GroupController::class, 'destroy'])->name('groups.destroy');
     Route::get('/groups/{group}', [GroupController::class, 'show'])->name('groups.show');
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
@@ -142,6 +151,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/groups/{group}/edit', [GroupController::class, 'edit'])->name('groups.edit');
     Route::post('/groups/{group}/update', [GroupController::class, 'update'])->name('groups.update');
     Route::get('/groups/{group}/my-posts', [GroupController::class, 'myPosts'])->name('groups.my-posts');
+    Route::get('/groups/{group}/about', [GroupController::class, 'about'])->name('groups.about');
+    Route::post('/groups/{group}/rules', [GroupController::class, 'updateRules'])->name('groups.update-rules');
+    Route::post('/groups/{group}/invite', [GroupController::class, 'inviteMembers'])->name('groups.invite');
+    Route::get('/groups/{group}/statistics', [GroupController::class, 'statistics'])->name('groups.statistics');
 
     // Group join request routes
     Route::post('/groups/{group}/reject-request/{user}', [GroupController::class, 'rejectJoinRequest'])->name('groups.reject-request');
@@ -234,19 +247,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pages Routes
     Route::prefix('pages')->group(function () {
         Route::get('/index', [UserPageController::class, 'index'])->name('pages.index');
+        Route::get('/following', [UserPageController::class, 'following'])->name('pages.following');
         Route::get('/create', [UserPageController::class, 'create'])->name('pages.create');
         Route::post('/', [UserPageController::class, 'store'])->name('pages.store');
         Route::get('/{identifier}', [UserPageController::class, 'show'])->name('pages.show');
-        Route::post('/{page}/update', [PageController::class, 'update'])->name('pages.update');
+        
+        // Routes with permission checks
+        Route::post('/{page}/update', [PageController::class, 'update'])
+            ->middleware('page.permission:edit_page')
+            ->name('pages.update');
         Route::post('/{page}/follow', [UserPageController::class, 'toggleFollow'])->name('pages.follow');
-        Route::get('/{page}/insights', [UserPageController::class, 'insights'])->name('pages.insights');
-        Route::get('/{page}/posts', [UserPageController::class, 'getPosts'])->name('pages.posts');
+        Route::get('/{page}/insights', [UserPageController::class, 'insights'])
+            ->middleware('page.permission:view_insights')
+            ->name('pages.insights');
+        Route::get('/{page}/more_posts', [UserPageController::class, 'getPosts'])->name('pages.posts');
         Route::get('/{page}/community', [UserPageController::class, 'community'])->name('pages.community');
         Route::get('/{page}/photos', [UserPageController::class, 'photos'])->name('pages.photos');
-        Route::delete('/{page}', [UserPageController::class, 'destroy'])->name('pages.destroy');
-        Route::post('/{page}/admins', [PageAdminController::class, 'store'])->name('pages.admins.store');
-        Route::put('/{page}/admins/{user}', [PageAdminController::class, 'update'])->name('pages.admins.update');
-        Route::delete('/{page}/admins/{user}', [PageAdminController::class, 'destroy'])->name('pages.admins.destroy');
+        Route::delete('/{page}', [UserPageController::class, 'destroy'])
+            ->middleware('page.permission:delete_page')
+            ->name('pages.destroy');
+        
+        // Admin management routes
+        Route::post('/{page}/admins', [PageAdminController::class, 'store'])
+            ->middleware('page.permission:manage_admins')
+            ->name('pages.admins.store');
+        Route::put('/{page}/admins/{user}', [PageAdminController::class, 'update'])
+            ->middleware('page.permission:manage_admins')
+            ->name('pages.admins.update');
+        Route::delete('/{page}/admins/{user}', [PageAdminController::class, 'destroy'])
+            ->middleware('page.permission:manage_admins')
+            ->name('pages.admins.destroy');
     });
 
 });

@@ -133,8 +133,14 @@ const updatePost = async () => {
         
         if (response.status === 200) {
             emit('updated', response.data.post);
-            // Đóng modal
-            $(`#modal-update${props.post.id}`).modal('hide');
+            // Đóng modal bằng cách trigger nút close
+            const modalElement = document.getElementById(`modal-update${props.post.id}`);
+            if (modalElement) {
+                const closeButton = modalElement.querySelector('[data-dismiss="modal"]');
+                if (closeButton) {
+                    closeButton.click();
+                }
+            }
         }
     } catch (error) {
         console.error('Error updating post:', error);
@@ -144,41 +150,19 @@ const updatePost = async () => {
 };
 
 onMounted(() => {
-    // Khởi tạo fileinput
+    // Khởi tạo fileinput đơn giản không có initialPreview
     $('#newImages').fileinput({
-        theme: 'fa',
-        language: 'vi',
         showUpload: false,
         showCaption: true,
         showRemove: true,
         showPreview: true,
-        allowedFileExtensions: ['jpg', 'jpeg', 'png', 'gif'],
-        maxFileSize: 5000, // 5MB
+        allowedFileExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        maxFileSize: 10240, // 10MB
         maxFilesNum: 10,
         msgPlaceholder: 'Chọn ảnh để tải lên...',
         browseClass: 'btn btn-primary',
         removeClass: 'btn btn-danger',
-        mainClass: 'input-group-lg',
-        uploadUrl: false, // Không upload tự động
-        initialPreview: currentImages.value.map(image => '/images/client/post/' + image),
-        initialPreviewConfig: currentImages.value.map(image => ({
-            caption: image.split('/').pop(),
-            key: image,
-            url: `/posts/${props.post.id}/media/delete`,
-            extra: {
-                id: image
-            }
-        }))
-    });
-
-    // Xử lý sự kiện khi xóa ảnh
-    $('#newImages').on('filebeforedelete', function(event, key) {
-        if (currentImages.value.includes(key)) {
-            const index = currentImages.value.indexOf(key);
-            if (index > -1) {
-                currentImages.value.splice(index, 1);
-            }
-        }
+        uploadUrl: false // Không upload tự động
     });
 });
 </script>

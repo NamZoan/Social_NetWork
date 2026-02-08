@@ -64,6 +64,9 @@ class FeedController extends Controller
 
     /**
      * Suggested posts similar to recent like/share interactions.
+     *
+     * 
+     *  đã tương tác - chỉ loại bỏ bài gốc
      */
     private function getSuggestedSimilarPosts($userId, $friendIds, $followedPageIds, $groupIds, $limit = 3, $excludeIds = [])
     {
@@ -71,8 +74,10 @@ class FeedController extends Controller
             return collect();
         }
 
+        // Lấy 10 bài user vừa tương tác gần đây
         $recentInteractionPostIds = UserInteraction::where('user_id', $userId)
-            ->whereIn('interaction_type', ['like', 'share', 'comment', 'view'])
+            ->whereIn('interaction_type', ['like', 'share', 'comment']) // Bỏ 'view' để tập trung vào tương tác mạnh
+            ->orderBy('created_at', 'desc')
             ->limit(10)
             ->pluck('post_id')
             ->toArray();
@@ -81,12 +86,13 @@ class FeedController extends Controller
             return collect();
         }
 
+        // Tìm các bài tương tự từ related_posts
         $relatedScores = DB::table('related_posts')
             ->select('related_post_id', DB::raw('MAX(similarity_score) as score'))
             ->whereIn('post_id', $recentInteractionPostIds)
             ->groupBy('related_post_id')
             ->orderByDesc('score')
-            ->limit($limit * 3)
+            ->limit($limit * 5) // Lấy nhiều hơn để có pool lựa chọn
             ->get();
 
         if ($relatedScores->isEmpty()) {
@@ -95,7 +101,9 @@ class FeedController extends Controller
 
         $relatedIds = $relatedScores->pluck('related_post_id')->toArray();
         $scoresById = $relatedScores->pluck('score', 'related_post_id')->toArray();
-        $excludeIds = array_merge($excludeIds, $recentInteractionPostIds);
+
+        // CHỈ loại bỏ bài gốc, KHÔNG loại bỏ bài tương tự đã interact
+        $excludeOriginalPosts = array_merge($excludeIds, $recentInteractionPostIds);
 
         $posts = Post::with([
             'user:id,name,username,avatar',
@@ -106,13 +114,12 @@ class FeedController extends Controller
         ])
             ->select('posts.*')
             ->whereIn('posts.id', $relatedIds)
-            ->whereNotIn('posts.id', $excludeIds)
+            ->whereNotIn('posts.id', $excludeOriginalPosts)
             ->where(function ($query) use ($userId, $friendIds, $followedPageIds, $groupIds) {
                 $this->applyFeedFilters($query, $userId, $friendIds, $followedPageIds, $groupIds);
             })
-            ->where(function ($query) use ($userId) {
-                $this->excludeInteractedPosts($query, $userId);
-            })
+            // QUAN TRỌNG: KHÔNG filter excludeInteractedPosts ở đây
+            // Vì mục đích là đề xuất bài tương tự, kể cả đã xem/like
             ->get();
 
         if ($posts->isEmpty()) {
@@ -191,7 +198,6 @@ class FeedController extends Controller
 
 
         $posts = $query->orderByDesc('feed_score')
-
             ->limit($limit + 1)
             ->get();
 
@@ -216,6 +222,7 @@ class FeedController extends Controller
 
         $feedType = $this->determineFeedType($posts);
 
+        // Thêm suggested similar posts sau khi đã scroll (có cursor)
         if ($cursor) {
             $excludeWithCurrent = array_merge($excludeIds, $posts->pluck('id')->toArray());
             $suggestedPosts = $this->getSuggestedSimilarPosts(
@@ -248,32 +255,42 @@ class FeedController extends Controller
         $friendIdsStr = !empty($friendIds) ? implode(',', $friendIds) : '0';
         $pageIdsStr = !empty($followedPageIds) ? implode(',', $followedPageIds) : '0';
 
+        // Recency score: Decay factor
+        // Ideas:
+        // 0-24h: High score
+        // 24-48h: Medium score
+        // >48h: Low score
+
         return "
             (
-                -- 1. RELATIONSHIP SCORE (0-100 điểm)
-                CASE 
+                -- 1. RECENCY SCORE (0-100 điểm, giảm dần theo thời gian)
+                GREATEST(0, 100 - (TIMESTAMPDIFF(HOUR, posts.created_at, NOW()) * 2))
+
+                + -- 2. RELATIONSHIP SCORE (0-80 điểm)
+                CASE
                     WHEN posts.user_id IN ({$friendIdsStr}) THEN 80
                     WHEN posts.page_id IN ({$pageIdsStr}) THEN 60
-                    ELSE 20
+                    WHEN posts.group_id IS NOT NULL THEN 40 -- Tăng điểm cho Group
+                    ELSE 10
                 END
-                
-                + -- 2. INTERACTION HISTORY SCORE (0-100 điểm)
+
+                + -- 3. INTERACTION HISTORY SCORE (0-60 điểm) - Reduced weight
                 LEAST(COALESCE((
                     SELECT SUM(
                         CASE interaction_type
-                            WHEN 'like' THEN 5
-                            WHEN 'comment' THEN 7
-                            WHEN 'share' THEN 10
-                            WHEN 'view' THEN 1
+                            WHEN 'like' THEN 3
+                            WHEN 'comment' THEN 5
+                            WHEN 'share' THEN 7
+                            WHEN 'view' THEN 0.5
                             ELSE 0
                         END
                     )
                     FROM user_interactions
                     WHERE user_interactions.user_id = {$userId}
                     AND user_interactions.post_id = posts.id
-                ), 0), 100)
-                
-                + -- 3. AUTHOR AFFINITY SCORE (0-80 điểm)
+                ), 0), 60)
+
+                + -- 4. AUTHOR AFFINITY SCORE (0-50 điểm) - Reduced weight
                 LEAST(COALESCE((
                     SELECT COUNT(*) * 2
                     FROM user_interactions ui
@@ -281,33 +298,29 @@ class FeedController extends Controller
                     WHERE ui.user_id = {$userId}
                     AND p.user_id = posts.user_id
                     AND ui.interaction_type IN ('like', 'comment', 'share')
-                ), 0), 80)
-                
+                ), 0), 50)
 
-                
-                + -- 5. ENGAGEMENT SCORE (0-100 điểm)
+                + -- 5. GLOBAL ENGAGEMENT SCORE (0-50 điểm) - Reduced weight to prevent snowballing
                 LEAST((
-                    (SELECT COUNT(*) FROM likes WHERE content_type = 'post' AND content_id = posts.id) * 2
-                    + (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) * 5
-                    + (SELECT COUNT(*) FROM user_interactions WHERE post_id = posts.id AND interaction_type = 'share') * 10
-                ), 100)
-                
-                
-                
-                + -- 8. GROUP ACTIVITY BONUS (0-40 điểm)
+                    (SELECT COUNT(*) FROM likes WHERE content_type = 'post' AND content_id = posts.id) * 1
+                    + (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) * 2
+                    + (SELECT COUNT(*) FROM user_interactions WHERE post_id = posts.id AND interaction_type = 'share') * 5
+                ), 50)
+
+                + -- 6. GROUP ACTIVITY BONUS (0-30 điểm)
                 CASE
                     WHEN posts.group_id IS NOT NULL THEN
                         LEAST(COALESCE((
-                            SELECT COUNT(*) * 4
+                            SELECT COUNT(*) * 3
                             FROM user_interactions ui
                             JOIN posts p ON ui.post_id = p.id
                             WHERE ui.user_id = {$userId}
                             AND p.group_id = posts.group_id
-                        ), 0), 40)
+                        ), 0), 30)
                     ELSE 0
                 END
-                
-                + -- 9. DIVERSITY PENALTY
+
+                + -- 7. DIVERSITY PENALTY (Trừ điểm nếu đã xem quá nhiều bài của tác giả này)
                 -1 * LEAST(COALESCE((
                     SELECT COUNT(*)
                     FROM user_interactions
@@ -316,8 +329,12 @@ class FeedController extends Controller
                         SELECT id FROM posts p2 WHERE p2.user_id = posts.user_id
                     )
                     AND interaction_type = 'view'
-                ), 0) * 5, 30)
-                
+                    AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                ), 0) * 10, 50)
+
+                + -- 8. RANDOM FACTOR (0-30 điểm) - Để feed luôn tươi mới
+                (RAND() * 30)
+
             ) as feed_score
         ";
     }
@@ -363,16 +380,15 @@ class FeedController extends Controller
     }
 
     /**
-     * Exclude posts the user has already viewed/liked/shared.
+     * Loại bỏ mọi bài viết mà user đã có bản ghi trong bảng user_interactions
+     * (đã xuất hiện trong feed hoặc đã tương tác ở bất kỳ dạng nào).
      */
     private function excludeInteractedPosts($query, $userId)
     {
-        $query->whereNotExists(function ($subQuery) use ($userId) {
-            $subQuery->select(DB::raw(1))
+        $query->whereNotIn('posts.id', function ($subQuery) use ($userId) {
+            $subQuery->select('post_id')
                 ->from('user_interactions')
-                ->whereColumn('user_interactions.post_id', 'posts.id')
-                ->where('user_interactions.user_id', $userId)
-                ->whereIn('user_interactions.interaction_type', ['view', 'like', 'share']);
+                ->where('user_id', $userId);
         });
     }
 
@@ -462,24 +478,52 @@ class FeedController extends Controller
     {
         $diversePosts = collect();
         $authorCounts = [];
-        $maxPostsPerAuthor = 3;
+        $sourceTypeCounts = ['user' => 0, 'page' => 0, 'group' => 0];
+        $maxPostsPerAuthor = 2; // Giới hạn chặt hơn: tối đa 2 bài từ 1 nguồn
+
+        // Logic để không cho 1 loại nguồn chiếm sóng quá 60% feed (nếu limit=5 thì max 3)
+        $maxPostsPerSourceType = ceil($limit * 0.6);
 
         foreach ($posts as $post) {
-            $authorId = $post->user_id ?? $post->page_id ?? 'unknown';
+            $authorId = $post->user_id . '_' . ($post->page_id ?? '0') . '_' . ($post->group_id ?? '0'); // Unique author ID
+
+            // Xác định loại nguồn
+            $sourceType = 'user';
+            if ($post->page_id) {
+                $sourceType = 'page';
+            } elseif ($post->group_id) {
+                $sourceType = 'group';
+            }
 
             if (!isset($authorCounts[$authorId])) {
                 $authorCounts[$authorId] = 0;
             }
 
-            if ($authorCounts[$authorId] < $maxPostsPerAuthor) {
-                $diversePosts->push($post);
-                $authorCounts[$authorId]++;
+            // Skip nếu tác giả này đã xuất hiện quá nhiều
+            if ($authorCounts[$authorId] >= $maxPostsPerAuthor) {
+                continue;
             }
+
+            // Skip nếu loại nguồn này đã xuất hiện quá nhiều (trừ khi không còn bài nào khác)
+            // Lưu ý: Logic này có thể làm giảm số lượng bài trả về, nhưng sẽ được fill bằng recommended posts
+            if ($sourceTypeCounts[$sourceType] >= $maxPostsPerSourceType && $posts->count() > $limit) {
+                 // Nếu còn nhiều bài để chọn thì skip loại này để tìm loại khác
+                 // Nhưng nếu sắp hết bài thì vẫn phải lấy
+                 // Tạm thời skip để ưu tiên đa dạng
+                 continue;
+            }
+
+            $diversePosts->push($post);
+            $authorCounts[$authorId]++;
+            $sourceTypeCounts[$sourceType]++;
 
             if ($diversePosts->count() >= $limit) {
                 break;
             }
         }
+
+        // Fallback: Nếu filter quá chặt làm thiếu bài, lấy thêm từ pool ban đầu đã bị skip (nếu cần)
+        // Tuy nhiên, logic dưới đây sẽ fill bằng Smart Recommended Posts, nên OK.
 
         if ($diversePosts->count() < $limit) {
             $needed = $limit - $diversePosts->count();
@@ -522,11 +566,12 @@ class FeedController extends Controller
             ->withCount(['comments', 'likes'])
             ->select('posts.*')
             ->selectRaw('
-                CASE 
+                 GREATEST(0, 80 - (TIMESTAMPDIFF(HOUR, posts.created_at, NOW()) * 1)) +
+                CASE
                     WHEN posts.user_id IN (' . implode(',', array_merge($preferredAuthorIds, [0])) . ') THEN 50
                     ELSE 0
                 END +
-                CASE 
+                CASE
                     WHEN posts.id IN (' . implode(',', array_merge($relatedPostIds, [0])) . ') THEN 30
                     ELSE 0
                 END +
@@ -719,6 +764,7 @@ class FeedController extends Controller
         $count = Post::where(function ($query) use ($userId, $friendIds, $followedPageIds, $groupIds) {
             $this->applyFeedFilters($query, $userId, $friendIds, $followedPageIds, $groupIds);
         })
+            ->where('created_at', '>', $since)
             ->count();
 
         return response()->json(['count' => $count]);

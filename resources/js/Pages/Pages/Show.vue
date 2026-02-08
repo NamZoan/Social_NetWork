@@ -6,6 +6,8 @@
                 :page="page"
                 :is-following="isFollowing"
                 :is-admin="isAdmin"
+                :admin-role="adminRole"
+                :can-edit-page="permissions.can_edit_page"
                 :current-user="currentUser"
                 @update="handlePageUpdate"
                 @follow-toggled="handleFollowToggle"
@@ -16,12 +18,16 @@
             <PageNavigationTabs
                 :active-tab="activeTab"
                 :is-admin="isAdmin"
+                :can-view-insights="permissions.can_view_insights"
                 :stats="pageStats"
                 @tab-changed="handleTabChange"
             />
-            <div v-if="isAdmin" class="admin-actions mb-3">
-                <button class="btn-manage-admins" @click="openAdminModal">
+            <div v-if="permissions.can_manage_admins || permissions.can_view_insights" class="admin-actions mb-3">
+                <button v-if="permissions.can_manage_admins" class="btn-manage-admins" @click="openAdminModal">
                     <i class="bx bx-shield-quarter mr-2"></i>Quản lý quyền trang
+                </button>
+                <button v-if="permissions.can_view_insights" class="btn-insights" @click="goToInsights">
+                    <i class="bx bx-bar-chart mr-2"></i>Xem thống kê chi tiết
                 </button>
             </div>
 
@@ -29,9 +35,9 @@
             <div class="page-content">
                 <!-- Home Tab -->
                 <div v-if="activeTab === 'home'" class="tab-content">
-                    <!-- Post Creator (only for admins) -->
+                    <!-- Post Creator (only for users with create_posts permission) -->
                     <Post
-                        v-if="isAdmin"
+                        v-if="permissions.can_create_post"
                         :page="page"
                         @post-created="handlePostCreated"
                     />
@@ -53,6 +59,8 @@
                                 :key="post.id"
                                 :post="post"
                                 :user="resolvePostAuthor(post)"
+                                :can-edit="permissions.can_edit_post"
+                                :can-delete="permissions.can_delete_post"
                                 @updated="handlePostUpdated"
                                 @deleted="handlePostDeleted"
                             />
@@ -61,8 +69,16 @@
                         <!-- Load More Button -->
                         <div v-if="hasMore && !isLoading" class="load-more-container">
                             <button @click="loadMorePosts" class="btn-load-more">
-                                Tải thêm bài viết
+                                <i class="bx bx-refresh mr-2"></i>Tải thêm bài viết
                             </button>
+                        </div>
+                        
+                        <!-- Loading Indicator -->
+                        <div v-if="isLoading" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Đang tải...</span>
+                            </div>
+                            <p class="text-muted mt-2 small">Đang tải thêm bài viết...</p>
                         </div>
                     </div>
                 </div>
@@ -208,74 +224,90 @@
         <div v-if="showAdminModal" class="modal-overlay" @click="closeAdminModal">
             <div class="modal-content wide" @click.stop>
                 <div class="modal-header">
-                    <h3>Phân quyền trang</h3>
+                    <div class="modal-header-content">
+                        <i class="bx bx-shield-quarter modal-icon"></i>
+                        <h3>Quản lý phân quyền trang</h3>
+                    </div>
                     <button @click="closeAdminModal" class="modal-close">
                         <i class="bx bx-x"></i>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="admin-form">
-                        <div class="form-group">
-                            <label>User ID</label>
-                            <input v-model="newAdminId" type="number" class="form-control" placeholder="Nhập ID người dùng" />
+                    <div class="admin-form-card">
+                        <div class="form-card-header">
+                            <i class="bx bx-user-plus"></i>
+                            <h4>Thêm quản trị viên mới</h4>
                         </div>
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select v-model="newAdminRole" class="form-control">
-                                <option v-for="role in roleOptions" :key="role" :value="role">
-                                    {{ role }}
-                                </option>
-                            </select>
+                        <div class="admin-form">
+                            <div class="form-group">
+                                <label><i class="bx bx-id-card"></i> User ID</label>
+                                <input v-model="newAdminId" type="number" class="form-control" placeholder="Nhập ID người dùng" />
+                            </div>
+                            <div class="form-group">
+                                <label><i class="bx bx-badge-check"></i> Vai trò</label>
+                                <select v-model="newAdminRole" class="form-control">
+                                    <option v-for="role in roleOptions" :key="role" :value="role">
+                                        {{ getRoleLabel(role) }}
+                                    </option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary btn-add-admin" :disabled="adminLoading" @click="addAdmin">
+                                <i class="bx bx-plus-circle"></i>
+                                {{ adminLoading ? 'Đang lưu...' : 'Thêm quản trị viên' }}
+                            </button>
                         </div>
-                        <button class="btn btn-primary" :disabled="adminLoading" @click="addAdmin">
-                            {{ adminLoading ? 'Đang lưu...' : 'Thêm/Cấp quyền' }}
-                        </button>
-                        <div v-if="adminError" class="text-danger mt-2">{{ adminError }}</div>
+                        <div v-if="adminError" class="alert-error">
+                            <i class="bx bx-error-circle"></i>
+                            {{ adminError }}
+                        </div>
                     </div>
 
                     <div class="admin-list">
-                        <h4>Danh sách quản trị</h4>
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Role</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="admin in admins" :key="admin.id">
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img :src="admin.avatar || '/images/default/avatar.jpg'" class="avatar-sm mr-2" />
-                                            <div>
-                                                <div class="font-weight-bold">{{ admin.name }}</div>
-                                                <small class="text-muted">ID: {{ admin.id }}</small>
-                                            </div>
+                        <div class="list-header">
+                            <div>
+                                <h4>Danh sách quản trị viên</h4>
+                                <p class="admin-count">{{ admins.length }} người</p>
+                            </div>
+                        </div>
+                        <div v-if="!admins.length" class="empty-admin-state">
+                            <i class="bx bx-user-x"></i>
+                            <p>Chưa có quản trị viên nào</p>
+                            <small>Thêm người dùng vào danh sách quản trị để bắt đầu</small>
+                        </div>
+                        <div v-else class="admin-items">
+                            <div v-for="admin in admins" :key="admin.id" class="admin-item">
+                                <div class="admin-info">
+                                    <div class="admin-avatar-wrapper">
+                                        <img 
+                                            :src="admin.avatar || '/images/web/users/avatar.jpg'" 
+                                            class="admin-avatar"
+                                            @error="e => e.target.src = '/images/web/users/avatar.jpg'"
+                                        />
+                                        <div class="avatar-badge">
+                                            <i class="bx bx-shield-alt-2"></i>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <select
-                                            class="form-control form-control-sm"
-                                            v-model="admin.pivot.role"
-                                            @change="updateAdminRole(admin)"
-                                        >
-                                            <option v-for="role in roleOptions" :key="role" :value="role">
-                                                {{ role }}
-                                            </option>
-                                        </select>
-                                    </td>
-                                    <td class="text-right">
-                                        <button class="btn btn-outline-danger btn-sm" @click="removeAdmin(admin)">
-                                            Xóa
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr v-if="!admins.length">
-                                    <td colspan="3" class="text-center text-muted">Chưa có quản trị viên</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </div>
+                                    <div class="admin-details">
+                                        <div class="admin-name">{{ admin.name }}</div>
+                                        <div class="admin-id">ID: {{ admin.id }}</div>
+                                    </div>
+                                </div>
+                                <div class="admin-actions">
+                                    <select
+                                        class="role-select"
+                                        v-model="admin.pivot.role"
+                                        @change="updateAdminRole(admin)"
+                                    >
+                                        <option v-for="role in roleOptions" :key="role" :value="role">
+                                            {{ getRoleLabel(role) }}
+                                        </option>
+                                    </select>
+                                    <button class="btn-remove" @click="removeAdmin(admin)" title="Xóa quản trị viên">
+                                        <i class="bx bx-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -284,17 +316,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import App from '../../Layouts/App.vue';
 import PageHeader from '../../Components/Pages/PageHeader.vue';
 import PageNavigationTabs from '../../Components/Pages/PageNavigationTabs.vue';
 import Post from '../../Components/Post.vue';
-import PageInsights from '../../Components/Pages/PageInsights.vue';
 import PageCommunity from '../../Components/Pages/PageCommunity.vue';
 import PageImage from '../../Components/Pages/PageImage.vue';
 import ItemPost from '../../Components/Item/ItemPost.vue';
 import axios from 'axios';
+
 
 const props = defineProps({
     page: {
@@ -308,6 +340,23 @@ const props = defineProps({
     isAdmin: {
         type: Boolean,
         default: false
+    },
+    adminRole: {
+        type: String,
+        default: null
+    },
+    permissions: {
+        type: Object,
+        default: () => ({
+            can_create_post: false,
+            can_edit_post: false,
+            can_delete_post: false,
+            can_manage_comments: false,
+            can_view_insights: false,
+            can_manage_admins: false,
+            can_edit_page: false,
+            can_delete_page: false,
+        })
     },
     posts: {
         type: Object,
@@ -328,6 +377,8 @@ const props = defineProps({
     }
 });
 
+console.log(props);
+
 const activeTab = ref('home');
 const showEditModal = ref(false);
 const showAdminModal = ref(false);
@@ -342,7 +393,7 @@ const communityLoading = ref(false);
 const photos = ref([]);
 const photosMeta = ref({ next_page_url: null });
 const photosLoading = ref(false);
-const roleOptions = ['admin', 'editor', 'moderator', 'analyst', 'advertiser'];
+const roleOptions = ['admin', 'editor', 'analyst'];
 const newAdminId = ref('');
 const newAdminRole = ref('editor');
 const adminLoading = ref(false);
@@ -359,12 +410,14 @@ const coverFile = ref(null);
 const editLoading = ref(false);
 const editError = ref(null);
 
+const defaultPageAvatar = '/images/client/pages/default-page.png';
+
 const resolvePostAuthor = (post) => {
     if (post.page_id && post.page_id === props.page.id) {
         return {
             id: props.page.id,
             name: props.page.name,
-            avatar: props.page.profile_picture_url || null,
+            avatar: props.page.profile_picture_url || defaultPageAvatar,
             profile_url: `/pages/${props.page.username || props.page.id}`,
         };
     }
@@ -384,8 +437,10 @@ const resolvePostAuthor = (post) => {
 
 const handleTabChange = (tab) => {
     if (tab === 'insights' && props.isAdmin) {
-        // Navigate to insights page
-        router.visit(`/pages/${props.page.id}/insights`);
+        // Navigate to insights page with scroll preservation
+        router.visit(`/pages/${props.page.id}/insights`, {
+            preserveScroll: true
+        });
         return;
     }
 
@@ -400,8 +455,11 @@ const handleTabChange = (tab) => {
 };
 
 const handlePageUpdate = (updatedPage) => {
-    // Reload page data
-    router.reload({ only: ['page'] });
+    // Reload page data with scroll preservation
+    router.reload({ 
+        only: ['page'],
+        preserveScroll: true 
+    });
 };
 
 const handleFollowToggle = (data) => {
@@ -475,7 +533,10 @@ const submitPageEdit = async () => {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
 
-        router.reload({ only: ['page'] });
+        router.reload({ 
+            only: ['page'],
+            preserveScroll: true 
+        });
         showEditModal.value = false;
     } catch (error) {
         editError.value = error.response?.data?.message || 'Không thể cập nhật trang.';
@@ -489,6 +550,10 @@ const openAdminModal = () => {
     newAdminId.value = '';
     newAdminRole.value = 'editor';
     showAdminModal.value = true;
+};
+
+const goToInsights = () => {
+    router.visit(`/pages/${props.page.id}/insights`);
 };
 
 const closeAdminModal = () => {
@@ -553,17 +618,45 @@ const removeAdmin = async (admin) => {
     }
 };
 
+const getRoleLabel = (role) => {
+    const labels = {
+        'admin': '👑 Quản trị viên',
+        'editor': '✏️ Biên tập viên',
+        'moderator': '🛡️ Người kiểm duyệt',
+        'analyst': '📊 Phân tích viên',
+        'advertiser': '📢 Quảng cáo viên'
+    };
+    return labels[role] || role;
+};
+
 const loadMorePosts = async () => {
     if (isLoading.value || !hasMore.value) return;
 
+    // Save current scroll position
+    const scrollPosition = window.scrollY;
+    const scrollHeight = document.documentElement.scrollHeight;
+
     isLoading.value = true;
     try {
-        const response = await axios.get(`/pages/${props.page.id}/posts`, {
+        const response = await axios.get(`/pages/${props.page.id}/more_posts`, {
             params: { page: Math.floor(posts.value.length / 10) + 1 }
         });
 
         posts.value.push(...response.data.data);
         hasMore.value = response.data.next_page_url ? true : false;
+
+        // Restore scroll position after content loads
+        await nextTick();
+        const newScrollHeight = document.documentElement.scrollHeight;
+        const heightDifference = newScrollHeight - scrollHeight;
+        
+        // Keep scroll position relative to the new content
+        if (heightDifference > 0) {
+            window.scrollTo({
+                top: scrollPosition,
+                behavior: 'instant'
+            });
+        }
     } catch (error) {
         console.error('Error loading more posts:', error);
     } finally {
@@ -684,21 +777,55 @@ onMounted(() => {
 .load-more-container {
     text-align: center;
     margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .btn-load-more {
-    padding: 12px 24px;
-    background: #1877f2;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #1877f2 0%, #0d65d9 100%);
     color: #fff;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 600;
+    font-size: 15px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(24, 119, 242, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn-load-more:hover {
-    background: #166fe5;
+    background: linear-gradient(135deg, #0d65d9 0%, #0a58ca 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(24, 119, 242, 0.35);
+}
+
+.btn-load-more:active {
+    transform: translateY(0);
+}
+
+.btn-load-more i {
+    font-size: 18px;
+}
+
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+    border-width: 0.25em;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }
 
 .about-section {
@@ -756,6 +883,7 @@ onMounted(() => {
 .admin-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
     margin-top: 10px;
 }
 
@@ -766,10 +894,31 @@ onMounted(() => {
     padding: 8px 14px;
     border-radius: 6px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
 }
 
 .btn-manage-admins:hover {
     background: #1d4ed8;
+}
+
+.btn-insights {
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.btn-insights:hover {
+    background: #6d28d9;
 }
 
 .modal-overlay {
@@ -798,37 +947,362 @@ onMounted(() => {
     max-width: 800px;
 }
 
-.admin-form {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.admin-form-card {
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+}
+
+.form-card-header {
+    display: flex;
+    align-items: center;
     gap: 12px;
-    align-items: end;
+    color: #fff;
     margin-bottom: 20px;
 }
 
-.admin-list table {
-    width: 100%;
+.form-card-header i {
+    font-size: 28px;
 }
 
-.avatar-sm {
-    width: 32px;
-    height: 32px;
+.form-card-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.admin-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.admin-form .form-group {
+    margin-bottom: 0;
+}
+
+.admin-form label {
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.admin-form label i {
+    font-size: 16px;
+}
+
+.admin-form .form-control {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.admin-form .form-control:focus {
+    background: #fff;
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.btn-add-admin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #fbbf24;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-add-admin:hover:not(:disabled) {
+    background: #f59e0b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.btn-add-admin:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-add-admin i {
+    font-size: 18px;
+}
+
+.alert-error {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.alert-error i {
+    font-size: 20px;
+    color: #fca5a5;
+}
+
+.admin-list {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f2f5;
+}
+
+.list-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #050505;
+}
+
+.admin-count {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: #65676b;
+}
+
+.empty-admin-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #65676b;
+}
+
+.empty-admin-state i {
+    font-size: 64px;
+    color: #d0d3d9;
+    margin-bottom: 16px;
+}
+
+.empty-admin-state p {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.empty-admin-state small {
+    color: #8a8d91;
+    font-size: 14px;
+}
+
+.admin-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.admin-item:hover {
+    background: #fff;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.admin-avatar-wrapper {
+    position: relative;
+}
+
+.admin-avatar {
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.admin-item:hover .admin-avatar {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-badge i {
+    color: #fff;
+    font-size: 12px;
+}
+
+.admin-details {
+    flex: 1;
+}
+
+.admin-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #050505;
+    margin-bottom: 4px;
+}
+
+.admin-id {
+    font-size: 13px;
+    color: #65676b;
+}
+
+.admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.role-select {
+    padding: 8px 32px 8px 12px;
+    border: 2px solid #e4e6eb;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #050505;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23050505' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+.role-select:hover {
+    border-color: #667eea;
+}
+
+.role-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-remove {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 2px solid #fee2e2;
+    background: #fef2f2;
+    color: #dc2626;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-remove:hover {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+    transform: scale(1.05);
+}
+
+.btn-remove i {
+    font-size: 20px;
+}
+
+@media (max-width: 768px) {
+    .admin-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn-add-admin {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .admin-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .admin-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .role-select {
+        flex: 1;
+    }
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #e4e6eb;
+    padding: 24px;
+    border-bottom: 2px solid #f0f2f5;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+}
+
+.modal-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-icon {
+    font-size: 28px;
+    color: #667eea;
 }
 
 .modal-header h3 {
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
+    color: #050505;
 }
 
 .modal-close {

@@ -27,6 +27,10 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    canViewInsights: {
+        type: Boolean,
+        default: false
+    },
     stats: {
         type: Object,
         default: () => ({
@@ -46,7 +50,6 @@ const baseTabs = [
     { key: 'posts', label: 'Bài viết', icon: 'bx bx-file', visible: true, countKey: 'posts' },
     { key: 'photos', label: 'Ảnh', icon: 'bx bx-image', visible: true, countKey: 'photos' },
     { key: 'community', label: 'Cộng đồng', icon: 'bx bx-group', visible: true, countKey: 'followers' },
-    { key: 'insights', label: 'Phân tích', icon: 'bx bx-bar-chart-alt-2', visible: false, countKey: null },
 ];
 
 const visibleTabs = computed(() => {

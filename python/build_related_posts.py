@@ -26,7 +26,7 @@ DB_CONFIG = {
 }
 
 TOP_K = 10            # mỗi post lấy top K bài giống nhất
-MIN_SIMILARITY = 0.4  # ngưỡng tối thiểu, dưới thì bỏ qua
+MIN_SIMILARITY = 0.3  # ngưỡng tối thiểu, dưới thì bỏ qua
 
 # ============================================
 

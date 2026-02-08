@@ -12,12 +12,10 @@
                 <i class='bx bxs-group'></i> </button>
         </div>
     </div>
-    <NewMessage />
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import NewMessage from './NewMessage.vue';
 
 const searchQuery = ref('');
 const emit = defineEmits(['search']);

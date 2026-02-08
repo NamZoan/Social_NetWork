@@ -3,42 +3,67 @@
         <div class="col-md-9 second-section" id="page-content-wrapper">
             <div>
                 <div class="btn-group d-flex top-links-fg">
-                    <a href="index.html" class="btn btn-quick-links mr-3 ql-active">
-                        <img :src="'images/web/icons/theme/group-white.png'" class="mr-2" alt="quick links icon">
+                    <Link href="/groups" class="btn btn-quick-links mr-3 ql-active">
+                        <img :src="'/images/web/icons/theme/group-white.png'" class="mr-2" alt="quick links icon">
                         <span class="fs-8">Nhóm Của Tôi</span>
-                    </a>
-                    <a href="messages.html" class="btn btn-quick-links mr-3">
-                        <img :src="'images/web/icons/theme/rocket.png'" class="mr-2" alt="quick links icon">
-                        <span class="fs-8">Discover</span>
-                    </a>
-                    <a href="#" class="btn btn-quick-links" data-toggle="modal" data-target=".bd-example-modal-lg">
-                        <img :src="'images/web/icons/theme/create.png'" class="mr-2" alt="quick links icon">
+                    </Link>
+                    <Link href="/groups/discover" class="btn btn-quick-links mr-3">
+                        <i class='bx bx-search-alt mr-2'></i>
+                        <span class="fs-8">Khám Phá Nhóm</span>
+                    </Link>
+                    <button type="button" class="btn btn-quick-links" data-toggle="modal" data-target=".bd-example-modal-lg">
+                        <img :src="'/images/web/icons/theme/create.png'" class="mr-2" alt="quick links icon">
                         <span class="fs-8">Tạo Nhóm</span>
-                    </a>
+                    </button>
                 </div>
             </div>
-            <div class="groups py-3 px-4">
+
+            <!-- Search Section -->
+            <div class="card mt-4 mb-4">
+                <div class="card-body">
+                    <form @submit.prevent="searchGroups" class="row g-3">
+                        <div class="col-md-10">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class='bx bx-search'></i>
+                                </span>
+                                <input 
+                                    v-model="searchQuery" 
+                                    type="text" 
+                                    class="form-control" 
+                                    placeholder="Tìm kiếm nhóm của bạn..."
+                                >
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                Tìm kiếm
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="groups groups-section">
                 <div class="card-head d-flex justify-content-between">
                     <h5 class="mb-4">Nhóm bạn đã tạo</h5>
                 </div>
                 <div class="row">
                     <template v-if="createdGroups && createdGroups.length > 0">
                         <div v-for="group in createdGroups" :key="group.id" class="col-md-6 col-sm-6">
-                            <div class="card group-card bg-transparent group-card-inline mb-3">
-                                <div class="row no-gutters d-flex align-items-center">
-                                    <div class="col-md-3">
-                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : '/images/default/group.jpg'"
-                                             class="card-img group-card-inline-img" alt="Group image">
+                            <div class="group-card">
+                                <img :src="groupCover(group)" class="group-card-img" alt="Group image">
+                                <div class="group-card-body">
+                                    <div class="group-card-title limit-2-lines">
+                                        {{ group.name || 'Nhóm không có tên' }}
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="card-body">
-                                            <h4 class="card-title limit-2-lines">{{ group.name || 'Nhóm không có tên' }}</h4>
-                                            <h5 class="card-text">{{ group.members_count || 0 }} thành viên</h5>
-                                            <p class="card-text limit-2-lines">{{ group.description || 'Không có mô tả' }}</p>
-                                        </div>
+                                    <div class="group-card-meta">
+                                        <i class="bx bx-user"></i>
+                                        <span>{{ group.members_count || 0 }} thành viên</span>
                                     </div>
-                                    <div class="col-md-3">
-                                        <Link v-if="group.id" :href="`/groups/${group.id}`" class="btn btn-quick-link bg-white">Xem</Link>
+                                    <p class="group-card-desc limit-2-lines">{{ group.description || 'Không có mô tả' }}</p>
+                                    <div class="group-card-actions">
+                                        <Link v-if="group.id" :href="`/groups/${group.id}`" class="btn btn-quick-link btn-view">Xem</Link>
                                     </div>
                                 </div>
                             </div>
@@ -51,28 +76,26 @@
             </div>
             <hr class="my-5">
             <!-- Nhóm bạn đã tham gia -->
-            <div class="groups bg-white py-3 px-4 shadow-sm">
+            <div class="groups groups-section groups-joined">
                 <div class="card-head d-flex justify-content-between">
                     <h5 class="mb-4">Nhóm bạn đã tham gia</h5>
                 </div>
                 <div class="row">
                     <template v-if="joinedGroups && joinedGroups.length > 0">
                         <div v-for="group in joinedGroups" :key="group.id" class="col-md-6 col-sm-6">
-                            <div class="card group-card bg-transparent group-card-inline mb-3">
-                                <div class="row no-gutters d-flex align-items-center">
-                                    <div class="col-md-3">
-                                        <img :src="group.cover_photo_url ? `/images/client/group/thumbnail/${group.cover_photo_url}` : '/images/default/group.jpg'"
-                                             class="card-img group-card-inline-img" alt="Group image">
+                            <div class="group-card">
+                                <img :src="groupCover(group)" class="group-card-img" alt="Group image">
+                                <div class="group-card-body">
+                                    <div class="group-card-title limit-2-lines">
+                                        {{ group.name || 'Nhóm không có tên' }}
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="card-body">
-                                            <h4 class="card-title limit-2-lines">{{ group.name || 'Nhóm không có tên' }}</h4>
-                                            <h5 class="card-text">{{ group.members_count || 0 }} thành viên</h5>
-                                            <p class="card-text limit-2-lines">{{ group.description || 'Không có mô tả' }}</p>
-                                        </div>
+                                    <div class="group-card-meta">
+                                        <i class="bx bx-user"></i>
+                                        <span>{{ group.members_count || 0 }} thành viên</span>
                                     </div>
-                                    <div class="col-md-3">
-                                        <Link v-if="group.id" :href="`/groups/${group.id}`" class="btn btn-quick-link text-white bg-primary">Xem</Link>
+                                    <p class="group-card-desc limit-2-lines">{{ group.description || 'Không có mô tả' }}</p>
+                                    <div class="group-card-actions">
+                                        <Link v-if="group.id" :href="`/groups/${group.id}`" class="btn btn-quick-link btn-view primary">Xem</Link>
                                     </div>
                                 </div>
                             </div>
@@ -145,15 +168,12 @@
 
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useForm, usePage, Link } from '@inertiajs/vue3'
+import { onMounted, ref } from 'vue'
+import { useForm, Link, router } from '@inertiajs/vue3'
 import Index from "./Index.vue";
 import 'bootstrap-fileinput/css/fileinput.min.css';
 import 'bootstrap-fileinput/js/fileinput.min.js';
 import $ from 'jquery';
-
-const page = usePage();
-const user_auth = computed(() => page.props.auth.user || {});
 
 const props = defineProps({
     createdGroups: {
@@ -163,15 +183,23 @@ const props = defineProps({
     joinedGroups: {
         type: Array,
         default: () => []
+    },
+    search: {
+        type: String,
+        default: ''
     }
 });
 
-const allGroups = computed(() => {
-    if (!props.createdGroups || !props.joinedGroups) return [];
-    return [...props.createdGroups, ...props.joinedGroups].filter(group => group !== null && group !== undefined);
-});
+const searchQuery = ref(props.search || '');
 
-const { errors } = usePage()
+const defaultGroupCover = '/images/web/groups/group.webp';
+const groupCover = (group) => {
+    const cover = group?.cover_photo_url;
+    if (!cover) return defaultGroupCover;
+    if (cover.startsWith('http')) return cover;
+    if (cover.startsWith('/')) return cover;
+    return `/images/client/group/thumbnail/${cover}`;
+};
 
 const form = useForm({
     name: '',
@@ -181,6 +209,14 @@ const form = useForm({
     cover_photo_url: null
 })
 
+const searchGroups = () => {
+    router.get('/groups', {
+        search: searchQuery.value
+    }, {
+        preserveState: true,
+        preserveScroll: true
+    });
+};
 
 onMounted(() => {
         $('#input-b1').fileinput({
@@ -204,6 +240,112 @@ const submit = () => {
     });
 };
 </script>
+
+<style scoped>
+.groups-section {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.groups-joined {
+    margin-top: 12px;
+}
+
+.group-card {
+    background: #ffffff;
+    border: 1px solid #eef2f7;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    gap: 14px;
+    padding: 12px;
+    margin-bottom: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.group-card-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid #e5e7eb;
+}
+
+.group-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.group-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.group-card-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.group-card-desc {
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.group-card-actions {
+    margin-top: auto;
+}
+
+.btn-view {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+}
+
+.btn-view.primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.btn-view:hover {
+    background: #e2e8f0;
+}
+
+.btn-view.primary:hover {
+    background: #1d4ed8;
+}
+
+@media (max-width: 768px) {
+    .group-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .group-card-img {
+        width: 100%;
+        height: 160px;
+    }
+}
+</style>
 
 
 

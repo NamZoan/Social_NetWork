@@ -370,7 +370,7 @@ onMounted(() => {
 }
 
 .call-history-filters {
-    height: 170px;
+    height: 70px;
     display: flex;
     gap: 0.5rem;
     padding: 1rem 1.5rem;

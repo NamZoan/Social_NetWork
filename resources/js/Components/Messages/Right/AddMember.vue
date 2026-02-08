@@ -6,7 +6,7 @@
             <div class="search-results" v-if="showResults && filteredFriends.length > 0">
                 <div v-for="friend in filteredFriends" :key="friend.id" class="search-item"
                     @click="addMember(friend)">
-                    <img :src="friend.avatar ? `/images/client/avatar/${friend.avatar}` : '/images/default/avatar.jpg'"
+                    <img :src="getAvatarUrl(friend.avatar)"
                         :alt="friend.name">
                     <span>{{ friend.name }}</span>
                 </div>
@@ -14,7 +14,7 @@
         </div>
         <div class="selected-members" v-if="selectedMembers.length > 0">
             <div class="selected-member" v-for="member in selectedMembers" :key="member.id">
-                <img :src="member.avatar ? `/images/client/avatar/${member.avatar}` : '/images/default/avatar.jpg'"
+                <img :src="getAvatarUrl(member.avatar)"
                     :alt="member.name">
                 <span>{{ member.name }}</span>
                 <button @click="removeMember(member)" class="remove-member">&times;</button>
@@ -50,6 +50,14 @@ const friends = ref([]);
 const filteredFriends = ref([]);
 const selectedMembers = ref([]);
 const currentMembers = ref([]);
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 // Lấy danh sách bạn bè và thành viên hiện tại của nhóm
 const loadFriendsAndMembers = async () => {
@@ -101,7 +109,7 @@ const removeMember = (member) => {
 const addGroup = async () => {
     if (selectedMembers.value.length === 0) return;
     try {
-        await axios.post(`conversations/${props.conversationId}/add-members`, {
+        await axios.post(`/conversations/${props.conversationId}/add-members`, {
             member_ids: selectedMembers.value.map(m => m.id)
         });
         alert('Đã thêm thành viên vào nhóm!');

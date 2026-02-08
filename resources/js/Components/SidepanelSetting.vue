@@ -24,23 +24,23 @@ function isActive(path: string) {
                         </div>
                     </Link>
                 </li>
-                <li :class="['contact', isActive('/settings-contact.html') && 'setting-active']">
-                    <a href="settings-contact.html" class="wrap d-flex align-items-center">
+                <li :class="['contact', isActive('/settings/contact') && 'setting-active']">
+                    <Link :href="'/settings/contact'" class="wrap d-flex align-items-center">
                         <img :src="'images/web/icons/settings/contact.png'" class="settings-icon"
                             alt="Settings left sidebar" />
                         <div class="meta">
                             <p>Thông Tin Liên Lạc</p>
                         </div>
-                    </a>
+                    </Link>
                 </li>
-                <li :class="['contact', isActive('#') && 'setting-active']">
-                    <a href="#" class="wrap d-flex align-items-center">
+                <li :class="['contact', isActive('/settings/privacy') && 'setting-active']">
+                    <Link :href="'/settings/privacy'" class="wrap d-flex align-items-center">
                         <img :src="'images/web/icons/settings/privacy.png'" class="settings-icon"
                             alt="Settings left sidebar" />
                         <div class="meta">
                             <p>Quyền Riêng Tư</p>
                         </div>
-                    </a>
+                    </Link>
                 </li>
                 <h6 class="p-3">Bảo Mật & Đăng Nhập</h6>
                 <li :class="['contact', isActive('/doi-mat-khau') && 'setting-active']">
@@ -52,55 +52,51 @@ function isActive(path: string) {
                         </div>
                     </Link>
                 </li>
-                <li :class="['contact', isActive('#') && 'setting-active']">
-                    <a href="#" class="wrap d-flex align-items-center">
+                <li :class="['contact', isActive('/settings/security') && 'setting-active']">
+                    <Link :href="'/settings/security'" class="wrap d-flex align-items-center">
                         <img :src="'images/web/icons/settings/security-question.png'" class="settings-icon"
                             alt="Settings left sidebar" />
                         <div class="meta">
                             <p>Câu Hỏi Bảo Mật</p>
                         </div>
-                    </a>
+                    </Link>
                 </li>
-                <li :class="['contact', isActive('settings-fingerprint.html') && 'setting-active']">
-                    <a href="settings-fingerprint.html" class="wrap d-flex align-items-center">
-                        <div class="meta"></div>
-                        <p>
-                            <img :src="'images/web/icons/settings/fingerprint.png'" class="settings-icon"
-                                alt="Settings left sidebar" />
-                            Khóa Vân Tay
-                        </p>
-                    </a>
+                <li :class="['contact', isActive('/settings/fingerprint') && 'setting-active']">
+                    <Link :href="'/settings/fingerprint'" class="wrap d-flex align-items-center">
+                        <img :src="'images/web/icons/settings/fingerprint.png'" class="settings-icon"
+                            alt="Settings left sidebar" />
+                        <div class="meta">
+                            <p>Khóa Vân Tay</p>
+                        </div>
+                    </Link>
                 </li>
-                <li :class="['contact', isActive('settings-location.html') && 'setting-active']">
-                    <a href="settings-location.html" class="wrap d-flex align-items-center">
-                        <div class="meta"></div>
-                        <p>
-                            <img :src="'images/web/icons/settings/location.png'" class="settings-icon"
-                                alt="Settings left sidebar" />
-                            Vị Trí
-                        </p>
-                    </a>
+                <li :class="['contact', isActive('/settings/location') && 'setting-active']">
+                    <Link :href="'/settings/location'" class="wrap d-flex align-items-center">
+                        <img :src="'images/web/icons/settings/location.png'" class="settings-icon"
+                            alt="Settings left sidebar" />
+                        <div class="meta">
+                            <p>Vị Trí</p>
+                        </div>
+                    </Link>
                 </li>
                 <h6 class="p-3">Thanh Toán & Hóa Đơn</h6>
-                <li :class="['contact', isActive('settings-billing-method.html') && 'setting-active']">
-                    <a href="settings-billing-method.html" class="wrap d-flex align-items-center">
-                        <div class="meta"></div>
-                        <p>
-                            <img :src="'images/web/icons/settings/wallet.png'" class="settings-icon"
-                                alt="Settings left sidebar" />
-                            Phương Thức Thanh Toán
-                        </p>
-                    </a>
+                <li :class="['contact', isActive('/settings/billing') && 'setting-active']">
+                    <Link :href="'/settings/billing'" class="wrap d-flex align-items-center">
+                        <img :src="'images/web/icons/settings/wallet.png'" class="settings-icon"
+                            alt="Settings left sidebar" />
+                        <div class="meta">
+                            <p>Phương Thức Thanh Toán</p>
+                        </div>
+                    </Link>
                 </li>
-                <li :class="['contact', isActive('#') && 'setting-active']">
-                    <a href="#" class="wrap d-flex align-items-center">
-                        <div class="meta"></div>
-                        <p>
-                            <img :src="'images/web/icons/settings/credit-card.png'" class="settings-icon"
-                                alt="Settings left sidebar" />
-                            Thanh Toán Tự Động
-                        </p>
-                    </a>
+                <li :class="['contact', isActive('/settings/autopay') && 'setting-active']">
+                    <Link :href="'/settings/autopay'" class="wrap d-flex align-items-center">
+                        <img :src="'images/web/icons/settings/credit-card.png'" class="settings-icon"
+                            alt="Settings left sidebar" />
+                        <div class="meta">
+                            <p>Thanh Toán Tự Động</p>
+                        </div>
+                    </Link>
                 </li>
             </ul>
         </div>

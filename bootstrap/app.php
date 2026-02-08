@@ -7,6 +7,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ValidateImageUpload;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\CheckPagePermission;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'validate.image' => ValidateImageUpload::class,
             'role' => CheckRole::class,
             'permission' => CheckPermission::class,
+            'page.permission' => CheckPagePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

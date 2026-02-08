@@ -42,7 +42,7 @@
                         <!-- Avatar -->
                         <div class="avatar-container" v-if="shouldShowAvatar(index)">
                             <img
-                                :src="getAvatarUrl(message.sender)"
+                                :src="getSenderAvatarUrl(message.sender)"
                                 :alt="message.sender?.name || 'User'"
                                 class="avatar"
                                 loading="lazy"
@@ -245,9 +245,9 @@ const formatDateTime = (time) => {
     }).format(messageDate);
 };
 
-const getAvatarUrl = (sender) => {
+const getSenderAvatarUrl = (sender) => {
     if (!sender?.avatar) {
-        return '/images/default/avatar.jpg';
+        return '/images/web/users/avatar.jpg';
     }
 
     const avatar = sender.avatar;
@@ -257,7 +257,6 @@ const getAvatarUrl = (sender) => {
 
     return `/images/client/avatar/${avatar}`;
 };
-
 
 const getImageUrl = (attachmentUrl) => {
     if (!attachmentUrl) return '/images/placeholder.jpg';
@@ -307,13 +306,21 @@ const getGalleryLayout = (imageCount) => {
 };
 
 const handleAvatarError = (event) => {
-    event.target.src = '/images/default/avatar.jpg';
+    event.target.src = '/images/web/users/avatar.jpg';
 };
 
 // const handleImageError = (event) => {
 //     event.target.src = '/images/placeholder.jpg';
 //     event.target.alt = 'Ảnh không tải được';
 // };
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 const shouldShowAvatar = (index) => {
     if (index === 0) return true;
@@ -624,7 +631,7 @@ defineExpose({
 }
 
 .btn-load-more {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -735,7 +742,7 @@ defineExpose({
 }
 
 .message-sent .message-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -901,7 +908,7 @@ defineExpose({
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     border: none;
     color: white;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);

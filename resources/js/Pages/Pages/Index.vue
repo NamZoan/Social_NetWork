@@ -11,13 +11,22 @@
                         </h1>
                         <p class="pages-subtitle">Quản lý các trang bạn đã tạo hoặc là admin</p>
                     </div>
-                    <Link
-                        :href="route('pages.create')"
-                        class="btn-create-page"
-                    >
-                        <i class="bx bx-plus"></i>
-                        Tạo trang mới
-                    </Link>
+                    <div class="pages-header-actions">
+                        <Link
+                            :href="route('pages.following')"
+                            class="btn-secondary"
+                        >
+                            <i class="bx bx-bookmark-heart"></i>
+                            Trang đang theo dõi
+                        </Link>
+                        <Link
+                            :href="route('pages.create')"
+                            class="btn-create-page"
+                        >
+                            <i class="bx bx-plus"></i>
+                            Tạo trang mới
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -357,6 +366,7 @@ const route = (name, params = null) => {
     const routes = {
         'pages.index': '/pages',
         'pages.create': '/pages/create',
+        'pages.following': '/pages/following',
         'pages.show': (id) => `/pages/${id}`, // Dùng backtick cho đồng bộ
         'pages.insights': (id) => `/pages/${id}/insights`, // Đã sửa lỗi cú pháp ở đây
         'pages.destroy': (id) => `/pages/${id}`,
@@ -366,7 +376,7 @@ const route = (name, params = null) => {
         // Kiểm tra xem params có tồn tại không trước khi gọi hàm
         return params ? routes[name](params) : '#';
     }
-    
+
     return routes[name] || '#';
 };
 </script>
@@ -389,6 +399,12 @@ const route = (name, params = null) => {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 1.5rem;
+}
+
+.pages-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .pages-title {
@@ -417,13 +433,33 @@ const route = (name, params = null) => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     color: white;
     border-radius: 12px;
     font-weight: 600;
     text-decoration: none;
     transition: all 0.2s ease;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.3rem;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid #e0e7ff;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.btn-secondary:hover {
+    background: #e0e7ff;
+    border-color: #c7d2fe;
 }
 
 .btn-create-page:hover {
@@ -461,7 +497,7 @@ const route = (name, params = null) => {
 }
 
 .stat-icon-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
 }
 
 .stat-icon-success {
@@ -521,7 +557,7 @@ const route = (name, params = null) => {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -547,7 +583,7 @@ const route = (name, params = null) => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.875rem 2rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     color: white;
     border-radius: 12px;
     font-weight: 600;
@@ -597,7 +633,7 @@ const route = (name, params = null) => {
 .cover-placeholder {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
 }
 
 .page-card-overlay {
@@ -685,7 +721,7 @@ const route = (name, params = null) => {
     height: 80px;
     border-radius: 50%;
     border: 4px solid white;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -781,7 +817,7 @@ const route = (name, params = null) => {
     justify-content: center;
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
     color: white;
     border-radius: 10px;
     font-weight: 600;

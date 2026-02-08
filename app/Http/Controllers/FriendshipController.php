@@ -53,7 +53,10 @@ class FriendshipController extends Controller
 
         $result = $this->friendshipRepo->acceptFriendRequest($auth_id, $sender_id);
 
-        
+        if (!$result) {
+            return response()->json(['message' => 'Không tìm thấy lời mời kết bạn'], 404);
+        }
+        return response()->json(['message' => 'Đã chấp nhận lời mời kết bạn']);
     }
 
     public function unfriend(Request $request)
@@ -83,9 +86,31 @@ class FriendshipController extends Controller
     {
         $auth_id = auth()->id();
         $senders = $this->friendshipRepo->getFriendRequests($auth_id);
-
+        dd('123');
         return Inertia::render('Friends/Request', [
             'requests' => $senders,
+        ]);
+    }
+
+    /**
+     * Hiển thị danh sách bạn bè, lời mời nhận được và lời mời đã gửi
+     */
+    public function friends()
+    {
+        $auth_id = auth()->id();
+        
+        // Danh sách bạn bè
+        $friends = $this->friendshipRepo->getFriendsWithPagination($auth_id);
+        
+        // Lời mời đã nhận
+        $receivedRequests = $this->friendshipRepo->getFriendRequests($auth_id);
+        
+        // Lời mời đã gửi
+        $sentRequests = $this->friendshipRepo->getSentFriendRequests($auth_id);
+        return Inertia::render('Friends/Index', [
+            'friends' => $friends,
+            'receivedRequests' => $receivedRequests,
+            'sentRequests' => $sentRequests,
         ]);
     }
 }

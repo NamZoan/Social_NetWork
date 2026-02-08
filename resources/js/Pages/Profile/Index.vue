@@ -1,16 +1,32 @@
-﻿<template>
+<template>
     <App>
         <div class="col-md-12 message-right-side">
             <div class="row profile-right-side-content">
                 <div class="user-profile">
                     <div class="profile-header-background">
-                        <a href="#" class="profile-cover">
-                            <img :src="'/images/web/users/cover/cover-1.gif'" alt="Profile Header Background" />
-                            <div class="cover-overlay">
-                                <a href="#" class="btn btn-update-cover"><i class="bx bxs-camera"></i> Update Cover
-                                    Photo</a>
+                        <div class="profile-cover">
+                            <img
+                                :src="
+                                    user.cover_photo
+                                        ? `/images/client/cover/${user.cover_photo}`
+                                        : '/images/web/users/cover/cover-1.gif'
+                                "
+                                alt="Profile Header Background"
+                            />
+                            <div v-if="isOwner" class="cover-overlay">
+                                <label class="btn btn-update-cover" for="updateCoverInput">
+                                    <i class="bx bxs-camera"></i>
+                                    Đổi ảnh bìa
+                                    <input
+                                        id="updateCoverInput"
+                                        type="file"
+                                        accept="image/*"
+                                        style="display: none"
+                                        @change="onCoverChange"
+                                    />
+                                </label>
                             </div>
-                        </a>
+                        </div>
                     </div>
                     <div class="row profile-rows px-5">
                         <div class="col-md-4">
@@ -18,10 +34,7 @@
                                 <div class="text-center">
                                     <div class="profile-img w-shadow">
                                         <div class="profile-img-overlay"></div>
-                                        <img :src="user.avatar
-                                                ? `/images/client/avatar/${user.avatar}`
-                                                : '/images/default/avatar.jpg'
-                                            " alt="Avatar" class="avatar img-circle" />
+                                        <img :src="getAvatarUrl(user.avatar)" alt="Avatar" class="avatar img-circle" />
 
                                         <div v-if="isOwner" class="profile-img-caption">
                                             <label for="updateProfilePicInput" class="upload">
@@ -40,7 +53,7 @@
                                         {{ user.name }}
                                     </p>
                                     <p class="profile-username mb-3 text-muted">
-                                        @arthur_minasyan
+                                        {{ '@' + user.username }}
                                     </p>
                                 </div>
                                 <div class="intro mt-4">
@@ -50,7 +63,7 @@
                                             friendshipStatus === 'none' &&
                                             !isOwner
                                         " @click="sendFriendRequest" class="btn btn-follow">
-                                            <i class="bx bx-plus"></i> Kết Bạn
+                                            <i class="bx bx-plus"></i> Kết bạn
                                         </button>
 
                                         <!-- Nếu đã gửi lời mời kết bạn -->
@@ -79,9 +92,9 @@
                                         </button>
 
                                         <button v-if="!isOwner" type="button" class="btn btn-start-chat"
-                                            data-toggle="modal" data-target="#newMessageModal">
+                                            @click="openMessageModal">
                                             <i class="bx bxs-message-rounded"></i>
-                                            <span class="fs-8">Nhắn Tin</span>
+                                            <span class="fs-8">Nhắn tin</span>
                                         </button>
 
                                         <button type="button" class="btn btn-follow" id="moreMobile"
@@ -91,79 +104,32 @@
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-right profile-ql-dropdown"
                                             aria-labelledby="moreMobile">
-                                            <a href="newsfeed.html" class="dropdown-item">Bài Viết</a>
-                                            <a href="about.html" class="dropdown-item">Bạn Bè</a>
-                                            <a href="followers.html" class="dropdown-item">Ảnh</a>
-                                            <a href="following.html" class="dropdown-item">Video</a>
-                                            <a href="photos.html" class="dropdown-item">Nhóm</a>
+                                            <span class="dropdown-item text-muted small">
+                                                Tính năng khác đang phát triển
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="intro mt-5 mv-hidden">
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <h3 class="intro-about">Giới Thiệu</h3>
+                                <div class="intro mt-5">
+                                    <div class="intro-item d-flex justify-content-between align-items-center mb-2">
+                                        <h3 class="intro-about mb-0">Giới thiệu</h3>
                                     </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <p class="intro-title text-muted">
-                                            <i class="bx bx-briefcase text-primary"></i>
-                                            Web Developer at
-                                            <a href="#">Company Name</a>
+                                    <div v-if="user.email" class="intro-item d-flex align-items-center">
+                                        <p class="intro-title text-muted mb-1">
+                                            <i class="bx bx-envelope text-primary"></i>
+                                            {{ user.email }}
                                         </p>
                                     </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <p class="intro-title text-muted">
-                                            <i class="bx bx-map text-primary"></i>
-                                            Lives in
-                                            <a href="#">City, Country</a>
+                                    <div v-if="user.phone" class="intro-item d-flex align-items-center">
+                                        <p class="intro-title text-muted mb-1">
+                                            <i class="bx bx-phone text-primary"></i>
+                                            {{ user.phone }}
                                         </p>
                                     </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <p class="intro-title text-muted">
-                                            <i class="bx bx-time text-primary"></i>
-                                            Last Login
-                                            <a href="#">Online
-                                                <span class="ml-1 online-status bg-success"></span></a>
-                                        </p>
-                                    </div>
-                                    <div v-if="isOwner"
-                                        class="intro-item d-flex justify-content-between align-items-center">
-                                        <a href="#" class="btn btn-quick-link join-group-btn border w-100">Edit
-                                            Details</a>
-                                    </div>
-                                </div>
-                                <div class="intro mt-5 row mv-hidden">
-                                    <div class="col-md-4">
-                                        <img :src="'/images/web/users/album/album-1.jpg'" width="95" alt="" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <img :src="'/images/web/users/album/album-2.jpg'" width="95" alt="" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <img :src="'/images/web/users/album/album-3.jpg'" width="95" alt="" />
-                                    </div>
-                                </div>
-                                <div class="intro mt-5 mv-hidden">
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <h3 class="intro-about">
-                                            Other Social Accounts
-                                        </h3>
-                                    </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <p class="intro-title text-muted">
-                                            <i class="bx bxl-facebook-square facebook-color"></i>
-                                            <a href="#" target="_blank">facebook.com/username</a>
-                                        </p>
-                                    </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <p class="intro-title text-muted">
-                                            <i class="bx bxl-twitter twitter-color"></i>
-                                            <a href="#" target="_blank">twitter.com/username</a>
-                                        </p>
-                                    </div>
-                                    <div class="intro-item d-flex justify-content-between align-items-center">
-                                        <p class="intro-title text-muted">
-                                            <i class="bx bxl-instagram instagram-color"></i>
-                                            <a href="#" target="_blank">instagram.com/username</a>
+                                    <div v-if="user.birthday" class="intro-item d-flex align-items-center">
+                                        <p class="intro-title text-muted mb-0">
+                                            <i class="bx bx-cake text-primary"></i>
+                                            {{ user.birthday }}
                                         </p>
                                     </div>
                                 </div>
@@ -173,37 +139,18 @@
                             <div class="profile-info-right">
                                 <div class="col-md-12 profile-center">
                                     <ul
-                                        class="list-inline profile-links d-flex justify-content-between w-shadow rounded">
-                                        <li class="list-inline-item " :class="{ 'profile-active': activeTab === 'listpost' }">
-                                            <Link :href="`/${user.username}`">Bài Viết</Link>
+                                        class="list-inline profile-links d-flex justify-content-start w-shadow rounded">
+                                        <li
+                                            class="list-inline-item"
+                                            :class="{ 'profile-active': activeTab === 'listpost' }"
+                                        >
+                                            <Link :href="`/${user.username}`">Bài viết</Link>
                                         </li>
-                                        <li class="list-inline-item">
-                                            <Link :href="`/${user.username}`">Giới Thiệu</Link>
-                                        </li>
-                                        <li class="list-inline-item" :class="{ 'profile-active': activeTab === 'friend' }">
-                                            <Link :href="`/${user.username}/friend`" >Bạn Bè</Link>
-                                        </li>
-                                        <li class="list-inline-item">
-                                            <Link href="#">Nhóm</Link>
-                                        </li>
-                                        <li class="list-inline-item">
-                                            <Link href="#">Ảnh</Link>
-                                        </li>
-                                        <li class="list-inline-item">
-                                            <Link href="#">Video</Link>
-                                        </li>
-                                        <li class="list-inline-item dropdown">
-                                            <a href="#" data-toggle="dropdown" aria-haspopup="true"
-                                                aria-expanded="false">
-                                                <i class="bx bx-dots-vertical-rounded"></i>
-                                            </a>
-                                            <div class="dropdown-menu dropdown-menu-right profile-ql-dropdown">
-                                                <a href="#" class="dropdown-item">Activity Log</a>
-                                                <a href="#" class="dropdown-item">Videos</a>
-                                                <a href="#" class="dropdown-item">Check-Ins</a>
-                                                <a href="#" class="dropdown-item">Events</a>
-                                                <a href="#" class="dropdown-item">Likes</a>
-                                            </div>
+                                        <li
+                                            class="list-inline-item"
+                                            :class="{ 'profile-active': activeTab === 'friend' }"
+                                        >
+                                            <Link :href="`/${user.username}/friend`">Bạn bè</Link>
                                         </li>
                                     </ul>
                                     <slot name="filters"></slot>
@@ -215,15 +162,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Message Modal -->
+        <ProfileMessageModal
+            v-if="!isOwner"
+            :recipient-id="user.id"
+            :recipient-name="user.name"
+            :recipient-username="user.username"
+            :recipient-avatar="user.avatar"
+        />
     </App>
 </template>
 
 <script setup>
 import App from "../../Layouts/App.vue";
 import { Link, usePage } from "@inertiajs/vue3";
-import { defineProps, computed, ref, onMounted } from "vue";
+import { defineProps, computed, ref, onMounted, nextTick } from "vue";
 import axios from "axios";
 import { useForm } from "@inertiajs/vue3";
+import ProfileMessageModal from "../../Components/Profile/ProfileMessageModal.vue";
 const props = defineProps({
     user: Object,
     activeTab: String,
@@ -287,17 +244,46 @@ const avatarForm = useForm({
     avatar: null,
 });
 
+const coverForm = useForm({
+    cover_photo: null,
+});
+
 const onAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     avatarForm.avatar = file;
-    avatarForm.post('/user/update-avatar', {
+    avatarForm.post("/user/update-avatar", {
         preserveScroll: true,
         onSuccess: () => {
-            // Reload lại trang hoặc fetch lại user nếu cần
             window.location.reload();
-        }
+        },
     });
+};
+
+const onCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    coverForm.cover_photo = file;
+    coverForm.post("/user/update-cover", {
+        preserveScroll: true,
+        onSuccess: () => {
+            window.location.reload();
+        },
+    });
+};
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
+
+// Mở modal nhắn tin
+const openMessageModal = async () => {
+    await nextTick();
+    $('#newMessageModal').modal('show');
 };
 
 onMounted(() => {

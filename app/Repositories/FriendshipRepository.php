@@ -112,6 +112,25 @@ class FriendshipRepository implements FriendshipRepositoryInterface
         return User::whereIn('id', $friendIds)->select('id', 'name', 'username', 'avatar')->get();
     }
 
+    public function getFriendsWithPagination($authId, $perPage = 15)
+    {
+        $friendships = Friendship::where(function ($query) use ($authId) {
+            $query->where('user_id_1', $authId)
+                ->orWhere('user_id_2', $authId);
+        })->where('status', 'accepted')->get();
+
+        $friendIds = $friendships->map(function ($friendship) use ($authId) {
+            return $friendship->user_id_1 == $authId
+                ? $friendship->user_id_2
+                : $friendship->user_id_1;
+        })->toArray();
+
+        return User::whereIn('id', $friendIds)
+            ->select('id', 'name', 'username', 'avatar')
+            ->orderBy('name')
+            ->paginate($perPage);
+    }
+
     public function getFriendRequests($authId)
     {
         $requests = Friendship::where('user_id_2', $authId)
@@ -121,6 +140,21 @@ class FriendshipRepository implements FriendshipRepositoryInterface
 
         return $requests->map(function ($request) {
             return $request->sender;
+        });
+    }
+
+    /**
+     * Lấy danh sách lời mời kết bạn đã gửi
+     */
+    public function getSentFriendRequests($authId)
+    {
+        $requests = Friendship::where('user_id_1', $authId)
+            ->where('status', 'pending')
+            ->with('receiver:id,name,username,avatar')
+            ->get();
+
+        return $requests->map(function ($request) {
+            return $request->receiver;
         });
     }
 }

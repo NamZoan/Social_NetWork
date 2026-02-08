@@ -14,7 +14,7 @@
                         class="d-flex align-items-center justify-content-between mb-3 p-3 border rounded hover-shadow">
                         <div class="d-flex align-items-center">
                             <div class="position-relative">
-                                <img :src="`/images/client/avatar/${request.user.avatar_url}`"
+                                <img :src="getAvatarUrl(request.user.avatar_url)"
                                     class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;"
                                     :alt="request.user.name">
                             </div>
@@ -83,6 +83,14 @@ const props = defineProps({
 });
 
 const loading = ref(false);
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 const approveMember = async (memberId) => {
     try {

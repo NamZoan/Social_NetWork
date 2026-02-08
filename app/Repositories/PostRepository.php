@@ -93,9 +93,21 @@ class PostRepository implements PostRepositoryInterface
     public function destroy($postId, $userId)
     {
         $post = Post::findOrFail($postId);
-        if ($post->user_id !== $userId) {
+        
+        $canDelete = $post->user_id === $userId;
+        
+        if (!$canDelete && $post->page_id) {
+            $page = $post->page;
+            // Kiểm tra quyền xóa bài viết trên page (Admin, Editor)
+            if ($page && $page->canDeletePost($userId)) {
+                $canDelete = true;
+            }
+        }
+        
+        if (!$canDelete) {
             return false;
         }
+
         $post->delete();
         return true;
     }

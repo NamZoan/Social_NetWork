@@ -49,7 +49,7 @@ class PostController extends Controller
                 if (!$page) {
                     return back()->withErrors(['error' => 'Trang khong ton tai.']);
                 }
-                if (!$page->isAdmin(Auth::id())) {
+                if (!$page->canCreatePost(Auth::id())) {
                     return back()->withErrors(['error' => 'Ban khong co quyen dang bai tren trang nay.']);
                 }
                 $postData['page_id'] = $page->id;
@@ -284,7 +284,17 @@ class PostController extends Controller
     public function update(Request $request, $postId)
     {
         $post = $this->postRepo->find($postId);
-        if ($post->user_id !== Auth::id()) {
+        
+        $canEdit = $post->user_id === Auth::id();
+
+        if (!$canEdit && $post->page_id) {
+             $page = $post->page;
+             if ($page && $page->canEditPost(Auth::id())) {
+                 $canEdit = true;
+             }
+        }
+
+        if (!$canEdit) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

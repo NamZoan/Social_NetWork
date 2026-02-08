@@ -169,13 +169,22 @@ class CommentController extends Controller
             DB::beginTransaction();
             
             // Kiểm tra quyền xóa comment
-            if ($comment->user_id !== Auth::id() && $comment->post->user_id !== Auth::id()) {
+            $canDelete = $comment->user_id === Auth::id() || $comment->post->user_id === Auth::id();
+
+            if (!$canDelete && $comment->post->page_id) {
+                $page = $comment->post->page;
+                if ($page && $page->canManageComments(Auth::id())) {
+                    $canDelete = true;
+                }
+            }
+
+            if (!$canDelete) {
                 return response()->json([
                     'error' => 'You do not have permission to delete this comment'
                 ], 403);
             }
 
-            // XA3a comment va toan bo cay replies
+            // Xoa comment va toan bo cay replies
             $comment->load('replies');
             $comment->deleteRecursively();
 
@@ -203,7 +212,16 @@ class CommentController extends Controller
             $comment = Comment::findOrFail($commentId);
             
             // Kiểm tra quyền ẩn/hiện comment
-            if ($comment->user_id !== Auth::id()) {
+            $canToggle = $comment->user_id === Auth::id();
+
+            if (!$canToggle && $comment->post->page_id) {
+                $page = $comment->post->page;
+                if ($page && $page->canManageComments(Auth::id())) {
+                    $canToggle = true;
+                }
+            }
+
+            if (!$canToggle) {
                 return response()->json([
                     'error' => 'You do not have permission to toggle this comment'
                 ], 403);

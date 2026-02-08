@@ -75,11 +75,17 @@ const getConversationAvatar = (conversation) => {
       : '/images/web/groups/group.webp'
   } else {
     const other = conversation.members?.find(m => m.id !== currentUserId)
-    return other?.avatar
-      ? `/images/client/avatar/${other.avatar}`
-      : '/images/default/avatar.jpg'
+    return getAvatarUrl(other?.avatar)
   }
 }
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 const getConversationName = (conversation) => {
   if (conversation.conversation_type === 'group') return conversation.name

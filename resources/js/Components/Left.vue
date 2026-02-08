@@ -7,9 +7,6 @@ import { Link } from '@inertiajs/vue3';
     <div class="col-md-3 newsfeed-left-side sticky-top shadow-sm" id="sidebar-wrapper">
         <div class="card newsfeed-user-card h-100">
             <ul class="list-group list-group-flush newsfeed-left-sidebar">
-                <li class="list-group-item">
-                    <h6>Home</h6>
-                </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <Link href="/" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/newsfeed.png'"
                             alt="newsfeed"> Bảng Tin</Link>
@@ -23,11 +20,11 @@ import { Link } from '@inertiajs/vue3';
                             alt="group"> Nhóm</Link>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <Link href="/friend-requests" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/find-friends.png'"
+                    <Link href="/friends" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/find-friends.png'"
                             alt="group"> Bạn Bè</Link>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <Link href="/pages/index" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/page.png'"
+                    <Link href="/pages/index" class="sidebar-item"><img :src="'/images/web/icons/left-sidebar/saved.png'"
                             alt="page"> Trang</Link>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">

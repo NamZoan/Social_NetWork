@@ -46,7 +46,7 @@
                                 :class="{ 'unread': !notification.is_read }" @click="markAsRead(notification.id)">
                                 <div class="d-flex align-items-start p-3">
                                     <div class="avatar-wrapper mr-3">
-                                        <img :src="notification.sender_avatar ? '/images/client/avatar/' + notification.sender_avatar : '/images/default/avatar.jpg'"
+                                        <img :src="getAvatarUrl(notification.sender_avatar)"
                                             class="notification-avatar" alt="Avatar">
                                         <span v-if="!notification.is_read" class="status-dot"></span>
                                     </div>
@@ -116,6 +116,14 @@ const pagination = props.notifications;
 const isLoading = ref(false);
 
 const unreadCount = computed(() => notifications.value.filter((n) => !n.is_read).length);
+
+// Hàm lấy URL avatar với mặc định
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return '/images/web/users/avatar.jpg';
+    if (avatar.startsWith('http')) return avatar;
+    if (avatar.startsWith('/')) return avatar;
+    return `/images/client/avatar/${avatar}`;
+};
 
 const markAsRead = async (notificationId) => {
     try {

@@ -1,81 +1,127 @@
 <template>
-    <div class="page-insights">
-        <!-- Loading State -->
-        <div v-if="isLoading" class="insights-loading">
-            <div class="skeleton-loader" v-for="i in 4" :key="i"></div>
-        </div>
-
-        <!-- Insights Content -->
-        <div v-else class="insights-content">
-            <!-- Time Period Selector -->
-            <div class="time-period-selector">
-                <select v-model="selectedPeriod" @change="loadInsights" class="period-select">
-                    <option value="7">7 ngày qua</option>
-                    <option value="30">30 ngày qua</option>
-                    <option value="90">90 ngày qua</option>
-                </select>
+    <div class="insights-container">
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <!-- Total Posts -->
+            <div class="metric-card">
+                <div class="metric-icon posts">
+                    <i class="bx bx-file"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Tổng bài viết</div>
+                    <div class="metric-value">{{ insights.total_posts || 0 }}</div>
+                </div>
             </div>
 
-            <!-- Key Metrics Cards -->
-            <div class="metrics-grid">
-                <div class="metric-card" v-for="metric in keyMetrics" :key="metric.key">
-                    <div class="metric-icon" :style="{ background: metric.color }">
-                        <i :class="metric.icon"></i>
-                    </div>
-                    <div class="metric-info">
-                        <div class="metric-value">{{ metric.value }}</div>
-                        <div class="metric-label">{{ metric.label }}</div>
-                        <div class="metric-change" :class="metric.change >= 0 ? 'positive' : 'negative'">
-                            <i :class="metric.change >= 0 ? 'bx bx-up-arrow-alt' : 'bx bx-down-arrow-alt'"></i>
-                            {{ Math.abs(metric.change) }}%
+            <!-- Total Reactions -->
+            <div class="metric-card">
+                <div class="metric-icon reactions">
+                    <i class="bx bxs-like"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Tổng lượt yêu thích</div>
+                    <div class="metric-value">{{ formatNumber(insights.total_likes || 0) }}</div>
+                </div>
+            </div>
+
+            <!-- Total Comments -->
+            <div class="metric-card">
+                <div class="metric-icon comments">
+                    <i class="bx bx-message-rounded"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Tổng bình luận</div>
+                    <div class="metric-value">{{ formatNumber(insights.total_comments || 0) }}</div>
+                </div>
+            </div>
+
+            <!-- Total Shares -->
+            <div class="metric-card">
+                <div class="metric-icon shares">
+                    <i class="bx bx-share-alt"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Tổng chia sẻ</div>
+                    <div class="metric-value">{{ formatNumber(insights.total_shares || 0) }}</div>
+                </div>
+            </div>
+
+            <!-- Engagement Rate -->
+            <div class="metric-card">
+                <div class="metric-icon engagement">
+                    <i class="bx bx-trending-up"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Tỉ lệ tương tác</div>
+                    <div class="metric-value">{{ insights.engagement_rate || 0 }}%</div>
+                </div>
+            </div>
+
+            <!-- Followers -->
+            <div class="metric-card">
+                <div class="metric-icon followers">
+                    <i class="bx bx-user-plus"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Người theo dõi</div>
+                    <div class="metric-value">{{ formatNumber(page.follower_count || 0) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Posts Section -->
+        <div class="top-posts-section">
+            <h3 class="section-title">Bài viết được yêu thích nhất</h3>
+            <div v-if="insights.top_posts && insights.top_posts.length > 0" class="top-posts-list">
+                <div v-for="(post, index) in insights.top_posts" :key="post.id" class="top-post-item">
+                    <div class="rank-badge">{{ index + 1 }}</div>
+                    <div class="post-content">
+                        <p class="post-text">{{ truncateText(post.content, 100) }}</p>
+                        <div class="post-stats">
+                            <span class="stat">
+                                <i class="bx bxs-like"></i>
+                                {{ post.likes_count || 0 }}
+                            </span>
+                            <span class="stat">
+                                <i class="bx bx-message-rounded"></i>
+                                {{ post.comments_count || 0 }}
+                            </span>
+                            <span class="stat">
+                                <i class="bx bx-share-alt"></i>
+                                {{ post.shares_count || 0 }}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
+            <div v-else class="empty-state">
+                <p>Chưa có dữ liệu bài viết</p>
+            </div>
+        </div>
 
-            <!-- Charts Section -->
-            <div class="charts-section">
-                <!-- Followers Growth Chart -->
-                <div class="chart-card">
-                    <h3 class="chart-title">Tăng trưởng người theo dõi</h3>
-                    <div class="chart-container">
-                        <canvas ref="followersChart"></canvas>
-                    </div>
+        <!-- Activity Period Stats -->
+        <div class="activity-section" v-if="insights.metrics">
+            <h3 class="section-title">Thống kê hoạt động (30 ngày gần đây)</h3>
+            <div class="activity-stats">
+                <div class="activity-card">
+                    <span class="activity-label">Bài viết trong kỳ:</span>
+                    <span class="activity-value">{{ insights.metrics.posts_last_period || 0 }}</span>
                 </div>
-
-                <!-- Engagement Chart -->
-                <div class="chart-card">
-                    <h3 class="chart-title">Lượt tương tác</h3>
-                    <div class="chart-container">
-                        <canvas ref="engagementChart"></canvas>
-                    </div>
+                <div class="activity-card">
+                    <span class="activity-label">Tương tác trung bình:</span>
+                    <span class="activity-value">{{ formatNumber(insights.metrics.avg_engagement || 0) }}</span>
                 </div>
-
-                <!-- Post Reach Chart -->
-                <div class="chart-card">
-                    <h3 class="chart-title">Lượt tiếp cận bài đăng</h3>
-                    <div class="chart-container">
-                        <canvas ref="reachChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Demographics Chart -->
-                <div class="chart-card">
-                    <h3 class="chart-title">Phân bố người theo dõi</h3>
-                    <div class="chart-container">
-                        <canvas ref="demographicsChart"></canvas>
-                    </div>
+                <div class="activity-card">
+                    <span class="activity-label">Bài viết tốt nhất:</span>
+                    <span class="activity-value">{{ insights.metrics.best_performing_post || 'N/A' }}</span>
                 </div>
             </div>
-
-            
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import axios from 'axios';
+import { ref } from 'vue';
 
 const props = defineProps({
     page: {
@@ -88,282 +134,214 @@ const props = defineProps({
     }
 });
 
-const isLoading = ref(false);
-const selectedPeriod = ref(30);
-const keyMetrics = ref([]);
-const topPosts = ref([]);
-
-
-
-
-
-const loadInsights = async () => {
-    isLoading.value = true;
-    try {
-        const response = await axios.get(`/pages/${props.page.id}/insights`, {
-            params: { period: selectedPeriod.value }
-        });
-
-        keyMetrics.value = response.data.metrics || [];
-        topPosts.value = response.data.top_posts || [];
-
-        // TODO: Initialize charts with Chart.js
-        // initializeCharts(response.data.chart_data);
-    } catch (error) {
-        console.error('Error loading insights:', error);
-    } finally {
-        isLoading.value = false;
-    }
+const formatNumber = (num) => {
+    if (!num) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
 };
 
-
-onMounted(() => {
-    loadInsights();
-});
-
-watch(() => props.insights, (newInsights) => {
-    if (newInsights) {
-        keyMetrics.value = newInsights.metrics || [];
-    }
-}, { deep: true });
+const truncateText = (text, maxLength) => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+};
 </script>
 
 <style scoped>
-.page-insights {
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.insights-loading {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.skeleton-loader {
-    height: 120px;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    border-radius: 8px;
-}
-
-@keyframes loading {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
-
-.time-period-selector {
-    margin-bottom: 24px;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.period-select {
-    padding: 8px 16px;
-    border: 1px solid #e4e6eb;
-    border-radius: 6px;
-    font-size: 15px;
-    background: #fff;
-    cursor: pointer;
-    outline: none;
-}
-
-.period-select:focus {
-    border-color: #1877f2;
+.insights-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
 }
 
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
+    gap: 16px;
+    margin-bottom: 2rem;
 }
 
 .metric-card {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
     display: flex;
     align-items: center;
     gap: 16px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    padding: 20px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
 .metric-card:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
 }
 
 .metric-icon {
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    font-size: 24px;
-    flex-shrink: 0;
+    font-size: 28px;
+    color: white;
 }
 
-.metric-info {
+.metric-icon.posts {
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
+}
+
+.metric-icon.reactions {
+    background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+}
+
+.metric-icon.comments {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.metric-icon.shares {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+.metric-icon.engagement {
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+}
+
+.metric-icon.followers {
+    background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
+}
+
+.metric-content {
     flex: 1;
+}
+
+.metric-label {
+    font-size: 13px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
 }
 
 .metric-value {
     font-size: 28px;
     font-weight: 700;
-    color: #050505;
-    margin-bottom: 4px;
+    color: #111827;
 }
 
-.metric-label {
-    font-size: 14px;
-    color: #65676b;
-    margin-bottom: 8px;
-}
-
-.metric-change {
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.metric-change.positive {
-    color: #41b35d;
-}
-
-.metric-change.negative {
-    color: #f02849;
-}
-
-.charts-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
-}
-
-.chart-card {
-    background: #fff;
-    border: 1px solid #e4e6eb;
-    border-radius: 8px;
+.top-posts-section,
+.activity-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
     padding: 20px;
-}
-
-.chart-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #050505;
-    margin-bottom: 16px;
-}
-
-.chart-container {
-    position: relative;
-    height: 300px;
-}
-
-.top-posts-section {
-    margin-top: 32px;
+    margin-bottom: 2rem;
 }
 
 .section-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: #050505;
-    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 16px;
 }
 
-.posts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+.top-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.top-post-item {
+    display: flex;
     gap: 16px;
-}
-
-.post-card {
-    position: relative;
-    aspect-ratio: 1;
+    padding: 16px;
+    background: #f9fafb;
     border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s ease;
 }
 
-.post-card:hover {
-    transform: scale(1.02);
+.top-post-item:hover {
+    background: #f3f4f6;
 }
 
-.post-image {
-    width: 100%;
-    height: 100%;
-    background: #f0f2f5;
-}
-
-.post-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.post-placeholder {
-    width: 100%;
-    height: 100%;
+.rank-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
+    color: white;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
-    color: #bcc0c4;
+    flex-shrink: 0;
+}
+
+.post-content {
+    flex: 1;
+}
+
+.post-text {
+    margin: 0 0 8px;
+    color: #111827;
+    line-height: 1.5;
 }
 
 .post-stats {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-    padding: 12px;
     display: flex;
     gap: 16px;
-    color: #fff;
+}
+
+.stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.stat i {
     font-size: 14px;
 }
 
-.stat-item {
+.activity-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.activity-card {
     display: flex;
-    align-items: center;
-    gap: 4px;
+    flex-direction: column;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
 }
 
-.stat-item i {
-    font-size: 16px;
+.activity-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-@media (max-width: 768px) {
-    .page-insights {
-        padding: 16px;
-    }
+.activity-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #667eea;
+}
 
-    .metrics-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .charts-section {
-        grid-template-columns: 1fr;
-    }
-
-    .posts-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
 }
 </style>
+
 
 

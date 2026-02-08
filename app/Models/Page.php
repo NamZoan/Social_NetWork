@@ -35,6 +35,8 @@ class Page extends Model
         'follower_count' => 'integer',
     ];
 
+    protected $appends = ['avatar_url', 'cover_url'];
+
     /**
      * Mối quan hệ với User (creator)
      */
@@ -97,6 +99,71 @@ class Page extends Model
     }
 
     /**
+     * Kiểm tra quyền tạo bài viết
+     */
+    public function canCreatePost($userId): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        return in_array($role, [PageAdmin::ROLE_ADMIN, PageAdmin::ROLE_EDITOR], true);
+    }
+
+    /**
+     * Kiểm tra quyền chỉnh sửa bài viết
+     */
+    public function canEditPost($userId): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        return in_array($role, [PageAdmin::ROLE_ADMIN, PageAdmin::ROLE_EDITOR], true);
+    }
+
+    /**
+     * Kiểm tra quyền xóa bài viết
+     */
+    public function canDeletePost($userId): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        return in_array($role, [PageAdmin::ROLE_ADMIN, PageAdmin::ROLE_EDITOR], true);
+    }
+
+    /**
+     * Kiểm tra quyền quản lý bình luận
+     */
+    public function canManageComments($userId): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        return in_array($role, [PageAdmin::ROLE_ADMIN, PageAdmin::ROLE_EDITOR], true);
+    }
+
+    /**
+     * Kiểm tra quyền xem insights
+     */
+    public function canViewInsights($userId): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        return in_array($role, [PageAdmin::ROLE_ADMIN, PageAdmin::ROLE_ANALYST], true);
+    }
+
+    /**
+     * Kiểm tra quyền xóa trang
+     */
+    public function canDeletePage($userId): bool
+    {
+        return $this->getRoleForUser($userId) === PageAdmin::ROLE_ADMIN;
+    }
+
+    /**
+     * Kiểm tra quyền dựa trên permission string
+     */
+    public function hasPermission($userId, string $permission): bool
+    {
+        $role = $this->getRoleForUser($userId);
+        if (!$role) {
+            return false;
+        }
+        return PageAdmin::roleHasPermission($role, $permission);
+    }
+
+    /**
      * Kiểm tra xem user có quyền admin cụ thể không
      */
     public function hasAdminRole($userId, $role)
@@ -116,6 +183,74 @@ class Page extends Model
     }
 
     /**
+     * Accessor: Lấy URL ảnh đại diện với default
+     */
+    public function getProfilePictureUrlAttribute($value)
+    {
+        if (!$value) {
+            return '/images/client/pages/default-page.png';
+        }
+        
+        // Xử lý URL
+        if (str_starts_with($value, 'http')) {
+            return $value;
+        }
+        
+        if (str_starts_with($value, '/')) {
+            return $value;
+        }
+        
+        // Xóa storage/ prefix nếu có
+        $normalized = preg_replace('#^storage/(app/)?public/#i', '', $value);
+        $normalized = preg_replace('#^storage/#i', '', $normalized);
+        $normalized = ltrim($normalized, '/');
+        
+        return '/' . $normalized;
+    }
+
+    /**
+     * Accessor: Lấy URL ảnh bìa với default
+     */
+    public function getCoverPhotoUrlAttribute($value)
+    {
+        if (!$value) {
+            return '/images/web/users/cover/cover-1.gif';
+        }
+        
+        // Xử lý URL
+        if (str_starts_with($value, 'http')) {
+            return $value;
+        }
+        
+        if (str_starts_with($value, '/')) {
+            return $value;
+        }
+        
+        // Xóa storage/ prefix nếu có
+        $normalized = preg_replace('#^storage/(app/)?public/#i', '', $value);
+        $normalized = preg_replace('#^storage/#i', '', $normalized);
+        $normalized = ltrim($normalized, '/');
+        
+        return '/' . $normalized;
+    }
+
+    /**
+     * Mutator: Tạo avatar_url từ profile_picture_url
+     */
+    public function getAvatarUrlAttribute()
+    {
+        return $this->profile_picture_url_attribute ?: '/images/web/users/avatar.jpg';
+    }
+
+    /**
+     * Mutator: Tạo cover_url từ cover_photo_url
+     */
+    public function getCoverUrlAttribute()
+    {
+        return $this->cover_photo_url_attribute ?: '/images/web/default-cover.jpg';
+    }
+
+    /**
      * Tăng số lượng followers
      */
     public function incrementFollowers()
@@ -129,36 +264,6 @@ class Page extends Model
     public function decrementFollowers()
     {
         $this->decrement('follower_count');
-    }
-
-    /**
-     * Lấy URL ảnh đại diện
-     */
-    public function getProfilePictureAttribute()
-    {
-        return $this->profile_picture_url
-            ? asset($this->profile_picture_url)
-            : asset('/images/web/users/avatar.jpg');
-    }
-
-    /**
-     * Lấy URL ảnh bìa
-     */
-    public function getCoverPhotoAttribute()
-    {
-        return $this->cover_photo_url
-            ? asset($this->cover_photo_url)
-            : asset('/images/web/default-cover.jpg');
-    }
-
-    /**
-     * Lấy URL trang
-     */
-    public function getUrlAttribute()
-    {
-        return $this->username
-            ? route('pages.show', $this->username)
-            : route('pages.show', $this->id);
     }
 }
 

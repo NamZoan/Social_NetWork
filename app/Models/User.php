@@ -141,6 +141,17 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Mối quan hệ với Pages (quản trị viên)
+     */
+    public function pageAdmins()
+    {
+        return $this->belongsToMany(Page::class, 'page_admins', 'user_id', 'page_id')
+            ->using(\App\Models\PageAdmin::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
      * Kiểm tra xem user có role cụ thể không
      */
     public function hasRole($roleName)
@@ -195,5 +206,33 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->roles()->where('is_active', true)->get()->filter(function ($role) use ($permission) {
             return $role->hasPermission($permission);
         })->isNotEmpty();
+    }
+
+    /**
+     * Lấy URL avatar của user
+     * Nếu không có avatar, trả về avatar mặc định
+     */
+    public function getAvatarUrlAttribute()
+    {
+        if (!$this->avatar) {
+            return '/images/web/users/avatar.jpg';
+        }
+
+        // Nếu là URL đầy đủ
+        if (str_starts_with($this->avatar, 'http')) {
+            return $this->avatar;
+        }
+
+        // Nếu là path tuyệt đối
+        if (str_starts_with($this->avatar, '/')) {
+            return $this->avatar;
+        }
+
+        // Xóa storage/ prefix nếu có
+        $normalized = preg_replace('#^storage/(app/)?public/#i', '', $this->avatar);
+        $normalized = preg_replace('#^storage/#i', '', $normalized);
+        $normalized = ltrim($normalized, '/');
+
+        return '/' . $normalized;
     }
 }

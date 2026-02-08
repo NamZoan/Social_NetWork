@@ -446,4 +446,362 @@ public function sendMessage(Request $request)
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Lấy danh sách bạn bè của user
+     */
+    public function getFriends(Request $request)
+    {
+        $user = Auth::user();
+
+        $friends = User::whereHas('friendships', function ($query) use ($user) {
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id_1', $user->id)
+                  ->orWhere('user_id_2', $user->id);
+            })->where('status', 'accepted');
+        })
+        ->where('users.id', '!=', $user->id)
+        ->select('id', 'name', 'username', 'avatar')
+        ->orderBy('name')
+        ->get();
+
+        return response()->json($friends);
+    }
+
+    /**
+     * Tạo cuộc trò chuyện nhóm
+     */
+    public function createGroup(Request $request)
+    {
+        $user = Auth::user();
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'members' => 'required|array|min:2',
+            'members.*' => 'integer|exists:users,id'
+        ]);
+
+        try {
+            // Kiểm tra xem user có trong danh sách thành viên không
+            if (!in_array($user->id, $validated['members'])) {
+                $validated['members'][] = $user->id;
+            }
+
+            // Tạo conversation nhóm
+            $conversation = Conversation::create([
+                'name' => $validated['name'],
+                'conversation_type' => 'group',
+                'creator_id' => $user->id,
+                'is_active' => true
+            ]);
+
+            // Thêm tất cả thành viên vào nhóm
+            $conversation->members()->attach($validated['members'], [
+                'role' => 'member',
+                'joined_at' => now()
+            ]);
+
+            // Gán creator là admin
+            $conversation->members()->updateExistingPivot($user->id, [
+                'role' => 'admin'
+            ]);
+
+            // Load các thành viên
+            $conversation->load('members:id,name,avatar');
+
+            return response()->json([
+                'success' => true,
+                'conversation' => $conversation,
+                'message' => 'Tạo nhóm chat thành công!'
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tạo nhóm: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy danh sách thành viên của cuộc trò chuyện
+     */
+    public function getConversationMembers(Request $request, Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        // Kiểm tra xem user có phải là thành viên của conversation không
+        if (!$conversation->members()->where('users.id', $user->id)->exists()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $members = $conversation->members()
+            ->select('users.id', 'users.name', 'users.username', 'users.avatar')
+            ->with(['pivot' => function ($query) {
+                $query->select('user_id', 'conversation_id', 'role', 'joined_at');
+            }])
+            ->get();
+
+        return response()->json($members);
+    }
+
+    /**
+     * Thêm thành viên vào cuộc trò chuyện nhóm
+     */
+    public function addMembersToConversation(Request $request, Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        // Kiểm tra xem user có phải là admin của conversation không
+        $isAdmin = $conversation->members()
+            ->where('users.id', $user->id)
+            ->wherePivot('role', 'admin')
+            ->exists();
+
+        if (!$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ admin mới có thể thêm thành viên'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'member_ids' => 'required|array|min:1',
+            'member_ids.*' => 'integer|exists:users,id'
+        ]);
+
+        try {
+            foreach ($validated['member_ids'] as $memberId) {
+                // Kiểm tra xem thành viên đã tồn tại chưa
+                $exists = $conversation->members()
+                    ->where('users.id', $memberId)
+                    ->exists();
+
+                if (!$exists) {
+                    $conversation->members()->attach($memberId, [
+                        'role' => 'member',
+                        'joined_at' => now()
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Thêm thành viên thành công!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi thêm thành viên: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Rời khỏi cuộc trò chuyện
+     */
+    public function leaveConversation(Request $request, Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        // Kiểm tra xem user có phải là thành viên của conversation không
+        $isMember = $conversation->members()
+            ->where('users.id', $user->id)
+            ->exists();
+
+        if (!$isMember) {
+            return response()->json([
+                'message' => 'Bạn không phải là thành viên của cuộc trò chuyện này'
+            ], 403);
+        }
+
+        try {
+            // Xóa user khỏi conversation
+            $conversation->members()->detach($user->id);
+
+            // Nếu là nhóm và user là creator, kiểm tra xem còn admin khác không
+            if ($conversation->conversation_type === 'group' && $conversation->creator_id === $user->id) {
+                $otherAdmins = $conversation->members()
+                    ->wherePivot('role', 'admin')
+                    ->where('users.id', '!=', $user->id)
+                    ->count();
+
+                // Nếu không có admin khác, gán admin cho thành viên đầu tiên
+                if ($otherAdmins === 0) {
+                    $firstMember = $conversation->members()->first();
+                    if ($firstMember) {
+                        $conversation->members()->updateExistingPivot($firstMember->id, [
+                            'role' => 'admin'
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bạn đã rời khỏi cuộc trò chuyện'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi rời cuộc trò chuyện: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa cuộc trò chuyện (cả cá nhân và nhóm)
+     */
+    public function deleteConversation(Request $request, Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        // Kiểm tra xem user có phải là thành viên của conversation không
+        if (!$conversation->members()->where('users.id', $user->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không phải là thành viên của cuộc trò chuyện này'
+            ], 403);
+        }
+
+        // Nếu là nhóm, chỉ creator mới có thể xóa
+        if ($conversation->conversation_type === 'group' && $conversation->creator_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ người tạo nhóm mới có thể xóa nhóm'
+            ], 403);
+        }
+
+        try {
+            // Xóa tất cả messages liên quan
+            $conversation->messages()->each(function ($message) {
+                if (in_array($message->message_type, ['image', 'video', 'file']) && $message->attachment_url) {
+                    Storage::disk('public')->delete($message->attachment_url);
+                }
+                $message->delete();
+            });
+
+            // Xóa tất cả members
+            $conversation->members()->detach();
+
+            // Xóa conversation
+            $conversation->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa cuộc trò chuyện thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa cuộc trò chuyện: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa thành viên khỏi nhóm chat
+     */
+    public function removeMemberFromConversation(Request $request, Conversation $conversation, User $user)
+    {
+        $currentUser = Auth::user();
+
+        // Kiểm tra xem current user có phải là admin không
+        $isAdmin = $conversation->members()
+            ->where('users.id', $currentUser->id)
+            ->wherePivot('role', 'admin')
+            ->exists();
+
+        if (!$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ admin mới có thể xóa thành viên'
+            ], 403);
+        }
+
+        try {
+            // Không cho phép xóa creator khỏi nhóm
+            if ($conversation->creator_id === $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể xóa người tạo nhóm'
+                ], 403);
+            }
+
+            // Xóa user khỏi conversation
+            $conversation->members()->detach($user->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa thành viên thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa thành viên: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin nhóm chat
+     */
+    public function updateConversation(Request $request, Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        // Kiểm tra xem user có phải là creator không
+        if ($conversation->creator_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ người tạo nhóm mới có thể cập nhật'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' // 5MB
+        ]);
+
+        try {
+            if (!empty($validated['name'])) {
+                $conversation->name = $validated['name'];
+            }
+
+            if ($request->hasFile('image')) {
+                // Xóa ảnh cũ nếu có
+                if ($conversation->image) {
+                    $oldImagePath = public_path("images/client/group/conversation/{$conversation->image}");
+                    if (file_exists($oldImagePath)) {
+                        unlink($oldImagePath);
+                    }
+                }
+
+                // Upload ảnh mới vào public folder
+                $file = $request->file('image');
+                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('images/client/group/conversation');
+                
+                // Đảm bảo thư mục tồn tại
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+                
+                $file->move($destinationPath, $filename);
+                $conversation->image = $filename;
+            }
+
+            $conversation->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => $conversation,
+                'message' => 'Cập nhật nhóm thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi cập nhật nhóm: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
